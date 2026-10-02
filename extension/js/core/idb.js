@@ -5,13 +5,29 @@ const DB_VERSION = 1;
 const STORE_NAME = 'backgrounds';
 const WALLPAPER_KEY = 'custom_wallpaper';
 
+let cachedDBPromise = null;
+let openCallCount = 0;
+
 /**
- * Opens or initializes the IndexedDB database.
+ * For testing connection reuse.
+ */
+export function _getOpenCountForTests() {
+  return openCallCount;
+}
+
+/**
+ * Opens or reuses the IndexedDB database connection.
  * @returns {Promise<IDBDatabase>}
  */
-function openDB() {
-  return new Promise((resolve, reject) => {
+function getDB() {
+  if (cachedDBPromise) {
+    return cachedDBPromise;
+  }
+
+  openCallCount++;
+  cachedDBPromise = new Promise((resolve, reject) => {
     if (typeof indexedDB === 'undefined') {
+      cachedDBPromise = null;
       reject(new Error('IndexedDB is not supported in this environment'));
       return;
     }
@@ -25,9 +41,38 @@ function openDB() {
       }
     };
 
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
+    request.onsuccess = () => {
+      const db = request.result;
+      db.onversionchange = () => {
+        db.close();
+        cachedDBPromise = null;
+      };
+      db.onclose = () => {
+        cachedDBPromise = null;
+      };
+      resolve(db);
+    };
+
+    request.onerror = () => {
+      cachedDBPromise = null;
+      reject(request.error);
+    };
   });
+
+  return cachedDBPromise;
+}
+
+/**
+ * Closes the active IndexedDB connection if open.
+ */
+export async function closeDB() {
+  if (cachedDBPromise) {
+    try {
+      const db = await cachedDBPromise;
+      db.close();
+    } catch {}
+    cachedDBPromise = null;
+  }
 }
 
 /**
@@ -36,7 +81,7 @@ function openDB() {
  * @returns {Promise<string>}
  */
 export async function saveBackgroundImage(blob) {
-  const db = await openDB();
+  const db = await getDB();
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, 'readwrite');
     const store = tx.objectStore(STORE_NAME);
@@ -53,7 +98,7 @@ export async function saveBackgroundImage(blob) {
  */
 export async function getBackgroundImage() {
   try {
-    const db = await openDB();
+    const db = await getDB();
     return new Promise((resolve, reject) => {
       const tx = db.transaction(STORE_NAME, 'readonly');
       const store = tx.objectStore(STORE_NAME);
@@ -73,7 +118,7 @@ export async function getBackgroundImage() {
  */
 export async function deleteBackgroundImage() {
   try {
-    const db = await openDB();
+    const db = await getDB();
     return new Promise((resolve, reject) => {
       const tx = db.transaction(STORE_NAME, 'readwrite');
       const store = tx.objectStore(STORE_NAME);

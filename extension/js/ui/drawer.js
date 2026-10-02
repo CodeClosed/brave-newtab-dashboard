@@ -286,7 +286,7 @@ function renderAppearanceSection(settings) {
         showToast('Processing wallpaper...');
         const downscaledBlob = await downscaleImage(file, 2560);
         await saveBackgroundImage(downscaledBlob);
-        store.updateSettings({ background: { ...bgConfig, type: 'image', value: 'custom_wallpaper' } });
+        store.updateSettings({ background: { ...bgConfig, type: 'image', value: 'custom_wallpaper', updatedAt: Date.now() } });
         showToast('Custom wallpaper applied!');
         renderDrawerContent();
       } catch (err) {

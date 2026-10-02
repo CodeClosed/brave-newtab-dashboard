@@ -2,6 +2,20 @@
 import { getBackgroundImage } from '../core/idb.js';
 
 let activeImageUrl = null;
+let lastBgKey = null;
+let currentRequestId = 0;
+
+/**
+ * Resets background caching and active image state for tests.
+ */
+export function _resetBackgroundStateForTests() {
+  if (activeImageUrl && typeof URL !== 'undefined') {
+    try { URL.revokeObjectURL(activeImageUrl); } catch {}
+  }
+  activeImageUrl = null;
+  lastBgKey = null;
+  currentRequestId = 0;
+}
 
 /**
  * Calculates new dimensions preserving aspect ratio with max boundary.
@@ -75,18 +89,29 @@ export async function downscaleImage(file, maxDimension = 2560) {
 
 /**
  * Applies background settings (none, solid, gradient, image) to #bg-overlay.
+ * Re-applies only when settings.background serialized key changes (or forced).
+ * Guards against out-of-order async resolutions and revokes previous Blob URLs.
+ *
  * @param {import('../core/schema.js').DashboardData['settings']['background']} bgConfig
+ * @param {boolean} [force=false]
  */
-export async function applyBackground(bgConfig) {
+export async function applyBackground(bgConfig, force = false) {
   const overlay = document.getElementById('bg-overlay');
   if (!overlay) return;
 
-  if (activeImageUrl) {
-    URL.revokeObjectURL(activeImageUrl);
-    activeImageUrl = null;
+  const currentBgKey = JSON.stringify(bgConfig || { type: 'none' });
+  if (!force && lastBgKey !== null && currentBgKey === lastBgKey) {
+    return;
   }
+  lastBgKey = currentBgKey;
+
+  const requestId = ++currentRequestId;
 
   if (!bgConfig || bgConfig.type === 'none') {
+    if (activeImageUrl) {
+      URL.revokeObjectURL(activeImageUrl);
+      activeImageUrl = null;
+    }
     overlay.style.backgroundImage = 'none';
     overlay.style.backgroundColor = 'transparent';
     overlay.style.opacity = '0';
@@ -96,22 +121,42 @@ export async function applyBackground(bgConfig) {
   const dim = typeof bgConfig.dim === 'number' ? bgConfig.dim : 0.35;
 
   if (bgConfig.type === 'solid') {
+    if (activeImageUrl) {
+      URL.revokeObjectURL(activeImageUrl);
+      activeImageUrl = null;
+    }
     overlay.style.backgroundImage = 'none';
     overlay.style.backgroundColor = bgConfig.value || '#1e293b';
     overlay.style.opacity = String(1 - dim * 0.5);
   } else if (bgConfig.type === 'gradient') {
+    if (activeImageUrl) {
+      URL.revokeObjectURL(activeImageUrl);
+      activeImageUrl = null;
+    }
     overlay.style.backgroundColor = 'transparent';
     overlay.style.backgroundImage = bgConfig.value || 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)';
     overlay.style.opacity = String(1 - dim * 0.4);
   } else if (bgConfig.type === 'image') {
     const blob = await getBackgroundImage();
+
+    // Guard against out-of-order async results
+    if (requestId !== currentRequestId) {
+      return;
+    }
+
     if (blob) {
+      if (activeImageUrl) {
+        URL.revokeObjectURL(activeImageUrl);
+      }
       activeImageUrl = URL.createObjectURL(blob);
       overlay.style.backgroundImage = `url("${activeImageUrl}")`;
-      // Apply dimming layer via overlay brightness/opacity
       overlay.style.opacity = String(1 - dim);
       overlay.style.backgroundColor = '#000000';
     } else {
+      if (activeImageUrl) {
+        URL.revokeObjectURL(activeImageUrl);
+        activeImageUrl = null;
+      }
       overlay.style.backgroundImage = 'none';
       overlay.style.backgroundColor = 'transparent';
       overlay.style.opacity = '0';
