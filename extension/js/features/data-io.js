@@ -1,8 +1,7 @@
 // @ts-check
 import { store } from '../core/state.js';
-import { migrate } from '../core/migrate.js';
-import { validateDashboardData, generateId } from '../core/schema.js';
-import { normalizeUrl } from '../utils/url.js';
+import { migrate, repairSettings, repairCategories } from '../core/migrate.js';
+import { CURRENT_SCHEMA_VERSION, validateDashboardData } from '../core/schema.js';
 
 /**
  * Serializes dashboard state into a formatted JSON backup string.
@@ -49,7 +48,7 @@ export function exportDashboardToFile() {
  * @returns {{
  *   success: boolean,
  *   data?: import('../core/schema.js').DashboardData,
- *   summary?: { categoryCount: number, bookmarkCount: number },
+ *   summary?: { categoryCount: number, bookmarkCount: number, skippedBookmarksCount: number },
  *   error?: string
  * }}
  */
@@ -65,69 +64,51 @@ export function parseAndValidateImport(jsonString) {
     return { success: false, error: 'File is not valid JSON' };
   }
 
-  if (!raw || typeof raw !== 'object') {
-    return { success: false, error: 'Backup root must be an object' };
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    return { success: false, error: 'File is not a valid dashboard backup (must be a JSON object)' };
   }
 
-  // 1. Deep sanitize categories, deduplicate IDs, and strip dangerous URLs first
-  const seenCatIds = new Set();
-  const seenBmIds = new Set();
-  let totalBookmarks = 0;
+  // Must have a usable categories array to be considered a dashboard backup
+  if (!Array.isArray(raw.categories)) {
+    return { success: false, error: 'File is not a valid dashboard backup (missing categories array)' };
+  }
 
-  const categories = Array.isArray(raw.categories) ? raw.categories : [];
-  const sanitizedCategories = categories.map((cat, cIdx) => {
-    let catId = String(cat?.id || generateId());
-    if (seenCatIds.has(catId)) catId = generateId();
-    seenCatIds.add(catId);
-
-    const bookmarks = Array.isArray(cat?.bookmarks) ? cat.bookmarks : [];
-    const validBookmarks = [];
-
-    bookmarks.forEach((bm, bIdx) => {
-      let bmId = String(bm?.id || generateId());
-      if (seenBmIds.has(bmId)) bmId = generateId();
-      seenBmIds.add(bmId);
-
-      const norm = normalizeUrl(bm?.url || '');
-      // Only keep bookmarks with valid http/https URLs
-      if (norm.valid) {
-        validBookmarks.push({
-          id: bmId,
-          name: String(bm?.name || norm.domain).trim(),
-          url: norm.url,
-          order: typeof bm?.order === 'number' ? bm.order : bIdx
-        });
-        totalBookmarks++;
-      }
-    });
-
-    return {
-      id: catId,
-      name: String(cat?.name || 'Collection').trim(),
-      icon: String(cat?.icon || '📁'),
-      order: typeof cat?.order === 'number' ? cat.order : cIdx,
-      collapsed: Boolean(cat?.collapsed),
-      bookmarks: validBookmarks
-    };
+  // Count incoming raw bookmarks before filtering
+  let totalRawBookmarks = 0;
+  raw.categories.forEach(cat => {
+    if (cat && Array.isArray(cat.bookmarks)) {
+      totalRawBookmarks += cat.bookmarks.length;
+    }
   });
 
-  raw.categories = sanitizedCategories;
+  // Repair settings and categories item by item
+  const repairedSettings = repairSettings(raw.settings);
+  const repairedCategories = repairCategories(raw.categories);
 
-  // 2. Run through migration runner to upgrade schema and fill missing settings
-  const migrated = migrate(raw);
+  let totalValidBookmarks = 0;
+  repairedCategories.forEach(cat => {
+    totalValidBookmarks += cat.bookmarks.length;
+  });
 
-  // 3. Verify against schema validator
-  const validation = validateDashboardData(migrated);
-  if (!validation.valid) {
-    return { success: false, error: validation.errors[0] || 'Validation error' };
-  }
+  const skippedBookmarksCount = Math.max(0, totalRawBookmarks - totalValidBookmarks);
+
+  const targetVersion = (typeof raw.version === 'number' && raw.version > CURRENT_SCHEMA_VERSION)
+    ? raw.version
+    : CURRENT_SCHEMA_VERSION;
+
+  const data = {
+    version: targetVersion,
+    settings: repairedSettings,
+    categories: repairedCategories
+  };
 
   return {
     success: true,
-    data: migrated,
+    data,
     summary: {
-      categoryCount: migrated.categories.length,
-      bookmarkCount: totalBookmarks
+      categoryCount: data.categories.length,
+      bookmarkCount: totalValidBookmarks,
+      skippedBookmarksCount
     }
   };
 }

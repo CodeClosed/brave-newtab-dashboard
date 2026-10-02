@@ -61,6 +61,11 @@ async function initApp() {
   renderClockAndGreeting(data.settings);
   renderCategoriesGrid(data.categories, gridContainer);
 
+  if (typeof window !== 'undefined' && /** @type {any} */ (window).__ntd_data_unreadable_warning) {
+    showToast("Your saved data couldn't be read. A backup copy was kept.");
+    delete /** @type {any} */ (window).__ntd_data_unreadable_warning;
+  }
+
   // Bind Toolbar "New Collection" button
   const addCategoryBtn = document.getElementById('add-category-toolbar-btn');
   if (addCategoryBtn) {

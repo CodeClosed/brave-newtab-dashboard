@@ -1,8 +1,9 @@
 // @ts-check
-import { createDefaultDashboardData } from './schema.js';
+import { createDefaultDashboardData, CURRENT_SCHEMA_VERSION } from './schema.js';
 import { migrate } from './migrate.js';
 
 const STORAGE_KEY = 'dashboard';
+const RECOVERY_KEY = 'dashboard:recovery';
 const BOOT_CACHE_KEY = 'ntd:boot';
 const DEBOUNCE_DELAY_MS = 300;
 
@@ -31,7 +32,13 @@ export async function loadDashboardData() {
       raw = result[STORAGE_KEY];
     } else if (typeof localStorage !== 'undefined') {
       const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) raw = JSON.parse(stored);
+      if (stored) {
+        try {
+          raw = JSON.parse(stored);
+        } catch {
+          raw = stored; // string payload
+        }
+      }
     }
 
     if (!raw) {
@@ -39,6 +46,32 @@ export async function loadDashboardData() {
       const defaults = createDefaultDashboardData();
       await saveDashboardDataImmediately(defaults);
       return defaults;
+    }
+
+    // Check if stored data is truly unreadable or a future version
+    const isUnreadable = typeof raw !== 'object' || raw === null || (raw.categories !== undefined && !Array.isArray(raw.categories));
+    const isFutureVersion = raw && typeof raw === 'object' && typeof raw.version === 'number' && raw.version > CURRENT_SCHEMA_VERSION;
+
+    if (isUnreadable || isFutureVersion) {
+      // Copy raw value to recovery key before falling back to defaults
+      try {
+        if (hasChromeStorage()) {
+          await chrome.storage.local.set({ [RECOVERY_KEY]: raw });
+        } else if (typeof localStorage !== 'undefined') {
+          localStorage.setItem(RECOVERY_KEY, typeof raw === 'string' ? raw : JSON.stringify(raw));
+        }
+      } catch (e) {
+        console.warn('Failed to save recovery backup:', e);
+      }
+
+      if (isUnreadable) {
+        if (typeof window !== 'undefined') {
+          // @ts-ignore
+          window.__ntd_data_unreadable_warning = true;
+        }
+        // Do NOT overwrite storage with defaults!
+        return createDefaultDashboardData();
+      }
     }
 
     return migrate(raw);
@@ -114,8 +147,6 @@ export function flushPendingSave() {
   if (pendingData) {
     updateBootCache(pendingData);
     if (hasChromeStorage()) {
-      // In Chromium MV3, chrome.storage.local.set is asynchronous,
-      // but triggering it before pagehide initiates serialization.
       chrome.storage.local.set({ [STORAGE_KEY]: pendingData });
     } else if (typeof localStorage !== 'undefined') {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(pendingData));
