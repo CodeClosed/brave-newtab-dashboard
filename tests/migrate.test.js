@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { migrate } from '../extension/js/core/migrate.js';
+import { CURRENT_SCHEMA_VERSION } from '../extension/js/core/schema.js';
 
 test('migrate - upgrades unversioned legacy document', () => {
   const legacy = {
@@ -18,7 +19,7 @@ test('migrate - upgrades unversioned legacy document', () => {
   };
 
   const migrated = migrate(legacy);
-  assert.equal(migrated.version, 1);
+  assert.equal(migrated.version, CURRENT_SCHEMA_VERSION);
   assert.equal(migrated.settings.theme, 'dark');
   assert.equal(migrated.settings.layout, 'grid');
   assert.equal(migrated.categories.length, 1);
@@ -28,9 +29,9 @@ test('migrate - upgrades unversioned legacy document', () => {
 
 test('migrate - falls back to defaults on corrupt input', () => {
   const resultNull = migrate(null);
-  assert.equal(resultNull.version, 1);
+  assert.equal(resultNull.version, CURRENT_SCHEMA_VERSION);
   assert.equal(resultNull.categories.length > 0, true);
 
   const resultString = migrate('not-an-object');
-  assert.equal(resultString.version, 1);
+  assert.equal(resultString.version, CURRENT_SCHEMA_VERSION);
 });

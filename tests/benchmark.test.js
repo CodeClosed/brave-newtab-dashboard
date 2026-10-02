@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { validateDashboardData, generateId } from '../extension/js/core/schema.js';
+import { validateDashboardData, generateId, CURRENT_SCHEMA_VERSION } from '../extension/js/core/schema.js';
 import { migrate } from '../extension/js/core/migrate.js';
 import { serializeDashboardExport, parseAndValidateImport } from '../extension/js/features/data-io.js';
 
@@ -69,7 +69,7 @@ test('Benchmark - 12 categories & 150 bookmarks validation and processing under 
   const t1 = performance.now();
   const migrated = migrate(fixture);
   const migDuration = performance.now() - t1;
-  assert.equal(migrated.version, 1);
+  assert.equal(migrated.version, CURRENT_SCHEMA_VERSION);
   assert.equal(migDuration < 25, true, `Migration took ${migDuration}ms (expected < 25ms)`);
 
   // Measure serialization and export parsing speed

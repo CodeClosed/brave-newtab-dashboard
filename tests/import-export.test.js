@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { serializeDashboardExport, parseAndValidateImport } from '../extension/js/features/data-io.js';
 import { store } from '../extension/js/core/state.js';
-import { createDefaultDashboardData } from '../extension/js/core/schema.js';
+import { CURRENT_SCHEMA_VERSION, createDefaultDashboardData } from '../extension/js/core/schema.js';
 
 test('Data IO - Serialize dashboard state to valid JSON', async () => {
   await store.replaceData(createDefaultDashboardData(), true);
@@ -10,7 +10,7 @@ test('Data IO - Serialize dashboard state to valid JSON', async () => {
 
   assert.equal(typeof exported, 'string');
   const parsed = JSON.parse(exported);
-  assert.equal(parsed.version, 1);
+  assert.equal(parsed.version, CURRENT_SCHEMA_VERSION);
   assert.equal(parsed.categories.length > 0, true);
 });
 
@@ -44,7 +44,7 @@ test('Data IO - Migrates legacy unversioned backup', () => {
 
   const result = parseAndValidateImport(legacyBackup);
   assert.equal(result.success, true);
-  assert.equal(result.data?.version, 1);
+  assert.equal(result.data?.version, CURRENT_SCHEMA_VERSION);
   assert.equal(result.data?.categories[0].bookmarks[0].url, 'https://github.com/');
 });
 

@@ -1,12 +1,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createDefaultDashboardData, validateDashboardData, generateId } from '../extension/js/core/schema.js';
+import { createDefaultDashboardData, validateDashboardData, generateId, CURRENT_SCHEMA_VERSION } from '../extension/js/core/schema.js';
 
 test('createDefaultDashboardData - produces valid schema document', () => {
   const defaults = createDefaultDashboardData();
   const validation = validateDashboardData(defaults);
   assert.equal(validation.valid, true, `Validation failed: ${validation.errors.join(', ')}`);
-  assert.equal(defaults.version, 1);
+  assert.equal(defaults.version, CURRENT_SCHEMA_VERSION);
   assert.equal(defaults.categories.length > 0, true);
 });
 

@@ -1,15 +1,16 @@
 // @ts-check
 import { store } from '../core/state.js';
-import { migrate, repairSettings, repairCategories } from '../core/migrate.js';
+import { migrate, repairSettings, repairCategories, repairSpaces } from '../core/migrate.js';
 import { CURRENT_SCHEMA_VERSION, validateDashboardData } from '../core/schema.js';
 
 /**
  * Serializes dashboard state into a formatted JSON backup string.
  * Strips out device-specific image keys by default for portability.
+ * @param {import('../core/schema.js').DashboardData} [data]
  * @returns {string}
  */
-export function serializeDashboardExport() {
-  const current = store.get();
+export function serializeDashboardExport(data = null) {
+  const current = data || store.get();
   const exportData = JSON.parse(JSON.stringify(current));
 
   // If background is custom image, sanitize value in export
@@ -95,13 +96,24 @@ export function parseAndValidateImport(jsonString) {
     }
   });
 
+  // Spaces repair
+  const { spaces, activeSpaceId } = repairSpaces(raw.spaces, raw.activeSpaceId);
+
   // Repair settings and categories item by item
   const repairedSettings = repairSettings(raw.settings);
-  const repairedCategories = repairCategories(raw.categories);
+  const repairedCategories = repairCategories(raw.categories, activeSpaceId);
 
+  // Collect all valid bookmark IDs
+  const allBmIds = new Set();
   let totalValidBookmarks = 0;
   repairedCategories.forEach(cat => {
     totalValidBookmarks += cat.bookmarks.length;
+    cat.bookmarks.forEach(bm => allBmIds.add(bm.id));
+  });
+
+  // Prune pinned bookmarks in spaces that no longer exist
+  spaces.forEach(sp => {
+    sp.pinned = sp.pinned.filter(bmId => allBmIds.has(bmId));
   });
 
   const skippedBookmarksCount = Math.max(0, totalRawBookmarks - totalValidBookmarks);
@@ -112,6 +124,8 @@ export function parseAndValidateImport(jsonString) {
 
   const data = {
     version: targetVersion,
+    activeSpaceId,
+    spaces,
     settings: repairedSettings,
     categories: repairedCategories
   };
