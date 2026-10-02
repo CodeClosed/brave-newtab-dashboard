@@ -8,21 +8,33 @@ import { showToast } from './toasts.js';
 import { attachCategoryDnD, attachBookmarkDnD, attachCategoryListDrop, announceReorder } from '../features/dnd.js';
 
 let activeMenu = null;
+let activeMenuTrigger = null;
 
 // Close active menu when clicking outside
 if (typeof document !== 'undefined') {
   document.addEventListener('click', (e) => {
     if (activeMenu && !activeMenu.contains(e.target)) {
-      closeActiveMenu();
+      closeActiveMenu(false);
     }
   });
 }
 
-function closeActiveMenu() {
+/**
+ * Closes the active contextual menu and syncs trigger aria-expanded.
+ * @param {boolean} [returnFocus=false]
+ */
+export function closeActiveMenu(returnFocus = false) {
+  if (activeMenuTrigger) {
+    activeMenuTrigger.setAttribute('aria-expanded', 'false');
+    if (returnFocus && typeof activeMenuTrigger.focus === 'function') {
+      activeMenuTrigger.focus();
+    }
+  }
   if (activeMenu && activeMenu.parentNode) {
     activeMenu.parentNode.removeChild(activeMenu);
   }
   activeMenu = null;
+  activeMenuTrigger = null;
 }
 
 /**
@@ -143,13 +155,21 @@ export function renderBookmarkItem(bookmark, categoryId, bmIndex, totalBookmarks
 function openCategoryMenu(triggerBtn, category, categoryIndex, totalCategories) {
   closeActiveMenu();
 
-  const menu = el('div', { className: 'menu-dropdown' });
+  activeMenuTrigger = triggerBtn;
+  triggerBtn.setAttribute('aria-expanded', 'true');
+
+  const menu = el('div', {
+    className: 'menu-dropdown',
+    role: 'menu',
+    'aria-label': `${category.name} options`
+  });
 
   // Keyboard reorder: Move left / up
   if (categoryIndex > 0) {
     const moveLeftItem = el('button', {
       className: 'menu-item',
       type: 'button',
+      role: 'menuitem',
       text: '↑ Move earlier',
       onclick: () => {
         closeActiveMenu();
@@ -165,6 +185,7 @@ function openCategoryMenu(triggerBtn, category, categoryIndex, totalCategories) 
     const moveRightItem = el('button', {
       className: 'menu-item',
       type: 'button',
+      role: 'menuitem',
       text: '↓ Move later',
       onclick: () => {
         closeActiveMenu();
@@ -179,6 +200,7 @@ function openCategoryMenu(triggerBtn, category, categoryIndex, totalCategories) 
   const editItem = el('button', {
     className: 'menu-item',
     type: 'button',
+    role: 'menuitem',
     text: '✎ Edit collection',
     onclick: () => {
       closeActiveMenu();
@@ -198,6 +220,7 @@ function openCategoryMenu(triggerBtn, category, categoryIndex, totalCategories) 
   const addItem = el('button', {
     className: 'menu-item',
     type: 'button',
+    role: 'menuitem',
     text: '+ Add bookmark',
     onclick: () => {
       closeActiveMenu();
@@ -217,6 +240,7 @@ function openCategoryMenu(triggerBtn, category, categoryIndex, totalCategories) 
   const deleteItem = el('button', {
     className: 'menu-item danger',
     type: 'button',
+    role: 'menuitem',
     text: '✕ Delete collection',
     onclick: () => {
       closeActiveMenu();
@@ -233,12 +257,58 @@ function openCategoryMenu(triggerBtn, category, categoryIndex, totalCategories) 
   });
   menu.appendChild(deleteItem);
 
-  const rect = triggerBtn.getBoundingClientRect();
-  menu.style.top = `${rect.bottom + window.scrollY + 4}px`;
-  menu.style.left = `${Math.max(10, rect.right + window.scrollX - 150)}px`;
+  // Keys: ArrowUp/ArrowDown/Home/End move focus; Escape closes and returns focus to trigger; Tab closes it
+  menu.addEventListener('keydown', (e) => {
+    const items = Array.from(menu.querySelectorAll('[role="menuitem"]'));
+    if (!items.length) return;
+    const currentIndex = items.indexOf(document.activeElement);
+
+    if (e.key === 'ArrowDown') {
+      if (typeof e.preventDefault === 'function') e.preventDefault();
+      const nextIndex = (currentIndex + 1) % items.length;
+      items[nextIndex]?.focus();
+    } else if (e.key === 'ArrowUp') {
+      if (typeof e.preventDefault === 'function') e.preventDefault();
+      const prevIndex = (currentIndex - 1 + items.length) % items.length;
+      items[prevIndex]?.focus();
+    } else if (e.key === 'Home') {
+      if (typeof e.preventDefault === 'function') e.preventDefault();
+      items[0]?.focus();
+    } else if (e.key === 'End') {
+      if (typeof e.preventDefault === 'function') e.preventDefault();
+      items[items.length - 1]?.focus();
+    } else if (e.key === 'Escape') {
+      if (typeof e.preventDefault === 'function') e.preventDefault();
+      closeActiveMenu(true);
+    } else if (e.key === 'Tab') {
+      closeActiveMenu(false);
+    }
+  });
 
   document.body.appendChild(menu);
   activeMenu = menu;
+
+  const rect = triggerBtn.getBoundingClientRect();
+  const menuRect = menu.getBoundingClientRect();
+  const viewportWidth = (typeof window !== 'undefined' ? window.innerWidth : 1024) || 1024;
+  const viewportHeight = (typeof window !== 'undefined' ? window.innerHeight : 768) || 768;
+  const scrollY = (typeof window !== 'undefined' ? window.scrollY : 0) || 0;
+  const scrollX = (typeof window !== 'undefined' ? window.scrollX : 0) || 0;
+
+  let top = rect.bottom + 4;
+  if (top + (menuRect.height || 180) > viewportHeight - 8) {
+    top = Math.max(8, rect.top - (menuRect.height || 180) - 4);
+  }
+
+  let left = rect.right - (menuRect.width || 160);
+  left = Math.max(8, Math.min(left, viewportWidth - (menuRect.width || 160) - 8));
+
+  menu.style.top = `${top + scrollY}px`;
+  menu.style.left = `${left + scrollX}px`;
+
+  // Focus the first item on open
+  const firstItem = menu.querySelector('[role="menuitem"]');
+  firstItem?.focus();
 }
 
 /**
@@ -263,6 +333,8 @@ export function renderCategoryCard(category, categoryIndex, totalCategories) {
   const menuBtn = el('button', {
     className: 'icon-action-btn',
     type: 'button',
+    'aria-haspopup': 'menu',
+    'aria-expanded': 'false',
     'aria-label': `Options for ${category.name}`,
     title: 'Collection options',
     text: '⋮',
