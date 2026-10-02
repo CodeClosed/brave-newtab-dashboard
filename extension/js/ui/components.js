@@ -344,11 +344,15 @@ export function renderCategoryCard(category, categoryIndex, totalCategories) {
     }
   });
 
+  const listId = `bookmarks-list-${category.id}`;
+
   // Collapse / Expand trigger
   const collapseBtn = el('button', {
     className: 'icon-action-btn',
     type: 'button',
-    'aria-label': isCollapsed ? `Expand ${category.name}` : `Collapse ${category.name}`,
+    'aria-label': `Toggle ${category.name}`,
+    'aria-expanded': isCollapsed ? 'false' : 'true',
+    'aria-controls': listId,
     title: isCollapsed ? 'Expand' : 'Collapse',
     text: isCollapsed ? '▸' : '▾',
     onclick: () => {
@@ -362,7 +366,7 @@ export function renderCategoryCard(category, categoryIndex, totalCategories) {
   );
 
   // Bookmarks List
-  const list = el('ul', { className: 'bookmarks-list' });
+  const list = el('ul', { className: 'bookmarks-list', id: listId });
   if (Array.isArray(category.bookmarks)) {
     const sorted = [...category.bookmarks].sort((a, b) => a.order - b.order);
     sorted.forEach((bm, bIdx) => {
