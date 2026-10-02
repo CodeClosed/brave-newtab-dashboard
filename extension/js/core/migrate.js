@@ -73,8 +73,10 @@ export function repairCategories(rawCategories) {
     if (seenCatIds.has(catId)) catId = generateId();
     seenCatIds.add(catId);
 
-    const catName = (typeof cat.name === 'string' && cat.name.trim()) ? cat.name.trim() : 'Collection';
-    const catIcon = (typeof cat.icon === 'string' && cat.icon.trim()) ? cat.icon.trim() : '📁';
+    const rawCatName = (typeof cat.name === 'string' && cat.name.trim()) ? cat.name.trim() : 'Collection';
+    const catName = rawCatName.slice(0, 80);
+    const rawCatIcon = (typeof cat.icon === 'string' && cat.icon.trim()) ? cat.icon.trim() : '📁';
+    const catIcon = rawCatIcon.slice(0, 8);
     const catOrder = typeof cat.order === 'number' ? cat.order : cIdx;
     const catCollapsed = Boolean(cat.collapsed);
 
@@ -89,7 +91,8 @@ export function repairCategories(rawCategories) {
         if (seenBmIds.has(bmId)) bmId = generateId();
         seenBmIds.add(bmId);
 
-        const bmName = (typeof bm.name === 'string' && bm.name.trim()) ? bm.name.trim() : norm.domain;
+        const rawBmName = (typeof bm.name === 'string' && bm.name.trim()) ? bm.name.trim() : norm.domain;
+        const bmName = rawBmName.slice(0, 80);
         const bmOrder = typeof bm.order === 'number' ? bm.order : bIdx;
 
         validBookmarks.push({

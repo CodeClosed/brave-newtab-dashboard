@@ -57,6 +57,11 @@ export function parseAndValidateImport(jsonString) {
     return { success: false, error: 'Empty file contents' };
   }
 
+  // Cap import file size to 5 MB
+  if (jsonString.length > 5 * 1024 * 1024) {
+    return { success: false, error: 'Import file exceeds 5 MB limit' };
+  }
+
   let raw;
   try {
     raw = JSON.parse(jsonString);
@@ -71,6 +76,15 @@ export function parseAndValidateImport(jsonString) {
   // Must have a usable categories array to be considered a dashboard backup
   if (!Array.isArray(raw.categories)) {
     return { success: false, error: 'File is not a valid dashboard backup (missing categories array)' };
+  }
+
+  // Cap total bookmarks to 5,000
+  let totalBookmarksInRaw = 0;
+  for (const cat of raw.categories) {
+    if (Array.isArray(cat?.bookmarks)) totalBookmarksInRaw += cat.bookmarks.length;
+  }
+  if (totalBookmarksInRaw > 5000) {
+    return { success: false, error: 'Import exceeds maximum limit of 5,000 bookmarks' };
   }
 
   // Count incoming raw bookmarks before filtering
