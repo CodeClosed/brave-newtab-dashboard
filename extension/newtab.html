@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>New Tab</title>
+  <!-- Synchronous blocking theme script to eliminate Flash of Wrong Theme (FOWT) -->
+  <script src="js/boot.js"></script>
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/components/cards.css">
+  <link rel="stylesheet" href="css/components/dialogs.css">
+  <link rel="stylesheet" href="css/components/toasts.css">
+  <link rel="stylesheet" href="css/components/drawer.css">
+</head>
+<body>
+  <!-- Optional custom background overlay container -->
+  <div id="bg-overlay" aria-hidden="true"></div>
+
+  <!-- Top-right utility navigation -->
+  <nav class="top-nav" aria-label="Quick actions">
+    <button id="settings-trigger-btn" class="nav-icon-btn" type="button" aria-label="Open settings" title="Customize dashboard">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="3"></circle>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+      </svg>
+    </button>
+  </nav>
+
+  <!-- Main App Shell -->
+  <div id="app">
+    <!-- Header: Clock, Greeting & Search -->
+    <header class="dashboard-header">
+      <div id="clock-display" class="clock-display" aria-live="off"></div>
+      <div class="date-greeting-row">
+        <span id="greeting-display"></span>
+        <span id="date-display"></span>
+      </div>
+
+      <!-- Search Field -->
+      <section class="search-container" aria-label="Web search">
+        <form id="search-form" class="search-form" method="get" action="https://www.google.com/search">
+          <span class="search-icon-prefix" aria-hidden="true">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+          </span>
+          <input
+            id="search-input"
+            class="search-input"
+            type="search"
+            name="q"
+            placeholder="Search the web..."
+            autocomplete="off"
+            spellcheck="false"
+            aria-label="Search query"
+          >
+          <kbd class="search-shortcut-badge" title="Press / to focus search">/</kbd>
+        </form>
+      </section>
+    </header>
+
+    <!-- Main Content: Categorized Bookmarks Grid -->
+    <main class="dashboard-main" aria-label="Bookmark collections">
+      <div class="dashboard-toolbar">
+        <button id="add-category-toolbar-btn" class="btn-quiet" type="button">
+          <span>+</span>
+          <span>New Collection</span>
+        </button>
+      </div>
+      <div id="categories-grid" class="categories-grid"></div>
+    </main>
+  </div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

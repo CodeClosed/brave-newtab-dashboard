@@ -1,0 +1,10 @@
+{
+  "name": "new-tab-dashboard",
+  "version": "0.1.0",
+  "description": "A local-first, customizable New Tab extension for Brave and Chrome.",
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/**/*.test.js"
+  },
+  "devDependencies": {}
+}

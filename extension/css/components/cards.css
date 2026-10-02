@@ -1,0 +1,367 @@
+/* Category Cards & Bookmark Item Stylesheet */
+
+.category-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  transition: transform var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast);
+  overflow: hidden;
+  position: relative;
+}
+
+.category-card:hover {
+  border-color: var(--border-default);
+  box-shadow: var(--shadow-md);
+}
+
+/* Dragging visual states */
+.category-card.is-dragging {
+  opacity: 0.45;
+  border-style: dashed;
+  border-color: var(--accent-base);
+}
+
+.category-card.drop-target-card {
+  outline: 2px solid var(--accent-base);
+  outline-offset: 2px;
+}
+
+/* Card Header */
+.category-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--border-subtle);
+  user-select: none;
+  cursor: grab;
+}
+
+.category-header:active {
+  cursor: grabbing;
+}
+
+.category-title-group {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.category-icon {
+  font-size: 15px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-xs);
+}
+
+.category-name {
+  font-size: var(--text-md);
+  font-weight: var(--weight-medium);
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.category-count {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  margin-left: 2px;
+}
+
+.category-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.icon-action-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-xs);
+  color: var(--text-muted);
+  font-size: 13px;
+  transition: color var(--transition-fast), background-color var(--transition-fast);
+}
+
+.icon-action-btn:hover, .icon-action-btn:focus-visible {
+  color: var(--text-primary);
+  background-color: var(--bg-surface-hover);
+}
+
+/* Bookmarks List */
+.bookmarks-list {
+  list-style: none;
+  padding: var(--space-2);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-height: 28px;
+  transition: background-color var(--transition-fast);
+}
+
+.bookmarks-list.list-drop-hover {
+  background-color: var(--accent-tint);
+  border-radius: var(--radius-sm);
+}
+
+/* Bookmark Item Row */
+.bookmark-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px var(--space-2);
+  border-radius: var(--radius-sm);
+  transition: background-color var(--transition-fast), box-shadow var(--transition-fast);
+  text-decoration: none;
+  color: inherit;
+  position: relative;
+  cursor: grab;
+}
+
+.bookmark-item:active {
+  cursor: grabbing;
+}
+
+.bookmark-item:hover {
+  background-color: var(--bg-surface-hover);
+}
+
+.bookmark-item.is-dragging {
+  opacity: 0.35;
+  background-color: var(--bg-surface-active);
+}
+
+.bookmark-item.drop-indicator-top {
+  box-shadow: inset 0 2px 0 0 var(--accent-base);
+}
+
+.bookmark-item.drop-indicator-bottom {
+  box-shadow: inset 0 -2px 0 0 var(--accent-base);
+}
+
+.bookmark-link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+  flex: 1;
+  text-decoration: none;
+  color: inherit;
+}
+
+/* Contextual Bookmark Actions (visible on row hover/focus) */
+.bookmark-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+  margin-left: var(--space-2);
+}
+
+.bookmark-item:hover .bookmark-actions,
+.bookmark-item:focus-within .bookmark-actions {
+  opacity: 1;
+}
+
+.bookmark-action-btn {
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-xs);
+  color: var(--text-muted);
+  font-size: 11px;
+  transition: all var(--transition-fast);
+}
+
+.bookmark-action-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg-surface-active);
+}
+
+.bookmark-action-btn.delete:hover {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.12);
+}
+
+.bookmark-action-btn.reorder-btn {
+  font-size: 12px;
+  font-weight: var(--weight-semibold);
+}
+
+/* Favicon & Letter Tile Fallback */
+.favicon-container {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-xs);
+  overflow: hidden;
+}
+
+.favicon-img {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+}
+
+.letter-tile {
+  width: 18px;
+  height: 18px;
+  border-radius: var(--radius-xs);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: var(--weight-semibold);
+  color: #ffffff;
+  text-transform: uppercase;
+}
+
+.bookmark-details {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.bookmark-name {
+  font-size: var(--text-base);
+  font-weight: var(--weight-normal);
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.25;
+}
+
+.bookmark-domain {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+}
+
+/* Add Bookmark Trigger */
+.card-footer {
+  padding: var(--space-1) var(--space-2) var(--space-2) var(--space-2);
+  display: flex;
+  justify-content: flex-start;
+}
+
+.add-bookmark-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 4px var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  border-radius: var(--radius-sm);
+  transition: color var(--transition-fast), background-color var(--transition-fast);
+}
+
+.add-bookmark-btn:hover {
+  color: var(--text-primary);
+  background-color: var(--bg-surface-hover);
+}
+
+/* Collapsed State */
+.category-card.collapsed .bookmarks-list,
+.category-card.collapsed .card-footer {
+  display: none;
+}
+
+/* Dashboard Action Bar (e.g. + New Collection) */
+.dashboard-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-3);
+}
+
+.btn-quiet {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 5px 10px;
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface);
+  transition: all var(--transition-fast);
+}
+
+.btn-quiet:hover {
+  color: var(--text-primary);
+  border-color: var(--border-default);
+  background: var(--bg-surface-hover);
+}
+
+/* Visually Hidden Screen Reader Announcement */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Empty State */
+.dashboard-empty {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-10) var(--space-6);
+  border: 1px dashed var(--border-default);
+  border-radius: var(--radius-lg);
+  text-align: center;
+  gap: var(--space-3);
+}
+
+.dashboard-empty h2 {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-medium);
+  color: var(--text-primary);
+}
+
+.dashboard-empty p {
+  font-size: var(--text-base);
+  color: var(--text-secondary);
+  max-width: 400px;
+}
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 8px var(--space-4);
+  background-color: var(--accent-base);
+  color: var(--accent-text);
+  font-size: var(--text-base);
+  font-weight: var(--weight-medium);
+  border-radius: var(--radius-sm);
+  transition: opacity var(--transition-fast);
+}
+
+.btn-primary:hover {
+  opacity: 0.9;
+}
