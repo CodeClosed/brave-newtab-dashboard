@@ -9,6 +9,23 @@ const DEBOUNCE_DELAY_MS = 300;
 
 let pendingData = null;
 let saveTimeout = null;
+let lastSerializedWrite = null;
+let deferredExternalUpdate = null;
+let dragEndListenerBound = false;
+
+/**
+ * Resets internal state for unit test isolation.
+ */
+export function _resetSyncStateForTests() {
+  pendingData = null;
+  lastSerializedWrite = null;
+  deferredExternalUpdate = null;
+  dragEndListenerBound = false;
+  if (saveTimeout) {
+    clearTimeout(saveTimeout);
+    saveTimeout = null;
+  }
+}
 
 /**
  * Checks if running inside an active Chrome/Brave Extension environment.
@@ -114,10 +131,13 @@ export async function saveDashboardDataImmediately(data) {
 
   updateBootCache(data);
 
+  const serialized = JSON.stringify(data);
+  lastSerializedWrite = serialized;
+
   if (hasChromeStorage()) {
     await chrome.storage.local.set({ [STORAGE_KEY]: data });
   } else if (typeof localStorage !== 'undefined') {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    localStorage.setItem(STORAGE_KEY, serialized);
   }
 }
 
@@ -146,10 +166,12 @@ export function queueSaveDashboardData(data) {
 export function flushPendingSave() {
   if (pendingData) {
     updateBootCache(pendingData);
+    const serialized = JSON.stringify(pendingData);
+    lastSerializedWrite = serialized;
     if (hasChromeStorage()) {
       chrome.storage.local.set({ [STORAGE_KEY]: pendingData });
     } else if (typeof localStorage !== 'undefined') {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(pendingData));
+      localStorage.setItem(STORAGE_KEY, serialized);
     }
     pendingData = null;
   }
@@ -165,26 +187,77 @@ if (typeof window !== 'undefined') {
 }
 
 /**
+ * Sets up dragend listener to apply any deferred external updates once dragging ends.
+ * @param {(newData: import('./schema.js').DashboardData) => void} onChange
+ */
+function ensureDragEndListener(onChange) {
+  if (dragEndListenerBound || typeof document === 'undefined') return;
+  dragEndListenerBound = true;
+  document.addEventListener('dragend', () => {
+    setTimeout(() => {
+      if (deferredExternalUpdate) {
+        const toApply = deferredExternalUpdate;
+        deferredExternalUpdate = null;
+        const stillDragging = typeof document !== 'undefined' && Boolean(document.querySelector?.('.is-dragging'));
+        if (!stillDragging && pendingData === null) {
+          onChange(migrate(toApply));
+        }
+      }
+    }, 0);
+  }, true);
+}
+
+/**
+ * Processes an incoming storage update from another context or tab.
+ * @param {any} updated
+ * @param {(newData: import('./schema.js').DashboardData) => void} onChange
+ */
+function processExternalUpdate(updated, onChange) {
+  if (!updated) return;
+  const serialized = typeof updated === 'string' ? updated : JSON.stringify(updated);
+
+  // 1. Ignore change events produced by this tab's own writes
+  if (lastSerializedWrite && serialized === lastSerializedWrite) {
+    return;
+  }
+
+  // 2. While a local save is pending, do not overwrite local state
+  if (pendingData !== null) {
+    return;
+  }
+
+  // 3. Defer applying an external update while a drag is active
+  const isDragging = typeof document !== 'undefined' && Boolean(document.querySelector?.('.is-dragging'));
+  if (isDragging) {
+    deferredExternalUpdate = updated;
+    ensureDragEndListener(onChange);
+    return;
+  }
+
+  onChange(migrate(updated));
+}
+
+/**
  * Registers a callback for changes emitted by other open tabs.
  * @param {(newData: import('./schema.js').DashboardData) => void} onChange
  */
 export function onExternalStorageChange(onChange) {
+  ensureDragEndListener(onChange);
+
   if (hasChromeStorage()) {
     chrome.storage.onChanged.addListener((changes, areaName) => {
       if (areaName === 'local' && changes[STORAGE_KEY]) {
-        const updated = changes[STORAGE_KEY].newValue;
-        if (updated) {
-          onChange(migrate(updated));
-        }
+        processExternalUpdate(changes[STORAGE_KEY].newValue, onChange);
       }
     });
   } else if (typeof window !== 'undefined') {
     window.addEventListener('storage', (e) => {
       if (e.key === STORAGE_KEY && e.newValue) {
         try {
-          onChange(migrate(JSON.parse(e.newValue)));
+          processExternalUpdate(JSON.parse(e.newValue), onChange);
         } catch {}
       }
     });
   }
 }
+
