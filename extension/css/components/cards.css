@@ -167,6 +167,7 @@
   opacity: 0;
   transition: opacity var(--transition-fast);
   margin-left: var(--space-2);
+  flex-shrink: 0;
 }
 
 .bookmark-item:hover .bookmark-actions,
@@ -183,12 +184,14 @@
   transition: all var(--transition-fast);
 }
 
-.bookmark-action-btn:hover {
+.bookmark-action-btn:hover,
+.bookmark-action-btn:focus-visible {
   color: var(--text-primary);
   background: var(--bg-surface-active);
 }
 
-.bookmark-action-btn.delete:hover {
+.bookmark-action-btn.delete:hover,
+.bookmark-action-btn.delete:focus-visible {
   color: #ef4444;
   background: rgba(239, 68, 68, 0.12);
 }
