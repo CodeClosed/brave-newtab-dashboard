@@ -11,7 +11,7 @@ A local-first, customizable New Tab extension for Chromium browsers that transfo
 - **Categorized Collections:** Group websites into clean, high-density cards (e.g. *Development*, *Professional*, *Reading*, *College*). Add, rename, collapse, or delete collections with customized icons and emojis.
 - **Instant Boot & Zero Theme Flash (FOWT):** Synchronous blocking `<head>` script reading mirrored local state eliminates white screen flashing when opening tabs in dark mode.
 - **Fluid Reordering:** Rearrange collections and bookmarks via native HTML5 drag-and-drop or accessible keyboard controls (`↑`/`↓`) with screen-reader announcements.
-- **Privacy-Preserving Favicons:** Fetches website icons using Chromium's internal `chrome.runtime.getURL('/_favicon/')` API without pinging third-party servers. Sites without a cached favicon receive a deterministic, accessible letter-tile fallback.
+- **Privacy-Preserving Favicons:** Fetches website icons using Chromium's internal `chrome.runtime.getURL('/_favicon/')` API without pinging third-party servers. Because Chromium returns a generic globe/document icon for uncached sites rather than failing, the dashboard fingerprints the default icon bytes at boot, renders an accessible deterministic letter tile first, and swaps in confirmed site-specific favicons without flashing or blocking paint.
 - **Subtle Personalization:**
   - **Themes:** System (`prefers-color-scheme`), Light, Dark.
   - **Accents:** Slate, Blue, Emerald, Amber, Rose.
