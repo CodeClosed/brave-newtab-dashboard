@@ -120,13 +120,17 @@ export async function applyBackground(bgConfig, force = false) {
 
   const dim = typeof bgConfig.dim === 'number' ? bgConfig.dim : 0.35;
 
+  // Security: never write arbitrary url() to style
+  const rawVal = typeof bgConfig.value === 'string' ? bgConfig.value : '';
+  const containsUrl = rawVal.toLowerCase().includes('url(');
+
   if (bgConfig.type === 'solid') {
     if (activeImageUrl) {
       URL.revokeObjectURL(activeImageUrl);
       activeImageUrl = null;
     }
     overlay.style.backgroundImage = 'none';
-    overlay.style.backgroundColor = bgConfig.value || '#1e293b';
+    overlay.style.backgroundColor = (!containsUrl && rawVal) ? rawVal : '#1e293b';
     overlay.style.opacity = String(1 - dim * 0.5);
   } else if (bgConfig.type === 'gradient') {
     if (activeImageUrl) {
@@ -134,7 +138,7 @@ export async function applyBackground(bgConfig, force = false) {
       activeImageUrl = null;
     }
     overlay.style.backgroundColor = 'transparent';
-    overlay.style.backgroundImage = bgConfig.value || 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)';
+    overlay.style.backgroundImage = (!containsUrl && rawVal) ? rawVal : 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)';
     overlay.style.opacity = String(1 - dim * 0.4);
   } else if (bgConfig.type === 'image') {
     const blob = await getBackgroundImage();

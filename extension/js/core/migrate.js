@@ -34,11 +34,21 @@ export function repairSettings(settings) {
 
   const bg = (s.background && typeof s.background === 'object') ? s.background : {};
   const validBgTypes = ['none', 'solid', 'gradient', 'image'];
-  const bgType = validBgTypes.includes(bg.type) ? bg.type : defaults.background.type;
+  let bgType = validBgTypes.includes(bg.type) ? bg.type : defaults.background.type;
   const bgDim = (typeof bg.dim === 'number' && bg.dim >= 0 && bg.dim <= 1) ? bg.dim : defaults.background.dim;
+  let bgVal = typeof bg.value === 'string' ? bg.value : null;
+
+  if (bgVal && bgVal.toLowerCase().includes('url(')) {
+    bgVal = null;
+    bgType = 'none';
+  } else if (bgType === 'solid' && bgVal && !/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(bgVal)) {
+    bgVal = null;
+    bgType = 'none';
+  }
+
   s.background = {
     type: bgType,
-    value: typeof bg.value === 'string' ? bg.value : null,
+    value: bgVal,
     dim: bgDim
   };
 

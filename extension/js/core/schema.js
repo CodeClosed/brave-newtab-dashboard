@@ -133,6 +133,23 @@ export function validateDashboardData(input) {
     if (!validEngines.includes(settings.searchEngine)) {
       errors.push(`Invalid searchEngine: "${settings.searchEngine}". Must be one of: ${validEngines.join(', ')}`);
     }
+
+    if (settings.background && typeof settings.background === 'object') {
+      const bg = settings.background;
+      const validBgTypes = ['none', 'solid', 'gradient', 'image'];
+      if (!validBgTypes.includes(bg.type)) {
+        errors.push(`Invalid background type: "${bg.type}". Must be one of: ${validBgTypes.join(', ')}`);
+      }
+      if (bg.value != null) {
+        if (typeof bg.value === 'string' && bg.value.toLowerCase().includes('url(')) {
+          errors.push('Background value must not contain url()');
+        } else if (bg.type === 'solid' && typeof bg.value === 'string') {
+          if (!/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(bg.value)) {
+            errors.push(`Invalid solid background color: "${bg.value}". Must be a valid hex code`);
+          }
+        }
+      }
+    }
   }
 
   // Validate categories
