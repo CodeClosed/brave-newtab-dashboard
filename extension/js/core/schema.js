@@ -79,12 +79,12 @@ export function createDefaultDashboardData() {
       },
       {
         id: generateId(),
-        name: 'College & Tools',
+        name: 'Reference & Tools',
         icon: '🎓',
         order: 3,
         collapsed: false,
         bookmarks: [
-          { id: generateId(), name: 'College Portal', url: 'https://vtop.vit.ac.in', order: 0 },
+          { id: generateId(), name: 'Khan Academy', url: 'https://khanacademy.org', order: 0 },
           { id: generateId(), name: 'Notion', url: 'https://notion.so', order: 1 },
           { id: generateId(), name: 'Wolfram Alpha', url: 'https://wolframalpha.com', order: 2 }
         ]
