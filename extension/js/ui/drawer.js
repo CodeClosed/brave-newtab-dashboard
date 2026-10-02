@@ -10,7 +10,6 @@ import { saveBackgroundImage, deleteBackgroundImage } from '../core/idb.js';
 import { downscaleImage } from '../features/theme.js';
 
 let drawerElement = null;
-let backdropElement = null;
 let activeTab = 'appearance';
 let lastActiveElement = null;
 
@@ -45,29 +44,45 @@ const GRADIENT_PRESETS = [
 ];
 
 /**
+ * For testing drawer element instance.
+ */
+export function _getDrawerElementForTests() {
+  return drawerElement;
+}
+
+/**
  * Initializes and mounts drawer DOM elements if not already present.
  */
 function ensureDrawerDOM() {
   if (drawerElement && document.body.contains(drawerElement)) return;
 
-  backdropElement = el('div', {
-    className: 'drawer-backdrop',
-    onclick: closeDrawer
-  });
-
-  drawerElement = el('aside', {
+  drawerElement = el('dialog', {
     className: 'settings-drawer',
-    'aria-label': 'Dashboard settings'
+    id: 'settings-drawer-dialog',
+    'aria-labelledby': 'settings-drawer-title'
   });
 
-  document.body.appendChild(backdropElement);
-  document.body.appendChild(drawerElement);
-
-  window.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && drawerElement?.classList.contains('open')) {
-      closeDrawer();
+  // Light dismiss on backdrop click
+  drawerElement.addEventListener('click', (e) => {
+    if (e.target === drawerElement) {
+      const rect = drawerElement.getBoundingClientRect();
+      const clickedInside = (
+        rect.top <= e.clientY && e.clientY <= rect.bottom &&
+        rect.left <= e.clientX && e.clientX <= rect.right
+      );
+      if (!clickedInside) {
+        closeDrawer();
+      }
     }
   });
+
+  // Native Escape cancel handling
+  drawerElement.addEventListener('cancel', (e) => {
+    e.preventDefault();
+    closeDrawer();
+  });
+
+  document.body.appendChild(drawerElement);
 }
 
 /**
@@ -80,10 +95,12 @@ export function openDrawer(tab = 'appearance') {
   activeTab = tab;
   renderDrawerContent();
 
-  backdropElement?.classList.add('open');
-  drawerElement?.classList.add('open');
+  if (!drawerElement.open && typeof drawerElement.showModal === 'function') {
+    drawerElement.showModal();
+  }
+  drawerElement.classList.add('open');
 
-  const closeBtn = drawerElement?.querySelector('.drawer-close-btn');
+  const closeBtn = drawerElement.querySelector('.drawer-close-btn');
   if (closeBtn && typeof closeBtn.focus === 'function') {
     closeBtn.focus();
   }
@@ -93,10 +110,16 @@ export function openDrawer(tab = 'appearance') {
  * Closes the settings drawer.
  */
 export function closeDrawer() {
-  backdropElement?.classList.remove('open');
-  drawerElement?.classList.remove('open');
+  if (!drawerElement) return;
+
+  drawerElement.classList.remove('open');
+  if (drawerElement.open && typeof drawerElement.close === 'function') {
+    drawerElement.close();
+  }
+
   if (lastActiveElement && typeof lastActiveElement.focus === 'function') {
     lastActiveElement.focus();
+    lastActiveElement = null;
   }
 }
 
@@ -110,9 +133,9 @@ function renderDrawerContent() {
   const state = store.get();
   const settings = state.settings;
 
-  // Header
+  // Header with stable ID for aria-labelledby
   const header = el('header', { className: 'drawer-header' },
-    el('h2', { className: 'drawer-title', text: 'Customize Dashboard' }),
+    el('h2', { className: 'drawer-title', id: 'settings-drawer-title', text: 'Customize Dashboard' }),
     el('button', {
       className: 'drawer-close-btn',
       type: 'button',

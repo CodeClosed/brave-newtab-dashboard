@@ -37,7 +37,7 @@ export function el(tag, attrs = {}, ...children) {
     if (child == null) continue;
     if (typeof child === 'string' || typeof child === 'number') {
       element.appendChild(document.createTextNode(String(child)));
-    } else if (child instanceof Node) {
+    } else if (typeof Node !== 'undefined' ? child instanceof Node : Boolean(child && typeof child === 'object')) {
       element.appendChild(child);
     }
   }
