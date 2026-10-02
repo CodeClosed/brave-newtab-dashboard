@@ -2,16 +2,17 @@
 import { el } from '../utils/dom.js';
 import { getDomainFromUrl } from '../utils/url.js';
 
-// Calming, accessible palette for letter tile fallbacks
-const TILE_PALETTE = [
-  '#475569', // Slate
-  '#2563eb', // Blue
-  '#0d9488', // Teal
-  '#059669', // Emerald
-  '#d97706', // Amber
-  '#dc2626', // Red
-  '#7c3aed', // Purple
-  '#db2777'  // Pink
+// Calming, muted, accessible palette for letter tile fallbacks matching docs/DESIGN_SYSTEM.md
+// Low saturation (<= 0.40) and high contrast with white letters (>= 4.5:1 WCAG AA)
+export const TILE_PALETTE = [
+  '#334155', // Muted Slate
+  '#2c4663', // Muted Steel Blue
+  '#2b534d', // Muted Sage Teal
+  '#374f38', // Muted Olive Forest
+  '#61492c', // Muted Warm Bronze
+  '#693b36', // Muted Terracotta Rust
+  '#533d5b', // Muted Mauve Plum
+  '#44403c'  // Muted Warm Stone
 ];
 
 // In-memory cache for confirmed domain favicon status:
