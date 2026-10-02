@@ -30,8 +30,41 @@ export function showToast(message, onUndo = null, durationMs = 5000) {
   const children = [msgSpan];
 
   let dismissTimeout = null;
+  let isPaused = false;
 
-  const toast = el('div', { className: 'toast' });
+  const toast = el('div', { className: 'toast', role: 'status' });
+
+  function scheduleDismiss(ms = durationMs) {
+    if (dismissTimeout) clearTimeout(dismissTimeout);
+    dismissTimeout = setTimeout(() => {
+      dismissToast(toast);
+    }, ms);
+  }
+
+  function pauseDismiss() {
+    isPaused = true;
+    if (dismissTimeout) {
+      clearTimeout(dismissTimeout);
+      dismissTimeout = null;
+    }
+  }
+
+  function resumeDismiss() {
+    isPaused = false;
+    scheduleDismiss(durationMs);
+  }
+
+  toast.addEventListener('focusin', () => pauseDismiss());
+  toast.addEventListener('focusout', (e) => {
+    const related = /** @type {Node} */ (e?.relatedTarget);
+    if (related && toast.contains(related)) return;
+    resumeDismiss();
+  });
+  toast.addEventListener('mouseenter', () => pauseDismiss());
+  toast.addEventListener('mouseleave', () => {
+    if (typeof document !== 'undefined' && document.activeElement && toast.contains(document.activeElement)) return;
+    resumeDismiss();
+  });
 
   if (typeof onUndo === 'function') {
     const undoBtn = el('button', {
@@ -52,10 +85,7 @@ export function showToast(message, onUndo = null, durationMs = 5000) {
   }
 
   container.appendChild(toast);
-
-  dismissTimeout = setTimeout(() => {
-    dismissToast(toast);
-  }, durationMs);
+  scheduleDismiss(durationMs);
 }
 
 /**
