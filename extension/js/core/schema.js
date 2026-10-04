@@ -31,7 +31,7 @@ export function createDefaultSettings() {
     searchEngine: 'google',
     palette: 'default',
     userName: '',
-    themeSchedule: { enabled: false, lightFrom: '07:00', darkFrom: '19:00' },
+    themeSchedule: { enabled: false, mode: 'hours', lightFrom: '07:00', darkFrom: '19:00' },
     cards: {
       style: 'filled',
       translucent: false,

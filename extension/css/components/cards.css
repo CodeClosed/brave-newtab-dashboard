@@ -241,7 +241,7 @@
   pointer-events: none;
 }
 
-.bookmarks-list[data-display-mode="icons"]:hover .bookmark-actions,
+.bookmarks-list[data-display-mode="icons"] .bookmark-item:hover .bookmark-actions,
 .bookmarks-list[data-display-mode="icons"] .bookmark-item:focus-within .bookmark-actions {
   opacity: 1;
   pointer-events: auto;

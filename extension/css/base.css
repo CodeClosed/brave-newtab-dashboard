@@ -306,13 +306,27 @@ input, select, textarea {
   grid-template-columns: repeat(auto-fill, minmax(var(--card-width, 280px), 1fr));
 }
 
-:root:not([data-columns="auto"]) .categories-grid {
-  grid-template-columns: repeat(var(--layout-columns, 3), minmax(0, 1fr));
+:root[data-columns="1"] .categories-grid { grid-template-columns: 1fr; }
+:root[data-columns="2"] .categories-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+:root[data-columns="3"] .categories-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+:root[data-columns="4"] .categories-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+:root[data-columns="5"] .categories-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+:root[data-columns="6"] .categories-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+
+:root[data-layout-align="left"] .categories-grid {
+  justify-content: start;
+}
+
+:root[data-layout-align="center"] .categories-grid {
+  justify-content: center;
 }
 
 @media (max-width: 1024px) {
-  :root:not([data-columns="auto"]) .categories-grid {
-    grid-template-columns: repeat(min(var(--layout-columns, 3), 2), minmax(0, 1fr));
+  :root[data-columns="3"] .categories-grid,
+  :root[data-columns="4"] .categories-grid,
+  :root[data-columns="5"] .categories-grid,
+  :root[data-columns="6"] .categories-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 

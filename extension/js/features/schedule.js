@@ -31,7 +31,44 @@ export function getMinutesSinceMidnight(timeInput) {
 }
 
 /**
+ * Calculates approximate sunrise and sunset times (in minutes since midnight)
+ * based on the date / day of year.
+ * @param {Date} [dateInput]
+ * @returns {{ sunriseMinutes: number, sunsetMinutes: number, sunriseStr: string, sunsetStr: string }}
+ */
+export function getSolarTimes(dateInput) {
+  const date = dateInput instanceof Date ? dateInput : new Date();
+  const startOfYear = new Date(date.getFullYear(), 0, 0);
+  const diff = date.getTime() - startOfYear.getTime();
+  const oneDay = 1000 * 60 * 60 * 24;
+  const dayOfYear = Math.floor(diff / oneDay);
+
+  // Seasonal daylight variation (~40° latitude approximation)
+  // Peak daylight around summer solstice (late June), minimum in late December
+  const angle = (2 * Math.PI / 365) * (dayOfYear - 80);
+  const daylightDeltaMinutes = Math.sin(angle) * 75;
+
+  const sunriseMinutes = Math.round(360 - daylightDeltaMinutes); // ~06:00 +/- 75m
+  const sunsetMinutes = Math.round(1080 + daylightDeltaMinutes);  // ~18:00 +/- 75m
+
+  const formatHHMM = (totalMin) => {
+    const clamped = Math.max(0, Math.min(1439, totalMin));
+    const h = Math.floor(clamped / 60).toString().padStart(2, '0');
+    const m = Math.floor(clamped % 60).toString().padStart(2, '0');
+    return `${h}:${m}`;
+  };
+
+  return {
+    sunriseMinutes,
+    sunsetMinutes,
+    sunriseStr: formatHHMM(sunriseMinutes),
+    sunsetStr: formatHHMM(sunsetMinutes)
+  };
+}
+
+/**
  * Resolves whether the scheduled theme should be 'light' or 'dark' based on schedule settings.
+ * Supports both explicit hours and solar sunrise/sunset mode.
  *
  * @param {import('../core/schema.js').DashboardData['settings']['themeSchedule']} schedule
  * @param {string | Date} [timeInput]
@@ -44,6 +81,16 @@ export function resolveScheduledTheme(schedule, timeInput, fallbackTheme = 'syst
   }
 
   const currentMinutes = getMinutesSinceMidnight(timeInput);
+
+  if (schedule.mode === 'solar') {
+    const date = timeInput instanceof Date ? timeInput : new Date();
+    const { sunriseMinutes, sunsetMinutes } = getSolarTimes(date);
+    if (currentMinutes >= sunriseMinutes && currentMinutes < sunsetMinutes) {
+      return 'light';
+    }
+    return 'dark';
+  }
+
   const lightMinutes = parseTimeToMinutes(schedule.lightFrom || '07:00');
   const darkMinutes = parseTimeToMinutes(schedule.darkFrom || '19:00');
 
@@ -86,8 +133,9 @@ export function checkThemeSchedule(storeInstance, rootElement, timeInput) {
 
   const targetTheme = resolveScheduledTheme(schedule, timeInput, settings?.theme || 'system');
   const currentTheme = typeof root.getAttribute === 'function' ? root.getAttribute('data-theme') : null;
-  const isDark = targetTheme === 'dark';
+  const changed = currentTheme !== targetTheme;
 
+  const isDark = targetTheme === 'dark';
   if (isDark) {
     root.classList?.add('dark');
     root.setAttribute?.('data-theme', 'dark');
@@ -96,9 +144,21 @@ export function checkThemeSchedule(storeInstance, rootElement, timeInput) {
     root.setAttribute?.('data-theme', 'light');
   }
 
+  if (changed) {
+    // Dynamic import to avoid circular dependency issues at parse time
+    import('./theme.js').then(({ applyThemeAndAccent }) => {
+      if (typeof applyThemeAndAccent === 'function') {
+        applyThemeAndAccent({
+          ...settings,
+          theme: targetTheme
+        }, root);
+      }
+    }).catch(() => {});
+  }
+
   return {
     appliedTheme: targetTheme,
-    changed: currentTheme !== targetTheme
+    changed
   };
 }
 

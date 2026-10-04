@@ -128,3 +128,36 @@ test('4.4 Themes & Accent: tokens.css defines styles for amoled, paper, and cont
   assert.match(tokensCss, /\[data-palette="paper"\]/);
   assert.match(tokensCss, /\[data-palette="contrast"\]/);
 });
+
+test('4.4 Themes & Accent: validateAccentContrast checks text contrast on accent and rejects mid-tones failing 4.5:1', () => {
+  // Pure mid-gray #797979 has white text contrast ~4.35:1 and black text contrast ~4.34:1, failing WCAG AA (4.5:1)
+  const res = validateAccentContrast('#797979', false);
+  assert.equal(res.valid, false, '#797979 should fail because text on it fails WCAG AA 4.5:1');
+  assert.match(res.reason, /text contrast/i);
+  assert.ok(res.suggestedHex);
+});
+
+test('4.4 Themes & Accent: applyThemeAndAccent rejects low-contrast inputs and reverts to default accent', () => {
+  const styles = {};
+  const attributes = {};
+  const mockRoot = {
+    style: {
+      setProperty(k, v) { styles[k] = String(v); },
+      removeProperty(k) { delete styles[k]; }
+    },
+    setAttribute(k, v) { attributes[k] = String(v); },
+    getAttribute(k) { return attributes[k]; },
+    classList: { add() {}, remove() {} }
+  };
+
+  // Failing low-contrast accent in light mode: #ffff88
+  applyThemeAndAccent({
+    theme: 'light',
+    palette: 'default',
+    accent: 'custom',
+    accentCustom: '#ffff88'
+  }, mockRoot);
+
+  assert.equal(attributes['data-accent'], 'slate', 'Low-contrast custom accent must revert to slate');
+  assert.equal(styles['--accent-base'], undefined, '--accent-base property must not be set to low-contrast color');
+});

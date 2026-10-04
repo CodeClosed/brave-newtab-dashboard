@@ -11,6 +11,7 @@ import { downscaleImage, validateAccentContrast, suggestAccessibleShade } from '
 import { createSnapshot, listSnapshots, restoreSnapshot, deleteSnapshot } from '../core/snapshots.js';
 import { openAddSpaceDialog, openRenameSpaceDialog, openDeleteSpaceDialog } from '../features/spaces.js';
 import { THEME_PRESETS, applyThemePreset } from '../features/presets.js';
+import { getSolarTimes } from '../features/schedule.js';
 
 let drawerElement = null;
 let activeTab = 'appearance';
@@ -510,27 +511,30 @@ function renderAppearanceSection(settings) {
 
     const updateCustomColor = (newHex) => {
       if (/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(newHex)) {
-        const val = validateAccentContrast(newHex, isDark);
-        store.updateSettings({ accent: 'custom', accentCustom: newHex });
+        const bgHex = isDark
+          ? (settings.palette === 'amoled' || settings.palette === 'contrast' ? '#0a0a0a' : '#1b1e22')
+          : (settings.palette === 'paper' ? '#faf8f5' : '#ffffff');
+        const val = validateAccentContrast(newHex, isDark, bgHex);
+        if (!val.valid) {
+          showToast(val.reason || 'Low contrast against background. Suggested accessible shade applied.');
+          store.updateSettings({ accent: 'custom', accentCustom: val.suggestedHex || newHex });
+        } else {
+          store.updateSettings({ accent: 'custom', accentCustom: newHex });
+        }
         renderDrawerContent();
       }
     };
 
     colorPickerInput.addEventListener('input', () => {
       hexInput.value = colorPickerInput.value;
+    });
+
+    colorPickerInput.addEventListener('change', () => {
       updateCustomColor(colorPickerInput.value);
     });
 
     hexInput.addEventListener('change', () => {
-      const val = hexInput.value.trim();
-      const check = validateAccentContrast(val, isDark);
-      if (!check.valid && check.suggestedHex) {
-        showToast('Low contrast against background. Suggested accessible shade applied.');
-        store.updateSettings({ accent: 'custom', accentCustom: check.suggestedHex });
-        renderDrawerContent();
-      } else {
-        updateCustomColor(val);
-      }
+      updateCustomColor(hexInput.value.trim());
     });
 
     const customRow = el('div', { style: { display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px', flexWrap: 'wrap' } },
@@ -566,7 +570,7 @@ function renderAppearanceSection(settings) {
   }
 
   // 4.6 Theme Schedule (auto light/dark switch)
-  const schedule = settings.themeSchedule || { enabled: false, lightFrom: '07:00', darkFrom: '19:00' };
+  const schedule = settings.themeSchedule || { enabled: false, mode: 'hours', lightFrom: '07:00', darkFrom: '19:00' };
   const scheduleToggleRow = renderToggleRow(
     'Theme Schedule',
     'Automatically switch between light and dark themes',
@@ -582,68 +586,103 @@ function renderAppearanceSection(settings) {
   const scheduleGroup = el('div', { className: 'setting-item' }, scheduleToggleRow);
 
   if (schedule.enabled) {
-    const timeInputsRow = el('div', {
-      style: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: '16px',
-        marginTop: '8px',
-        padding: '0 4px',
-        flexWrap: 'wrap'
-      }
-    });
+    const isSolar = schedule.mode === 'solar';
+    const solarTimes = getSolarTimes();
 
-    const lightLabel = el('label', {
-      style: { display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--text-subtle)' }
-    }, [
-      el('span', { text: 'Light mode from:' }),
-      (() => {
-        const input = el('input', {
-          type: 'time',
-          className: 'input-time',
-          value: schedule.lightFrom || '07:00',
-          'aria-label': 'Light theme start time',
-          style: { padding: '4px 8px', borderRadius: '4px', border: '1px solid var(--border-subtle)', background: 'var(--bg-surface)', color: 'var(--text-main)', fontSize: '13px' }
+    const modeSelector = el('div', { className: 'radio-group-cards', style: { gridTemplateColumns: 'repeat(2, 1fr)', marginTop: '8px' } },
+      renderRadioCard('Explicit Hours', !isSolar, () => {
+        store.updateSettings({
+          themeSchedule: { ...schedule, mode: 'hours' }
         });
-        input.addEventListener('change', (e) => {
-          const val = /** @type {HTMLInputElement} */ (e.target).value;
-          if (val) {
-            store.updateSettings({
-              themeSchedule: { ...schedule, lightFrom: val }
-            });
-          }
+        renderDrawerContent();
+      }),
+      renderRadioCard('Sunrise to Sunset', isSolar, () => {
+        store.updateSettings({
+          themeSchedule: { ...schedule, mode: 'solar' }
         });
-        return input;
-      })()
-    ]);
+        renderDrawerContent();
+      })
+    );
+    scheduleGroup.appendChild(modeSelector);
 
-    const darkLabel = el('label', {
-      style: { display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--text-subtle)' }
-    }, [
-      el('span', { text: 'Dark mode from:' }),
-      (() => {
-        const input = el('input', {
-          type: 'time',
-          className: 'input-time',
-          value: schedule.darkFrom || '19:00',
-          'aria-label': 'Dark theme start time',
-          style: { padding: '4px 8px', borderRadius: '4px', border: '1px solid var(--border-subtle)', background: 'var(--bg-surface)', color: 'var(--text-main)', fontSize: '13px' }
-        });
-        input.addEventListener('change', (e) => {
-          const val = /** @type {HTMLInputElement} */ (e.target).value;
-          if (val) {
-            store.updateSettings({
-              themeSchedule: { ...schedule, darkFrom: val }
-            });
-          }
-        });
-        return input;
-      })()
-    ]);
+    if (isSolar) {
+      const solarInfo = el('div', {
+        style: {
+          marginTop: '8px',
+          padding: '6px 10px',
+          fontSize: '12px',
+          color: 'var(--text-secondary)',
+          background: 'var(--bg-surface-subtle)',
+          borderRadius: 'var(--radius-xs)',
+          border: '1px solid var(--border-subtle)'
+        },
+        text: `☀️ Sunrise: ~${solarTimes.sunriseStr}  •  🌙 Sunset: ~${solarTimes.sunsetStr} (solar estimation from local date)`
+      });
+      scheduleGroup.appendChild(solarInfo);
+    } else {
+      const timeInputsRow = el('div', {
+        style: {
+          display: 'flex',
+          alignItems: 'center',
+          gap: '16px',
+          marginTop: '8px',
+          padding: '0 4px',
+          flexWrap: 'wrap'
+        }
+      });
 
-    timeInputsRow.appendChild(lightLabel);
-    timeInputsRow.appendChild(darkLabel);
-    scheduleGroup.appendChild(timeInputsRow);
+      const lightLabel = el('label', {
+        style: { display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--text-subtle)' }
+      }, [
+        el('span', { text: 'Light mode from:' }),
+        (() => {
+          const input = el('input', {
+            type: 'time',
+            className: 'input-time',
+            value: schedule.lightFrom || '07:00',
+            'aria-label': 'Light theme start time',
+            style: { padding: '4px 8px', borderRadius: '4px', border: '1px solid var(--border-subtle)', background: 'var(--bg-surface)', color: 'var(--text-main)', fontSize: '13px' }
+          });
+          input.addEventListener('change', (e) => {
+            const val = /** @type {HTMLInputElement} */ (e.target).value;
+            if (val) {
+              store.updateSettings({
+                themeSchedule: { ...schedule, lightFrom: val }
+              });
+            }
+          });
+          return input;
+        })()
+      ]);
+
+      const darkLabel = el('label', {
+        style: { display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--text-subtle)' }
+      }, [
+        el('span', { text: 'Dark mode from:' }),
+        (() => {
+          const input = el('input', {
+            type: 'time',
+            className: 'input-time',
+            value: schedule.darkFrom || '19:00',
+            'aria-label': 'Dark theme start time',
+            style: { padding: '4px 8px', borderRadius: '4px', border: '1px solid var(--border-subtle)', background: 'var(--bg-surface)', color: 'var(--text-main)', fontSize: '13px' }
+          });
+          input.addEventListener('change', (e) => {
+            const val = /** @type {HTMLInputElement} */ (e.target).value;
+            if (val) {
+              store.updateSettings({
+                themeSchedule: { ...schedule, darkFrom: val }
+              });
+            }
+          });
+          return input;
+        })()
+      ]);
+
+      timeInputsRow.appendChild(lightLabel);
+      timeInputsRow.appendChild(darkLabel);
+      scheduleGroup.appendChild(timeInputsRow);
+    }
   }
 
   section.appendChild(themeGroup);
@@ -788,8 +827,6 @@ function renderAppearanceSection(settings) {
     bgDetailGroup.appendChild(clearImgBtn);
   }
 
-  section.appendChild(themeGroup);
-  section.appendChild(accentGroup);
   section.appendChild(bgTypeGroup);
   if (bgConfig.type !== 'none') {
     section.appendChild(bgDetailGroup);

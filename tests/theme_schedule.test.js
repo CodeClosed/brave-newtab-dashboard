@@ -145,3 +145,24 @@ test('4.6 Theme schedule: applyThemeAndAccent uses resolved schedule when enable
   assert.equal(attributes['data-theme'], 'light');
   assert.equal(mockRoot.classList.contains('dark'), false);
 });
+
+test('4.6 Theme schedule: getSolarTimes calculates sunrise and sunset, and resolveScheduledTheme supports mode: "solar"', async () => {
+  const { getSolarTimes, resolveScheduledTheme } = await import('../extension/js/features/schedule.js');
+
+  assert.equal(typeof getSolarTimes, 'function');
+  const solarTimes = getSolarTimes(new Date('2026-06-21T12:00:00Z'));
+  assert.ok(solarTimes.sunriseMinutes >= 240 && solarTimes.sunriseMinutes <= 420);
+  assert.ok(solarTimes.sunsetMinutes >= 1020 && solarTimes.sunsetMinutes <= 1260);
+  assert.ok(solarTimes.sunriseStr);
+  assert.ok(solarTimes.sunsetStr);
+
+  const solarSchedule = {
+    enabled: true,
+    mode: 'solar'
+  };
+
+  // Middle of the day -> light
+  assert.equal(resolveScheduledTheme(solarSchedule, '13:00'), 'light');
+  // Middle of the night -> dark
+  assert.equal(resolveScheduledTheme(solarSchedule, '01:00'), 'dark');
+});

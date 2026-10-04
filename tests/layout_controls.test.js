@@ -88,6 +88,8 @@ test('4.2 Layout controls: stylesheet defines responsive rules for layout contro
   assert.match(baseCss, /--card-width/);
   assert.match(baseCss, /--card-gap/);
   assert.match(baseCss, /\[data-columns="auto"\]/);
+  assert.match(baseCss, /\[data-columns="1"\]/);
+  assert.match(baseCss, /\[data-columns="4"\]/);
   assert.match(baseCss, /\[data-layout-align="left"\]/);
   assert.match(baseCss, /\[data-layout-align="center"\]/);
   assert.match(baseCss, /\[data-vertical-center="true"\]/);

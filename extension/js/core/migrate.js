@@ -92,6 +92,7 @@ export function repairSettings(settings) {
   const ts = (s.themeSchedule && typeof s.themeSchedule === 'object') ? s.themeSchedule : {};
   s.themeSchedule = {
     enabled: Boolean(ts.enabled),
+    mode: ['hours', 'solar'].includes(ts.mode) ? ts.mode : (defaults.themeSchedule?.mode || 'hours'),
     lightFrom: typeof ts.lightFrom === 'string' ? ts.lightFrom : defaults.themeSchedule.lightFrom,
     darkFrom: typeof ts.darkFrom === 'string' ? ts.darkFrom : defaults.themeSchedule.darkFrom
   };

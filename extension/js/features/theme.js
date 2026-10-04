@@ -1,5 +1,5 @@
 // @ts-check
-import { getBackgroundImage } from '../core/idb.js';
+import { getBackgroundImage, getWallpaperRecord } from '../core/idb.js';
 import { resolveScheduledTheme } from './schedule.js';
 
 let activeImageUrl = null;
@@ -100,7 +100,15 @@ export async function applyBackground(bgConfig, force = false) {
   const overlay = document.getElementById('bg-overlay');
   if (!overlay) return;
 
-  const currentBgKey = JSON.stringify(bgConfig || { type: 'none' });
+  const currentBgKey = JSON.stringify({
+    type: bgConfig?.type,
+    value: bgConfig?.value,
+    dim: bgConfig?.dim,
+    activeId: bgConfig?.activeId,
+    blur: bgConfig?.blur,
+    fit: bgConfig?.fit,
+    focal: bgConfig?.focal
+  });
   if (!force && lastBgKey !== null && currentBgKey === lastBgKey) {
     return;
   }
@@ -116,6 +124,7 @@ export async function applyBackground(bgConfig, force = false) {
     overlay.style.backgroundImage = 'none';
     overlay.style.backgroundColor = 'transparent';
     overlay.style.opacity = '0';
+    overlay.style.filter = 'none';
     return;
   }
 
@@ -133,6 +142,7 @@ export async function applyBackground(bgConfig, force = false) {
     overlay.style.backgroundImage = 'none';
     overlay.style.backgroundColor = (!containsUrl && rawVal) ? rawVal : '#1e293b';
     overlay.style.opacity = String(1 - dim * 0.5);
+    overlay.style.filter = 'none';
   } else if (bgConfig.type === 'gradient') {
     if (activeImageUrl) {
       URL.revokeObjectURL(activeImageUrl);
@@ -141,8 +151,18 @@ export async function applyBackground(bgConfig, force = false) {
     overlay.style.backgroundColor = 'transparent';
     overlay.style.backgroundImage = (!containsUrl && rawVal) ? rawVal : 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)';
     overlay.style.opacity = String(1 - dim * 0.4);
+    overlay.style.filter = 'none';
   } else if (bgConfig.type === 'image') {
-    const blob = await getBackgroundImage();
+    let blob = null;
+    if (bgConfig.activeId) {
+      const rec = await getWallpaperRecord(bgConfig.activeId);
+      if (rec && rec.blob) {
+        blob = rec.blob;
+      }
+    }
+    if (!blob) {
+      blob = await getBackgroundImage();
+    }
 
     // Guard against out-of-order async results
     if (requestId !== currentRequestId) {
@@ -157,6 +177,23 @@ export async function applyBackground(bgConfig, force = false) {
       overlay.style.backgroundImage = `url("${activeImageUrl}")`;
       overlay.style.opacity = String(1 - dim);
       overlay.style.backgroundColor = '#000000';
+
+      if (bgConfig.focal && typeof bgConfig.focal.x === 'number') {
+        overlay.style.backgroundPosition = `${Math.round(bgConfig.focal.x * 100)}% ${Math.round(bgConfig.focal.y * 100)}%`;
+      } else {
+        overlay.style.backgroundPosition = 'center';
+      }
+
+      if (bgConfig.fit === 'contain') {
+        overlay.style.backgroundSize = 'contain';
+      } else if (bgConfig.fit === 'center') {
+        overlay.style.backgroundSize = 'auto';
+      } else {
+        overlay.style.backgroundSize = 'cover';
+      }
+
+      const blurPx = typeof bgConfig.blur === 'number' ? bgConfig.blur : 0;
+      overlay.style.filter = blurPx > 0 ? `blur(${blurPx}px)` : 'none';
     } else {
       if (activeImageUrl) {
         URL.revokeObjectURL(activeImageUrl);
@@ -165,6 +202,7 @@ export async function applyBackground(bgConfig, force = false) {
       overlay.style.backgroundImage = 'none';
       overlay.style.backgroundColor = 'transparent';
       overlay.style.opacity = '0';
+      overlay.style.filter = 'none';
     }
   }
 }
@@ -238,7 +276,12 @@ export function suggestAccessibleShade(accentHex, bgHex, minRatio = 3.0) {
 
   for (let i = 0; i < 40; i++) {
     const currentHex = '#' + [r, g, b].map(x => Math.round(Math.max(0, Math.min(255, x))).toString(16).padStart(2, '0')).join('');
-    if (calculateContrastRatio(currentHex, bgHex) >= minRatio) {
+    const surfaceRatio = calculateContrastRatio(currentHex, bgHex);
+    const textRatio = Math.max(
+      calculateContrastRatio(currentHex, '#ffffff'),
+      calculateContrastRatio(currentHex, '#111111')
+    );
+    if (surfaceRatio >= minRatio && textRatio >= 4.5) {
       return currentHex;
     }
     if (isBgDark) {
@@ -257,6 +300,7 @@ export function suggestAccessibleShade(accentHex, bgHex, minRatio = 3.0) {
 
 /**
  * Validates a custom accent color against WCAG AA criteria.
+ * Checks both UI surface contrast (>= 3.0:1) and text contrast on accent (>= 4.5:1).
  * @param {string} accentHex
  * @param {boolean} isDark
  * @param {string} [customBgHex]
@@ -278,12 +322,16 @@ export function validateAccentContrast(accentHex, isDark, customBgHex) {
   const ratio = calculateContrastRatio(accentHex, bgHex);
   const whiteRatio = calculateContrastRatio(accentHex, '#ffffff');
   const blackRatio = calculateContrastRatio(accentHex, '#111111');
+  const textContrast = Math.max(whiteRatio, blackRatio);
   const textColor = whiteRatio >= blackRatio ? '#ffffff' : '#111111';
 
-  // WCAG AA requirement for interactive UI controls is >= 3.0:1
-  const passesComponentContrast = ratio >= 3.0;
+  // WCAG AA requirement for interactive UI controls:
+  // 1. Surface contrast >= 3.0:1
+  // 2. Text on accent button/badge >= 4.5:1
+  const passesSurface = ratio >= 3.0;
+  const passesText = textContrast >= 4.5;
 
-  if (passesComponentContrast) {
+  if (passesSurface && passesText) {
     return {
       valid: true,
       ratio: Math.round(ratio * 100) / 100,
@@ -292,17 +340,25 @@ export function validateAccentContrast(accentHex, isDark, customBgHex) {
   }
 
   const suggestedHex = suggestAccessibleShade(accentHex, bgHex, 3.0);
+  let reason = '';
+  if (!passesSurface) {
+    reason = `Fails WCAG AA minimum surface contrast ratio (current ${ratio.toFixed(2)}:1, requires 3.0:1)`;
+  } else {
+    reason = `Fails WCAG AA text contrast ratio on accent (current ${textContrast.toFixed(2)}:1, requires 4.5:1)`;
+  }
+
   return {
     valid: false,
     ratio: Math.round(ratio * 100) / 100,
     textColor,
     suggestedHex,
-    reason: `Fails WCAG AA minimum contrast ratio (current ${ratio.toFixed(2)}:1, requires 3.0:1)`
+    reason
   };
 }
 
 /**
  * Applies theme, palette, and accent to root documentElement.
+ * Reverts/rejects custom accent if it fails WCAG AA against background.
  * @param {import('../core/schema.js').DashboardData['settings']} settings
  * @param {HTMLElement | { style: { setProperty: Function, removeProperty?: Function }, setAttribute: Function, classList: { add: Function, remove: Function } }} [rootElement]
  */
@@ -340,7 +396,23 @@ export function applyThemeAndAccent(settings, rootElement) {
   root.setAttribute?.('data-accent', accent);
 
   if (accent === 'custom' && accentCustom) {
-    const val = validateAccentContrast(accentCustom, isDark);
+    const bgHex = isDark
+      ? (palette === 'amoled' || palette === 'contrast' ? '#0a0a0a' : '#1b1e22')
+      : (palette === 'paper' ? '#faf8f5' : '#ffffff');
+    const val = validateAccentContrast(accentCustom, isDark, bgHex);
+
+    // Revert/reject if custom accent fails WCAG AA against background
+    if (!val.valid) {
+      root.setAttribute?.('data-accent', 'slate');
+      if (root.style?.removeProperty) {
+        root.style.removeProperty('--accent-base');
+        root.style.removeProperty('--accent-text');
+        root.style.removeProperty('--accent-tint');
+        root.style.removeProperty('--accent-focus-ring');
+      }
+      return;
+    }
+
     const rgb = hexToRgb(accentCustom);
     if (root.style?.setProperty) {
       root.style.setProperty('--accent-base', accentCustom);
