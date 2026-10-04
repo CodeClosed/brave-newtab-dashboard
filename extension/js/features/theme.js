@@ -1,5 +1,6 @@
 // @ts-check
 import { getBackgroundImage } from '../core/idb.js';
+import { resolveScheduledTheme } from './schedule.js';
 
 let activeImageUrl = null;
 let lastBgKey = null;
@@ -309,7 +310,10 @@ export function applyThemeAndAccent(settings, rootElement) {
   const root = rootElement || (typeof document !== 'undefined' ? document.documentElement : null);
   if (!root) return;
 
-  const theme = settings?.theme || 'system';
+  let theme = settings?.theme || 'system';
+  if (settings?.themeSchedule?.enabled) {
+    theme = resolveScheduledTheme(settings.themeSchedule, undefined, theme);
+  }
   const palette = settings?.palette || 'default';
   const accent = settings?.accent || 'slate';
   const accentCustom = settings?.accentCustom;

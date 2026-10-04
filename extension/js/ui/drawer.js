@@ -65,6 +65,7 @@ export function _getOpeningSnapshotForTests() {
 
 const SETTINGS_CATALOG = [
   { id: 'theme', section: 'appearance', label: 'Theme (System, Light, Dark)', keywords: 'color mode dark light system appearance' },
+  { id: 'themeSchedule', section: 'appearance', label: 'Theme Schedule (Auto Light/Dark)', keywords: 'schedule auto light dark switch time hours appearance' },
   { id: 'palette', section: 'appearance', label: 'Color Palette', keywords: 'palette default amoled paper contrast' },
   { id: 'accent', section: 'appearance', label: 'Accent Color', keywords: 'accent slate blue emerald amber rose custom color' },
   { id: 'background', section: 'appearance', label: 'Background & Wallpaper', keywords: 'wallpaper background solid gradient image' },
@@ -564,7 +565,89 @@ function renderAppearanceSection(settings) {
     accentGroup.appendChild(customAccentControls);
   }
 
+  // 4.6 Theme Schedule (auto light/dark switch)
+  const schedule = settings.themeSchedule || { enabled: false, lightFrom: '07:00', darkFrom: '19:00' };
+  const scheduleToggleRow = renderToggleRow(
+    'Theme Schedule',
+    'Automatically switch between light and dark themes',
+    Boolean(schedule.enabled),
+    (checked) => {
+      store.updateSettings({
+        themeSchedule: { ...schedule, enabled: checked }
+      });
+      renderDrawerContent();
+    }
+  );
+
+  const scheduleGroup = el('div', { className: 'setting-item' }, scheduleToggleRow);
+
+  if (schedule.enabled) {
+    const timeInputsRow = el('div', {
+      style: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '16px',
+        marginTop: '8px',
+        padding: '0 4px',
+        flexWrap: 'wrap'
+      }
+    });
+
+    const lightLabel = el('label', {
+      style: { display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--text-subtle)' }
+    }, [
+      el('span', { text: 'Light mode from:' }),
+      (() => {
+        const input = el('input', {
+          type: 'time',
+          className: 'input-time',
+          value: schedule.lightFrom || '07:00',
+          'aria-label': 'Light theme start time',
+          style: { padding: '4px 8px', borderRadius: '4px', border: '1px solid var(--border-subtle)', background: 'var(--bg-surface)', color: 'var(--text-main)', fontSize: '13px' }
+        });
+        input.addEventListener('change', (e) => {
+          const val = /** @type {HTMLInputElement} */ (e.target).value;
+          if (val) {
+            store.updateSettings({
+              themeSchedule: { ...schedule, lightFrom: val }
+            });
+          }
+        });
+        return input;
+      })()
+    ]);
+
+    const darkLabel = el('label', {
+      style: { display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--text-subtle)' }
+    }, [
+      el('span', { text: 'Dark mode from:' }),
+      (() => {
+        const input = el('input', {
+          type: 'time',
+          className: 'input-time',
+          value: schedule.darkFrom || '19:00',
+          'aria-label': 'Dark theme start time',
+          style: { padding: '4px 8px', borderRadius: '4px', border: '1px solid var(--border-subtle)', background: 'var(--bg-surface)', color: 'var(--text-main)', fontSize: '13px' }
+        });
+        input.addEventListener('change', (e) => {
+          const val = /** @type {HTMLInputElement} */ (e.target).value;
+          if (val) {
+            store.updateSettings({
+              themeSchedule: { ...schedule, darkFrom: val }
+            });
+          }
+        });
+        return input;
+      })()
+    ]);
+
+    timeInputsRow.appendChild(lightLabel);
+    timeInputsRow.appendChild(darkLabel);
+    scheduleGroup.appendChild(timeInputsRow);
+  }
+
   section.appendChild(themeGroup);
+  section.appendChild(scheduleGroup);
   section.appendChild(paletteGroup);
   section.appendChild(accentGroup);
 

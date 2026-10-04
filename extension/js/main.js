@@ -16,6 +16,7 @@ import { shouldShowFirstRun, openFirstRunDialog } from './features/first-run.js'
 import { applyCardSettings } from './features/cards.js';
 import { applyLayoutSettings } from './features/layout.js';
 import { applyDisplaySettings } from './features/display.js';
+import { startThemeScheduleTicker } from './features/schedule.js';
 
 /**
  * Updates DOM root attributes and dynamic UI based on current settings.
@@ -127,6 +128,7 @@ async function initApp() {
 
   // Start Clock Ticker & Keyboard Shortcuts
   startClockTicker();
+  startThemeScheduleTicker(store);
   initSearchShortcuts();
   initKeyboardNavigation();
   initEditMode();
