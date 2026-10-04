@@ -129,3 +129,70 @@
 
   color-scheme: dark;
 }
+
+/* 4.4 Palette: AMOLED (pure black base for OLED displays in dark mode) */
+:root[data-palette="amoled"].dark,
+:root[data-palette="amoled"][data-theme="dark"] {
+  --bg-app: #000000;
+  --bg-surface: #0a0a0a;
+  --bg-surface-hover: #141414;
+  --bg-surface-active: #1e1e1e;
+  --bg-surface-subtle: #050505;
+
+  --border-subtle: rgba(255, 255, 255, 0.10);
+  --border-default: rgba(255, 255, 255, 0.16);
+  --border-strong: rgba(255, 255, 255, 0.28);
+}
+
+/* 4.4 Palette: Warm Paper (gentle warm stone in light mode) */
+:root[data-palette="paper"] {
+  --bg-app: #f4f1ea;
+  --bg-surface: #faf8f5;
+  --bg-surface-hover: #eee9df;
+  --bg-surface-active: #e4ddd1;
+  --bg-surface-subtle: #f8f6f0;
+
+  --border-subtle: rgba(70, 50, 30, 0.08);
+  --border-default: rgba(70, 50, 30, 0.14);
+  --border-strong: rgba(70, 50, 30, 0.24);
+
+  --text-primary: #2c251e;
+  --text-secondary: #6e6459;
+  --text-muted: #9c9184;
+}
+
+/* 4.4 Palette: High Contrast (targets WCAG AAA compliance) */
+:root[data-palette="contrast"] {
+  --bg-app: #ffffff;
+  --bg-surface: #ffffff;
+  --bg-surface-hover: #f0f0f0;
+  --bg-surface-active: #e0e0e0;
+  --bg-surface-subtle: #f5f5f5;
+
+  --border-subtle: #666666;
+  --border-default: #000000;
+  --border-strong: #000000;
+  --border-focus: #000000;
+
+  --text-primary: #000000;
+  --text-secondary: #222222;
+  --text-muted: #444444;
+}
+
+:root[data-palette="contrast"].dark,
+:root[data-palette="contrast"][data-theme="dark"] {
+  --bg-app: #000000;
+  --bg-surface: #0a0a0a;
+  --bg-surface-hover: #181818;
+  --bg-surface-active: #242424;
+  --bg-surface-subtle: #000000;
+
+  --border-subtle: #888888;
+  --border-default: #ffffff;
+  --border-strong: #ffffff;
+  --border-focus: #ffffff;
+
+  --text-primary: #ffffff;
+  --text-secondary: #ededed;
+  --text-muted: #cccccc;
+}

@@ -7,7 +7,7 @@ import { openCategoryDialog, openConfirmDialog, openImportPreviewDialog } from '
 import { createDefaultDashboardData, createDefaultSettings, validateDashboardData } from '../core/schema.js';
 import { migrate } from '../core/migrate.js';
 import { saveBackgroundImage, deleteBackgroundImage } from '../core/idb.js';
-import { downscaleImage } from '../features/theme.js';
+import { downscaleImage, validateAccentContrast, suggestAccessibleShade } from '../features/theme.js';
 import { createSnapshot, listSnapshots, restoreSnapshot, deleteSnapshot } from '../core/snapshots.js';
 import { openAddSpaceDialog, openRenameSpaceDialog, openDeleteSpaceDialog } from '../features/spaces.js';
 
@@ -394,7 +394,34 @@ function renderAppearanceSection(settings) {
     )
   );
 
-  // Accent circles
+  // 4.4 Palette selection
+  const currentPalette = settings.palette || 'default';
+  const paletteGroup = el('div', { className: 'setting-item' },
+    el('div', { className: 'setting-item-header' },
+      el('span', { className: 'setting-label', text: 'Color Palette' })
+    ),
+    el('div', { className: 'radio-group-cards', style: { gridTemplateColumns: 'repeat(4, 1fr)' } },
+      renderRadioCard('Default', currentPalette === 'default', () => {
+        store.updateSettings({ palette: 'default' });
+        renderDrawerContent();
+      }),
+      renderRadioCard('AMOLED', currentPalette === 'amoled', () => {
+        store.updateSettings({ palette: 'amoled' });
+        renderDrawerContent();
+      }),
+      renderRadioCard('Paper', currentPalette === 'paper', () => {
+        store.updateSettings({ palette: 'paper' });
+        renderDrawerContent();
+      }),
+      renderRadioCard('Contrast', currentPalette === 'contrast', () => {
+        store.updateSettings({ palette: 'contrast' });
+        renderDrawerContent();
+      })
+    )
+  );
+
+  // Accent circles + Custom Accent
+  const isDark = settings.theme === 'dark' || (settings.theme === 'system' && typeof window !== 'undefined' && window.matchMedia?.('(prefers-color-scheme: dark)').matches);
   const accentPicker = el('div', { className: 'accent-picker' });
   for (const acc of ACCENTS) {
     const btn = el('button', {
@@ -411,12 +438,106 @@ function renderAppearanceSection(settings) {
     accentPicker.appendChild(btn);
   }
 
+  // Custom accent circle trigger
+  const isCustomAccent = settings.accent === 'custom';
+  const customColorVal = settings.accentCustom || '#3b82f6';
+  const customBtn = el('button', {
+    className: `accent-circle-btn${isCustomAccent ? ' selected' : ''}`,
+    type: 'button',
+    style: { background: isCustomAccent ? customColorVal : 'conic-gradient(from 180deg, red, yellow, lime, aqua, blue, magenta, red)' },
+    title: 'Custom accent color',
+    'aria-label': 'Custom accent color',
+    onclick: () => {
+      store.updateSettings({ accent: 'custom', accentCustom: customColorVal });
+      renderDrawerContent();
+    }
+  });
+  accentPicker.appendChild(customBtn);
+
+  let customAccentControls = null;
+  if (isCustomAccent) {
+    const contrastRes = validateAccentContrast(customColorVal, isDark);
+
+    const colorPickerInput = /** @type {HTMLInputElement} */ (el('input', {
+      type: 'color',
+      value: customColorVal,
+      style: { width: '32px', height: '32px', padding: '0', border: 'none', borderRadius: '4px', cursor: 'pointer' }
+    }));
+
+    const hexInput = /** @type {HTMLInputElement} */ (el('input', {
+      type: 'text',
+      className: 'inline-add-input',
+      value: customColorVal,
+      placeholder: '#3b82f6',
+      style: { width: '90px', fontFamily: 'var(--font-mono)' },
+      'aria-label': 'Custom accent hex code'
+    }));
+
+    const contrastBadge = el('span', {
+      className: `search-result-section-badge${contrastRes.valid ? '' : ' danger'}`,
+      text: contrastRes.valid ? `✓ WCAG AA (${contrastRes.ratio}:1)` : `⚠ Fails AA (${contrastRes.ratio}:1)`
+    });
+
+    const updateCustomColor = (newHex) => {
+      if (/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(newHex)) {
+        const val = validateAccentContrast(newHex, isDark);
+        store.updateSettings({ accent: 'custom', accentCustom: newHex });
+        renderDrawerContent();
+      }
+    };
+
+    colorPickerInput.addEventListener('input', () => {
+      hexInput.value = colorPickerInput.value;
+      updateCustomColor(colorPickerInput.value);
+    });
+
+    hexInput.addEventListener('change', () => {
+      const val = hexInput.value.trim();
+      const check = validateAccentContrast(val, isDark);
+      if (!check.valid && check.suggestedHex) {
+        showToast('Low contrast against background. Suggested accessible shade applied.');
+        store.updateSettings({ accent: 'custom', accentCustom: check.suggestedHex });
+        renderDrawerContent();
+      } else {
+        updateCustomColor(val);
+      }
+    });
+
+    const customRow = el('div', { style: { display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px', flexWrap: 'wrap' } },
+      colorPickerInput,
+      hexInput,
+      contrastBadge
+    );
+
+    if (!contrastRes.valid && contrastRes.suggestedHex) {
+      const fixBtn = el('button', {
+        className: 'btn-secondary btn-sm',
+        type: 'button',
+        text: `Apply passing shade (${contrastRes.suggestedHex})`,
+        onclick: () => {
+          store.updateSettings({ accent: 'custom', accentCustom: contrastRes.suggestedHex });
+          renderDrawerContent();
+        }
+      });
+      customRow.appendChild(fixBtn);
+    }
+
+    customAccentControls = customRow;
+  }
+
   const accentGroup = el('div', { className: 'setting-item' },
     el('div', { className: 'setting-item-header' },
       el('span', { className: 'setting-label', text: 'Accent Color' })
     ),
     accentPicker
   );
+  if (customAccentControls) {
+    accentGroup.appendChild(customAccentControls);
+  }
+
+  section.appendChild(themeGroup);
+  section.appendChild(paletteGroup);
+  section.appendChild(accentGroup);
 
   // Background Options
   const bgConfig = settings.background || { type: 'none', value: null, dim: 0.35 };

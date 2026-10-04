@@ -5,7 +5,7 @@ import { openCategoryDialog } from './ui/dialogs.js';
 import { showToast } from './ui/toasts.js';
 import { applySearchEngine, initSearchShortcuts } from './features/search.js';
 import { renderClockAndGreeting, startClockTicker } from './features/clock.js';
-import { applyBackground } from './features/theme.js';
+import { applyBackground, applyThemeAndAccent } from './features/theme.js';
 import { initEditMode } from './features/edit-mode.js';
 import { initDropAndPaste } from './features/drag-paste.js';
 import { renderPinnedStrip } from './features/pinned.js';
@@ -24,26 +24,10 @@ import { applyDisplaySettings } from './features/display.js';
 function applySettings(settings) {
   const root = document.documentElement;
 
-  // Theme
-  let isDark = false;
-  if (settings.theme === 'dark') {
-    isDark = true;
-  } else if (settings.theme === 'light') {
-    isDark = false;
-  } else {
-    isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-  }
+  // 4.4 Theme, Palette & Accent
+  applyThemeAndAccent(settings, root);
 
-  if (isDark) {
-    root.classList.add('dark');
-    root.setAttribute('data-theme', 'dark');
-  } else {
-    root.classList.remove('dark');
-    root.setAttribute('data-theme', 'light');
-  }
-
-  // Accent & Layout
-  root.setAttribute('data-accent', settings.accent || 'slate');
+  // Layout mode
   root.setAttribute('data-layout', settings.layout || 'grid');
 
   // 4.1 Card Styles & Options
