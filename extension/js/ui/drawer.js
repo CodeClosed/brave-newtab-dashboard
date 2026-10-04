@@ -2,7 +2,7 @@
 import { el, clearChildren } from '../utils/dom.js';
 import { store } from '../core/state.js';
 import { showToast } from './toasts.js';
-import { exportDashboardToFile, parseAndValidateImport } from '../features/data-io.js';
+import { exportDashboardToFile, parseAndValidateBookmarksImport } from '../features/data-io.js';
 import { openCategoryDialog, openConfirmDialog, openImportPreviewDialog } from './dialogs.js';
 import { createDefaultDashboardData, createDefaultSettings, validateDashboardData } from '../core/schema.js';
 import { migrate } from '../core/migrate.js';
@@ -877,10 +877,10 @@ function renderDataSection() {
     }
   });
 
-  // Import JSON with preview and undo
+  // Import JSON, HTML, CSV with preview and undo
   const fileInput = /** @type {HTMLInputElement} */ (el('input', {
     type: 'file',
-    accept: '.json,application/json',
+    accept: '.json,.html,.htm,.csv,application/json,text/html,text/csv',
     style: { display: 'none' }
   }));
 
@@ -890,7 +890,7 @@ function renderDataSection() {
 
     try {
       const text = await file.text();
-      const result = parseAndValidateImport(text);
+      const result = parseAndValidateBookmarksImport(text, 'auto');
 
       if (!result.success || !result.data || !result.summary) {
         showToast(`Import failed: ${result.error || 'Invalid file format'}`);
@@ -922,7 +922,7 @@ function renderDataSection() {
   const importBtn = el('button', {
     className: 'btn-secondary',
     type: 'button',
-    text: 'Import Backup (JSON)',
+    text: 'Import File (JSON, HTML, CSV)',
     onclick: () => fileInput.click()
   });
 

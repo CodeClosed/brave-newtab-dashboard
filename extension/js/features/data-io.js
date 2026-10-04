@@ -42,10 +42,8 @@ export function exportDashboardToFile() {
 }
 
 /**
- * Validates, repairs, migrates, and deduplicates an imported JSON string.
- * Never blindly trusts incoming user data.
- *
- * @param {string} jsonString
+ * Repairs and validates incoming raw dashboard data.
+ * @param {any} raw
  * @returns {{
  *   success: boolean,
  *   data?: import('../core/schema.js').DashboardData,
@@ -53,23 +51,7 @@ export function exportDashboardToFile() {
  *   error?: string
  * }}
  */
-export function parseAndValidateImport(jsonString) {
-  if (!jsonString || typeof jsonString !== 'string') {
-    return { success: false, error: 'Empty file contents' };
-  }
-
-  // Cap import file size to 5 MB
-  if (jsonString.length > 5 * 1024 * 1024) {
-    return { success: false, error: 'Import file exceeds 5 MB limit' };
-  }
-
-  let raw;
-  try {
-    raw = JSON.parse(jsonString);
-  } catch (err) {
-    return { success: false, error: 'File is not valid JSON' };
-  }
-
+export function repairAndValidateRawImport(raw) {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
     return { success: false, error: 'File is not a valid dashboard backup (must be a JSON object)' };
   }
@@ -139,6 +121,303 @@ export function parseAndValidateImport(jsonString) {
       skippedBookmarksCount
     }
   };
+}
+
+/**
+ * Validates, repairs, migrates, and deduplicates an imported JSON string.
+ * Never blindly trusts incoming user data.
+ *
+ * @param {string} jsonString
+ * @returns {{
+ *   success: boolean,
+ *   data?: import('../core/schema.js').DashboardData,
+ *   summary?: { categoryCount: number, bookmarkCount: number, skippedBookmarksCount: number },
+ *   error?: string
+ * }}
+ */
+export function parseAndValidateImport(jsonString) {
+  if (!jsonString || typeof jsonString !== 'string') {
+    return { success: false, error: 'Empty file contents' };
+  }
+
+  // Cap import file size to 5 MB
+  if (jsonString.length > 5 * 1024 * 1024) {
+    return { success: false, error: 'Import file exceeds 5 MB limit' };
+  }
+
+  let raw;
+  try {
+    raw = JSON.parse(jsonString);
+  } catch (err) {
+    return { success: false, error: 'File is not valid JSON' };
+  }
+
+  return repairAndValidateRawImport(raw);
+}
+
+/**
+ * Unescapes standard HTML entities.
+ * @param {string} str
+ * @returns {string}
+ */
+function unescapeHtml(str) {
+  return str
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'");
+}
+
+/**
+ * Parses Netscape bookmark HTML format using plain regex tokenizer fallback.
+ * @param {string} htmlString
+ * @returns {Array<{ name: string, bookmarks: Array<{ name: string, url: string }> }>}
+ */
+function parseNetscapeBookmarksHtmlPlain(htmlString) {
+  /** @type {Map<string, Array<{ name: string, url: string }>>} */
+  const categoriesMap = new Map();
+  let currentFolder = 'Imported';
+
+  const tokens = htmlString.split(/(<H3[^>]*>.*?<\/H3>|<A\s+[^>]*HREF=["'][^"']*["'][^>]*>.*?<\/A>)/is);
+
+  for (const token of tokens) {
+    const h3Match = token.match(/<H3[^>]*>(.*?)<\/H3>/i);
+    if (h3Match) {
+      currentFolder = unescapeHtml(h3Match[1].replace(/<[^>]+>/g, '').trim()) || 'Imported';
+      continue;
+    }
+
+    const aMatch = token.match(/<A\s+[^>]*HREF=["']([^"']*)["'][^>]*>(.*?)<\/A>/i);
+    if (aMatch) {
+      const url = aMatch[1].trim();
+      const name = unescapeHtml(aMatch[2].replace(/<[^>]+>/g, '').trim()) || url;
+      if (!categoriesMap.has(currentFolder)) {
+        categoriesMap.set(currentFolder, []);
+      }
+      categoriesMap.get(currentFolder)?.push({ name, url });
+    }
+  }
+
+  /** @type {Array<{ name: string, bookmarks: Array<{ name: string, url: string }> }>} */
+  const result = [];
+  categoriesMap.forEach((bookmarks, name) => {
+    if (bookmarks.length > 0) {
+      result.push({ name, bookmarks });
+    }
+  });
+  return result;
+}
+
+/**
+ * Parses Netscape bookmarks HTML export file.
+ * Uses DOMParser when available in browser, falling back to plain parser.
+ *
+ * @param {string} htmlString
+ * @returns {Array<{ name: string, bookmarks: Array<{ name: string, url: string }> }>}
+ */
+export function parseNetscapeBookmarksHtml(htmlString) {
+  if (typeof DOMParser !== 'undefined') {
+    try {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(htmlString, 'text/html');
+      /** @type {Map<string, Array<{ name: string, url: string }>>} */
+      const categoriesMap = new Map();
+      const defaultCatName = 'Imported';
+
+      const h3s = Array.from(doc.querySelectorAll('h3'));
+      if (h3s.length > 0) {
+        h3s.forEach(h3 => {
+          const folderName = (h3.textContent || '').trim() || defaultCatName;
+          const nextDl = h3.parentElement?.querySelector('dl') || h3.nextElementSibling;
+          const links = nextDl ? Array.from(nextDl.querySelectorAll('a')) : [];
+          if (!categoriesMap.has(folderName)) {
+            categoriesMap.set(folderName, []);
+          }
+          links.forEach(a => {
+            const url = a.getAttribute('href') || '';
+            const name = (a.textContent || '').trim() || url;
+            if (url) categoriesMap.get(folderName)?.push({ name, url });
+          });
+        });
+      }
+
+      const allLinks = Array.from(doc.querySelectorAll('a'));
+      const capturedLinks = new Set();
+      categoriesMap.forEach(bms => bms.forEach(bm => capturedLinks.add(bm.url)));
+
+      const uncaptured = allLinks.filter(a => !capturedLinks.has(a.getAttribute('href')));
+      if (uncaptured.length > 0) {
+        if (!categoriesMap.has(defaultCatName)) categoriesMap.set(defaultCatName, []);
+        uncaptured.forEach(a => {
+          const url = a.getAttribute('href') || '';
+          const name = (a.textContent || '').trim() || url;
+          if (url) categoriesMap.get(defaultCatName)?.push({ name, url });
+        });
+      }
+
+      /** @type {Array<{ name: string, bookmarks: Array<{ name: string, url: string }> }>} */
+      const result = [];
+      categoriesMap.forEach((bookmarks, name) => {
+        if (bookmarks.length > 0) {
+          result.push({ name, bookmarks });
+        }
+      });
+      if (result.length > 0) return result;
+    } catch {}
+  }
+
+  return parseNetscapeBookmarksHtmlPlain(htmlString);
+}
+
+/**
+ * Parses a single CSV line taking quotes and commas into account.
+ * @param {string} line
+ * @returns {string[]}
+ */
+function parseCsvLine(line) {
+  const result = [];
+  let current = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') {
+      if (inQuotes && line[i + 1] === '"') {
+        current += '"';
+        i++;
+      } else {
+        inQuotes = !inQuotes;
+      }
+    } else if (ch === ',' && !inQuotes) {
+      result.push(current.trim());
+      current = '';
+    } else {
+      current += ch;
+    }
+  }
+  result.push(current.trim());
+  return result;
+}
+
+/**
+ * Parses bookmarks from CSV format (name, url, collection).
+ * @param {string} csvString
+ * @returns {Array<{ name: string, bookmarks: Array<{ name: string, url: string }> }>}
+ */
+export function parseBookmarksCsv(csvString) {
+  if (!csvString || typeof csvString !== 'string') return [];
+
+  const rawLines = csvString.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  if (rawLines.length === 0) return [];
+
+  let nameIdx = 0;
+  let urlIdx = 1;
+  let colIdx = 2;
+  let startIndex = 0;
+
+  // Header detection
+  const firstRow = parseCsvLine(rawLines[0]);
+  const hasHeader = firstRow.some(col => {
+    const lower = col.toLowerCase();
+    return lower === 'url' || lower === 'name' || lower === 'collection' || lower === 'category';
+  });
+
+  if (hasHeader) {
+    startIndex = 1;
+    const lowerHeaders = firstRow.map(h => h.toLowerCase());
+    const nIdx = lowerHeaders.findIndex(h => h.includes('name') || h.includes('title'));
+    const uIdx = lowerHeaders.findIndex(h => h.includes('url') || h.includes('link') || h.includes('href'));
+    const cIdx = lowerHeaders.findIndex(h => h.includes('col') || h.includes('cat') || h.includes('folder'));
+
+    if (uIdx !== -1) urlIdx = uIdx;
+    if (nIdx !== -1) nameIdx = nIdx;
+    if (cIdx !== -1) colIdx = cIdx;
+  }
+
+  /** @type {Map<string, Array<{ name: string, url: string }>>} */
+  const categoriesMap = new Map();
+
+  for (let i = startIndex; i < rawLines.length; i++) {
+    const cols = parseCsvLine(rawLines[i]);
+    if (cols.length < 2 && !cols[urlIdx]) continue;
+
+    const url = (cols[urlIdx] || '').trim();
+    const name = (cols[nameIdx] || '').trim();
+    const collection = (cols[colIdx] || '').trim() || 'Imported';
+
+    if (!url) continue;
+
+    if (!categoriesMap.has(collection)) {
+      categoriesMap.set(collection, []);
+    }
+    categoriesMap.get(collection)?.push({ name: name || url, url });
+  }
+
+  /** @type {Array<{ name: string, bookmarks: Array<{ name: string, url: string }> }>} */
+  const result = [];
+  categoriesMap.forEach((bookmarks, name) => {
+    if (bookmarks.length > 0) {
+      result.push({ name, bookmarks });
+    }
+  });
+  return result;
+}
+
+/**
+ * Parses and validates bookmarks import from JSON, Netscape HTML, or CSV.
+ * Pushes through the same validation, repair, preview and snapshot pipeline.
+ *
+ * @param {string} content
+ * @param {'json' | 'html' | 'csv' | 'auto'} [format='auto']
+ * @returns {{
+ *   success: boolean,
+ *   data?: import('../core/schema.js').DashboardData,
+ *   summary?: { categoryCount: number, bookmarkCount: number, skippedBookmarksCount: number },
+ *   error?: string
+ * }}
+ */
+export function parseAndValidateBookmarksImport(content, format = 'auto') {
+  if (!content || typeof content !== 'string') {
+    return { success: false, error: 'Empty file contents' };
+  }
+
+  if (content.length > 5 * 1024 * 1024) {
+    return { success: false, error: 'Import file exceeds 5 MB limit' };
+  }
+
+  let resolvedFormat = format;
+  if (resolvedFormat === 'auto') {
+    const trimmed = content.trim();
+    if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+      resolvedFormat = 'json';
+    } else if (trimmed.includes('<!DOCTYPE') || trimmed.includes('<H3') || trimmed.includes('<DL') || trimmed.includes('<A HREF') || trimmed.includes('<TITLE>Bookmarks')) {
+      resolvedFormat = 'html';
+    } else {
+      resolvedFormat = 'csv';
+    }
+  }
+
+  if (resolvedFormat === 'json') {
+    return parseAndValidateImport(content);
+  }
+
+  if (resolvedFormat === 'html') {
+    const rawCategories = parseNetscapeBookmarksHtml(content);
+    if (!rawCategories || rawCategories.length === 0) {
+      return { success: false, error: 'No bookmarks found in HTML file' };
+    }
+    return repairAndValidateRawImport({ categories: rawCategories });
+  }
+
+  if (resolvedFormat === 'csv') {
+    const rawCategories = parseBookmarksCsv(content);
+    if (!rawCategories || rawCategories.length === 0) {
+      return { success: false, error: 'No bookmarks found in CSV file' };
+    }
+    return repairAndValidateRawImport({ categories: rawCategories });
+  }
+
+  return { success: false, error: `Unsupported import format "${resolvedFormat}"` };
 }
 
 /**

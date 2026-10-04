@@ -480,8 +480,16 @@ export function openImportPreviewDialog({ summary, onConfirm }) {
       el('div', {},
         el('div', { text: String(summary.bookmarkCount), style: { fontSize: '20px', fontWeight: '600' } }),
         el('div', { text: 'Bookmarks', style: { fontSize: '11px', color: 'var(--text-muted)' } })
-      )
+      ),
+      summary.skippedBookmarksCount ? el('div', {},
+        el('div', { text: String(summary.skippedBookmarksCount), style: { fontSize: '20px', fontWeight: '600', color: 'var(--color-warning, #f59e0b)' } }),
+        el('div', { text: 'Skipped', style: { fontSize: '11px', color: 'var(--text-muted)' } })
+      ) : null
     ),
+    summary.skippedBookmarksCount ? el('p', {
+      text: `${summary.skippedBookmarksCount} bookmark(s) will be skipped due to invalid or dangerous URLs.`,
+      style: { fontSize: 'var(--text-xs)', color: 'var(--color-warning, #f59e0b)' }
+    }) : null,
     el('p', {
       text: 'Note: Restoring will replace your current collections with the backup. You can click Undo if restored by accident.',
       style: { fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }
