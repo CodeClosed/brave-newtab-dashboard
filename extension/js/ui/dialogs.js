@@ -2,6 +2,7 @@
 import { el, clearChildren } from '../utils/dom.js';
 import { normalizeUrl } from '../utils/url.js';
 import { store } from '../core/state.js';
+import { findDuplicateBookmark } from '../features/duplicates.js';
 
 let activeDialog = null;
 let lastActiveElement = null;
@@ -214,11 +215,33 @@ export function openBookmarkDialog({ mode, categoryId, bookmark, onSave }) {
   }));
 
   const urlError = el('span', { className: 'field-error', text: 'Please enter a valid web URL' });
+  const duplicateWarning = el('div', { className: 'duplicate-warning-banner', role: 'status', style: { display: 'none' } });
+
+  function checkDuplicate() {
+    const raw = urlInput.value.trim();
+    if (!raw) {
+      duplicateWarning.style.display = 'none';
+      duplicateWarning.textContent = '';
+      return;
+    }
+    const duplicate = findDuplicateBookmark(raw, categories, bookmark?.id);
+    if (duplicate) {
+      duplicateWarning.textContent = `Note: Already saved in "${duplicate.category.name}" as "${duplicate.bookmark.name}". You can still save if desired.`;
+      duplicateWarning.style.display = 'block';
+    } else {
+      duplicateWarning.style.display = 'none';
+      duplicateWarning.textContent = '';
+    }
+  }
+
+  urlInput.addEventListener('input', checkDuplicate);
+  if (urlInput.value) checkDuplicate();
 
   const urlGroup = el('div', { className: 'form-group' },
     el('label', { className: 'form-label', text: 'Website URL' }),
     urlInput,
-    urlError
+    urlError,
+    duplicateWarning
   );
 
   const nameInput = /** @type {HTMLInputElement} */ (el('input', {

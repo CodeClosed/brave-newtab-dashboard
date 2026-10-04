@@ -216,3 +216,16 @@ dialog::backdrop {
 .menu-item.danger:hover {
   background: rgba(239, 68, 68, 0.1);
 }
+
+/* Duplicate detection inline warning banner */
+.duplicate-warning-banner {
+  margin-top: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  background: var(--bg-surface-subtle);
+  border-left: 3px solid var(--accent-base);
+  border-radius: var(--radius-xs);
+  line-height: 1.4;
+}
+
