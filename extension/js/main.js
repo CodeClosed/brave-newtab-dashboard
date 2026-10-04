@@ -9,6 +9,7 @@ import { applyBackground } from './features/theme.js';
 import { initEditMode } from './features/edit-mode.js';
 import { initDropAndPaste } from './features/drag-paste.js';
 import { renderPinnedStrip } from './features/pinned.js';
+import { initKeyboardNavigation } from './features/keyboard.js';
 
 /**
  * Updates DOM root attributes and dynamic UI based on current settings.
@@ -97,6 +98,7 @@ async function initApp() {
   // Start Clock Ticker & Keyboard Shortcuts
   startClockTicker();
   initSearchShortcuts();
+  initKeyboardNavigation();
   initEditMode();
   initDropAndPaste();
 

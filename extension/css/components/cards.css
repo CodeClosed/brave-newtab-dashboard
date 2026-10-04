@@ -516,4 +516,42 @@ body.is-edit-mode .bookmark-select-checkbox {
   opacity: 1;
 }
 
+/* 2.6 Collection & Bookmark Jump Badges */
+.jump-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  margin-left: 6px;
+  font-size: 11px;
+  font-weight: var(--weight-semibold);
+  font-family: var(--font-mono, monospace);
+  color: var(--text-inverse, #ffffff);
+  background: var(--accent-base);
+  border-radius: var(--radius-xs);
+  line-height: 1;
+  pointer-events: none;
+  vertical-align: middle;
+  animation: badge-pop 0.12s ease-out;
+}
+
+@keyframes badge-pop {
+  from {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jump-badge {
+    animation: none;
+  }
+}
+
 
