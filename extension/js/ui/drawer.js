@@ -8,6 +8,7 @@ import { createDefaultDashboardData, validateDashboardData } from '../core/schem
 import { migrate } from '../core/migrate.js';
 import { saveBackgroundImage, deleteBackgroundImage } from '../core/idb.js';
 import { downscaleImage } from '../features/theme.js';
+import { createSnapshot, listSnapshots, restoreSnapshot, deleteSnapshot } from '../core/snapshots.js';
 
 let drawerElement = null;
 let activeTab = 'appearance';
@@ -587,6 +588,7 @@ function renderDataSection() {
       openImportPreviewDialog({
         summary: result.summary,
         onConfirm: async () => {
+          await createSnapshot('Before import', store.get());
           const preImportSnapshot = JSON.parse(JSON.stringify(store.get()));
           await store.replaceData(result.data, true);
           closeDrawer();
@@ -622,6 +624,7 @@ function renderDataSection() {
         message: 'This will reset all your collections, bookmarks, and settings back to default. Are you sure?',
         confirmText: 'Reset All',
         onConfirm: async () => {
+          await createSnapshot('Before reset', store.get());
           const preResetSnapshot = JSON.parse(JSON.stringify(store.get()));
           await store.replaceData(createDefaultDashboardData(), true);
           closeDrawer();
@@ -658,6 +661,102 @@ function renderDataSection() {
   section.appendChild(fileInput);
   section.appendChild(importBtn);
   section.appendChild(browserImportBtn);
+
+  // --- Snapshots Section ---
+  const snapshotsSection = el('div', { className: 'snapshots-section' });
+  const snapshotsHeader = el('div', { className: 'setting-item' }, [
+    el('span', { className: 'setting-label', text: 'Snapshots' }),
+    el('span', { className: 'setting-hint', text: 'Automatic safety backups saved in browser database (up to 10 latest).' })
+  ]);
+
+  const snapshotListContainer = el('div', { className: 'snapshots-list' });
+
+  async function refreshSnapshots() {
+    clearChildren(snapshotListContainer);
+    const snaps = await listSnapshots();
+    if (!snaps || snaps.length === 0) {
+      snapshotListContainer.appendChild(el('div', {
+        className: 'snapshot-empty-hint',
+        text: 'No snapshots saved yet.'
+      }));
+      return;
+    }
+
+    snaps.forEach(snap => {
+      const dateFormatted = new Date(snap.createdAt).toLocaleString(undefined, {
+        month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+      });
+
+      const snapItem = el('div', { className: 'snapshot-item' }, [
+        el('div', { className: 'snapshot-info' }, [
+          el('div', { className: 'snapshot-meta' }, [
+            el('span', { className: 'snapshot-reason', text: snap.reason || 'Snapshot' }),
+            el('span', { className: 'snapshot-date', text: dateFormatted })
+          ]),
+          el('div', {
+            className: 'snapshot-counts',
+            text: `${snap.counts?.categories ?? 0} collections · ${snap.counts?.bookmarks ?? 0} bookmarks`
+          })
+        ]),
+        el('div', { className: 'snapshot-actions' }, [
+          el('button', {
+            className: 'btn-secondary btn-sm',
+            type: 'button',
+            text: 'Restore',
+            title: 'Restore this snapshot',
+            onclick: () => {
+              openConfirmDialog({
+                title: 'Restore Snapshot?',
+                message: `Restore snapshot from ${dateFormatted} (${snap.reason})? It contains ${snap.counts?.categories ?? 0} collections and ${snap.counts?.bookmarks ?? 0} bookmarks. Current data will be backed up before restore.`,
+                confirmText: 'Restore',
+                onConfirm: async () => {
+                  const preRestore = JSON.parse(JSON.stringify(store.get()));
+                  await restoreSnapshot(snap.id);
+                  closeDrawer();
+                  showToast(`Restored snapshot from ${dateFormatted}`, () => {
+                    store.replaceData(preRestore, true);
+                    showToast('Restore undone');
+                  });
+                }
+              });
+            }
+          }),
+          el('button', {
+            className: 'btn-icon btn-sm btn-danger',
+            type: 'button',
+            text: '✕',
+            title: 'Delete snapshot',
+            onclick: async () => {
+              await deleteSnapshot(snap.id);
+              showToast('Snapshot deleted');
+              await refreshSnapshots();
+            }
+          })
+        ])
+      ]);
+
+      snapshotListContainer.appendChild(snapItem);
+    });
+  }
+
+  const createSnapBtn = el('button', {
+    className: 'btn-secondary',
+    type: 'button',
+    text: 'Create Snapshot',
+    onclick: async () => {
+      await createSnapshot('Manual snapshot');
+      showToast('Snapshot created');
+      await refreshSnapshots();
+    }
+  });
+
+  refreshSnapshots().catch(() => {});
+
+  snapshotsSection.appendChild(snapshotsHeader);
+  snapshotsSection.appendChild(createSnapBtn);
+  snapshotsSection.appendChild(snapshotListContainer);
+
+  section.appendChild(snapshotsSection);
   section.appendChild(resetBtn);
 
   return section;

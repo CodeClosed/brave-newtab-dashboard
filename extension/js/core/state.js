@@ -2,6 +2,7 @@
 import { loadDashboardData, queueSaveDashboardData, saveDashboardDataImmediately, onExternalStorageChange } from './storage.js';
 import { createDefaultDashboardData, generateId } from './schema.js';
 import { normalizeUrl } from '../utils/url.js';
+import { createSnapshot, checkAndTriggerDailySnapshot, registerSnapshotStore } from './snapshots.js';
 
 class StateStore {
   constructor() {
@@ -148,10 +149,14 @@ class StateStore {
    * @returns {() => void} Undo restoration function
    */
   deleteCategory(categoryId) {
+    const cat = this._data.categories.find(c => c.id === categoryId);
+    if (cat && Array.isArray(cat.bookmarks) && cat.bookmarks.length > 0) {
+      createSnapshot('Before delete collection', this._data).catch(() => {});
+    }
     const snapshot = this._createSnapshot();
     this._data.categories = this._data.categories.filter(c => c.id !== categoryId);
     // Recalculate order indices
-    this._data.categories.forEach((cat, idx) => { cat.order = idx; });
+    this._data.categories.forEach((c, idx) => { c.order = idx; });
     queueSaveDashboardData(this._data);
     this._notify();
 
@@ -353,3 +358,4 @@ class StateStore {
 }
 
 export const store = new StateStore();
+registerSnapshotStore(store);

@@ -1,6 +1,7 @@
 // @ts-check
 import { createDefaultDashboardData, CURRENT_SCHEMA_VERSION } from './schema.js';
 import { migrate } from './migrate.js';
+import { createSnapshot, checkAndTriggerDailySnapshot } from './snapshots.js';
 
 const STORAGE_KEY = 'dashboard';
 const RECOVERY_KEY = 'dashboard:recovery';
@@ -91,6 +92,14 @@ export async function loadDashboardData() {
       }
     }
 
+    if (raw && typeof raw === 'object' && raw.version !== CURRENT_SCHEMA_VERSION && Array.isArray(raw.categories)) {
+      try {
+        await createSnapshot('Before migration', raw);
+      } catch (e) {
+        // Ignored in environments without IDB support
+      }
+    }
+
     return migrate(raw);
   } catch (err) {
     console.error('Failed to load dashboard data from storage:', err);
@@ -148,6 +157,8 @@ export async function saveDashboardDataImmediately(data) {
 export function queueSaveDashboardData(data) {
   pendingData = data;
   updateBootCache(data);
+
+  checkAndTriggerDailySnapshot().catch(() => {});
 
   if (saveTimeout) {
     clearTimeout(saveTimeout);

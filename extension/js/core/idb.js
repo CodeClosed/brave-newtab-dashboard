@@ -1,8 +1,10 @@
 // @ts-check
 
 const DB_NAME = 'ntd_storage';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const STORE_NAME = 'backgrounds';
+const SNAPSHOTS_STORE = 'snapshots';
+const WALLPAPERS_STORE = 'wallpapers';
 const WALLPAPER_KEY = 'custom_wallpaper';
 
 let cachedDBPromise = null;
@@ -38,6 +40,12 @@ function getDB() {
       const db = request.result;
       if (!db.objectStoreNames.contains(STORE_NAME)) {
         db.createObjectStore(STORE_NAME);
+      }
+      if (!db.objectStoreNames.contains(SNAPSHOTS_STORE)) {
+        db.createObjectStore(SNAPSHOTS_STORE, { keyPath: 'id' });
+      }
+      if (!db.objectStoreNames.contains(WALLPAPERS_STORE)) {
+        db.createObjectStore(WALLPAPERS_STORE);
       }
     };
 
@@ -131,3 +139,87 @@ export async function deleteBackgroundImage() {
     // Ignore if DB not found
   }
 }
+
+/**
+ * Saves a snapshot record into the snapshots object store.
+ * @param {any} snapshot
+ * @returns {Promise<any>}
+ */
+export async function saveSnapshotRecord(snapshot) {
+  try {
+    const db = await getDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(SNAPSHOTS_STORE, 'readwrite');
+      const store = tx.objectStore(SNAPSHOTS_STORE);
+      const req = store.put(snapshot);
+      req.onsuccess = () => resolve(snapshot);
+      req.onerror = () => reject(req.error);
+    });
+  } catch (err) {
+    return snapshot;
+  }
+}
+
+/**
+ * Retrieves all snapshot records sorted by createdAt descending.
+ * @returns {Promise<any[]>}
+ */
+export async function getAllSnapshotRecords() {
+  try {
+    const db = await getDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(SNAPSHOTS_STORE, 'readonly');
+      const store = tx.objectStore(SNAPSHOTS_STORE);
+      const req = store.getAll();
+      req.onsuccess = () => {
+        const items = req.result || [];
+        items.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        resolve(items);
+      };
+      req.onerror = () => reject(req.error);
+    });
+  } catch (err) {
+    return [];
+  }
+}
+
+/**
+ * Retrieves a single snapshot by id.
+ * @param {string} id
+ * @returns {Promise<any | null>}
+ */
+export async function getSnapshotRecord(id) {
+  try {
+    const db = await getDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(SNAPSHOTS_STORE, 'readonly');
+      const store = tx.objectStore(SNAPSHOTS_STORE);
+      const req = store.get(id);
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror = () => reject(req.error);
+    });
+  } catch (err) {
+    return null;
+  }
+}
+
+/**
+ * Deletes a snapshot record by id.
+ * @param {string} id
+ * @returns {Promise<void>}
+ */
+export async function deleteSnapshotRecord(id) {
+  try {
+    const db = await getDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(SNAPSHOTS_STORE, 'readwrite');
+      const store = tx.objectStore(SNAPSHOTS_STORE);
+      const req = store.delete(id);
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+    });
+  } catch (err) {
+    // Ignore error
+  }
+}
+
