@@ -99,6 +99,21 @@ async function initApp() {
     });
   }
 
+  // Bind Toolbar Collapse All / Expand All buttons
+  const collapseAllBtn = document.getElementById('collapse-all-btn');
+  if (collapseAllBtn) {
+    collapseAllBtn.addEventListener('click', () => {
+      store.setAllCategoriesCollapsed(true);
+    });
+  }
+
+  const expandAllBtn = document.getElementById('expand-all-btn');
+  if (expandAllBtn) {
+    expandAllBtn.addEventListener('click', () => {
+      store.setAllCategoriesCollapsed(false);
+    });
+  }
+
   // Bind Settings Cog Trigger
   const settingsBtn = document.getElementById('settings-trigger-btn');
   if (settingsBtn) {

@@ -325,6 +325,22 @@ function openCategoryMenu(triggerBtn, category, categoryIndex, totalCategories) 
   });
   menu.appendChild(addManyItem);
 
+  // Sort A-Z (one-shot, undoable)
+  if (Array.isArray(category.bookmarks) && category.bookmarks.length > 1) {
+    const sortItem = el('button', {
+      className: 'menu-item',
+      type: 'button',
+      role: 'menuitem',
+      text: '🔤 Sort A–Z',
+      onclick: () => {
+        closeActiveMenu();
+        const undo = store.sortCategoryBookmarks(category.id);
+        showToast(`Sorted "${category.name}" A–Z`, undo);
+      }
+    });
+    menu.appendChild(sortItem);
+  }
+
   // Move to space (if > 1 spaces)
   const menuState = store.getState ? store.getState() : store.get();
   if (Array.isArray(menuState?.spaces) && menuState.spaces.length > 1) {

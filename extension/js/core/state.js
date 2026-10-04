@@ -112,6 +112,19 @@ class StateStore {
     }
   }
 
+  /**
+   * Collapses or expands all categories.
+   * @param {boolean} collapsed
+   */
+  setAllCategoriesCollapsed(collapsed) {
+    if (!Array.isArray(this._data.categories)) return;
+    this._data.categories.forEach(c => {
+      c.collapsed = Boolean(collapsed);
+    });
+    queueSaveDashboardData(this._data);
+    this._notify();
+  }
+
   // --- Category CRUD ---
 
   /**
@@ -472,6 +485,31 @@ class StateStore {
 
     queueSaveDashboardData(this._data);
     this._notify();
+  }
+
+  /**
+   * Sorts bookmarks in a category alphabetically by name with undo support.
+   * @param {string} categoryId
+   * @returns {() => void}
+   */
+  sortCategoryBookmarks(categoryId) {
+    const cat = this._data.categories.find(c => c.id === categoryId);
+    if (!cat || !Array.isArray(cat.bookmarks) || cat.bookmarks.length <= 1) {
+      return () => {};
+    }
+
+    createSnapshot(`Before sort ${cat.name} A-Z`, this._data).catch(() => {});
+    const snapshot = this._createSnapshot();
+
+    cat.bookmarks.sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' }));
+    cat.bookmarks.forEach((b, idx) => { b.order = idx; });
+
+    queueSaveDashboardData(this._data);
+    this._notify();
+
+    return () => {
+      this.replaceData(snapshot);
+    };
   }
 
   /**
