@@ -11,6 +11,7 @@ import { isBookmarkPinned, togglePinBookmark, openAllCollectionLinks } from '../
 import { openMoveCategoryToSpaceDialog } from '../features/spaces.js';
 import { openAddManyDialog, getSelectedBookmarkIds } from '../features/bulk-ops.js';
 import { renderBookmarkIcon } from '../features/custom-icons.js';
+import { resolveCategoryDisplayMode } from '../features/display.js';
 
 let activeMenu = null;
 let activeMenuTrigger = null;
@@ -377,6 +378,42 @@ function openCategoryMenu(triggerBtn, category, categoryIndex, totalCategories) 
     menu.appendChild(openAllItem);
   }
 
+  // 4.3 Display mode per-collection override
+  const displayModes = [
+    { id: 'list', label: 'View: List' },
+    { id: 'grid', label: 'View: Grid' },
+    { id: 'icons', label: 'View: Icons' }
+  ];
+  displayModes.forEach(m => {
+    const isCurrent = category.displayMode === m.id;
+    const item = el('button', {
+      className: `menu-item${isCurrent ? ' is-active' : ''}`,
+      type: 'button',
+      role: 'menuitem',
+      text: `${isCurrent ? '✓ ' : '  '}${m.label}`,
+      onclick: () => {
+        closeActiveMenu();
+        store.updateCategory(category.id, { displayMode: m.id });
+        showToast(`Switched "${category.name}" to ${m.id} view`);
+      }
+    });
+    menu.appendChild(item);
+  });
+  if (category.displayMode) {
+    const resetDisplayItem = el('button', {
+      className: 'menu-item',
+      type: 'button',
+      role: 'menuitem',
+      text: '↺ Reset view to default',
+      onclick: () => {
+        closeActiveMenu();
+        store.updateCategory(category.id, { displayMode: null });
+        showToast(`Reset "${category.name}" to default view`);
+      }
+    });
+    menu.appendChild(resetDisplayItem);
+  }
+
   // Delete Category
   const deleteItem = el('button', {
     className: 'menu-item danger',
@@ -542,7 +579,14 @@ export function renderCategoryCard(category, categoryIndex, totalCategories) {
   });
 
   // Bookmarks List
-  const list = el('ul', { className: 'bookmarks-list', id: listId });
+  const appState = store.getState ? store.getState() : (store.get ? store.get() : null);
+  const displayMode = resolveCategoryDisplayMode(category, appState?.settings);
+  const list = el('ul', {
+    className: 'bookmarks-list',
+    id: listId,
+    dataset: { displayMode }
+  });
+  list.setAttribute('data-display-mode', displayMode);
   if (Array.isArray(category.bookmarks)) {
     const sorted = [...category.bookmarks].sort((a, b) => a.order - b.order);
     sorted.forEach((bm, bIdx) => {

@@ -121,7 +121,8 @@ export function resetSettingsSection(sectionId) {
     label = 'Layout';
     patch = {
       layout: defaults.layout,
-      cards: JSON.parse(JSON.stringify(defaults.cards))
+      cards: JSON.parse(JSON.stringify(defaults.cards)),
+      display: JSON.parse(JSON.stringify(defaults.display))
     };
   } else if (sectionId === 'clock') {
     label = 'Clock';
@@ -753,12 +754,116 @@ function renderLayoutSection(settings) {
     }
   );
 
+  // 4.3 Default Bookmark Display Mode
+  const currentMode = settings.display?.defaultMode || 'list';
+  const displayModeGroup = el('div', { className: 'setting-item' },
+    el('div', { className: 'setting-item-header' },
+      el('span', { className: 'setting-label', text: 'Default Bookmark View' })
+    ),
+    el('div', { className: 'radio-group-cards', style: { gridTemplateColumns: 'repeat(3, 1fr)' } },
+      renderRadioCard('List', currentMode === 'list', () => {
+        store.updateSettings({ display: { ...(settings.display || {}), defaultMode: 'list' } });
+        renderDrawerContent();
+      }),
+      renderRadioCard('Grid', currentMode === 'grid', () => {
+        store.updateSettings({ display: { ...(settings.display || {}), defaultMode: 'grid' } });
+        renderDrawerContent();
+      }),
+      renderRadioCard('Icons Only', currentMode === 'icons', () => {
+        store.updateSettings({ display: { ...(settings.display || {}), defaultMode: 'icons' } });
+        renderDrawerContent();
+      })
+    )
+  );
+
+  // 4.3 Tile Shape Controls
+  const currentTileShape = settings.display?.tileShape || 'rounded';
+  const tileShapeGroup = el('div', { className: 'setting-item' },
+    el('div', { className: 'setting-item-header' },
+      el('span', { className: 'setting-label', text: 'Tile Shape' })
+    ),
+    el('div', { className: 'radio-group-cards', style: { gridTemplateColumns: 'repeat(3, 1fr)' } },
+      renderRadioCard('Rounded', currentTileShape === 'rounded', () => {
+        store.updateSettings({ display: { ...(settings.display || {}), tileShape: 'rounded' } });
+        renderDrawerContent();
+      }),
+      renderRadioCard('Square', currentTileShape === 'square', () => {
+        store.updateSettings({ display: { ...(settings.display || {}), tileShape: 'square' } });
+        renderDrawerContent();
+      }),
+      renderRadioCard('Circle', currentTileShape === 'circle', () => {
+        store.updateSettings({ display: { ...(settings.display || {}), tileShape: 'circle' } });
+        renderDrawerContent();
+      })
+    )
+  );
+
+  // 4.3 Density Controls
+  const currentDensity = settings.display?.density || 'comfortable';
+  const densityGroup = el('div', { className: 'setting-item' },
+    el('div', { className: 'setting-item-header' },
+      el('span', { className: 'setting-label', text: 'Bookmark Spacing' })
+    ),
+    el('div', { className: 'radio-group-cards', style: { gridTemplateColumns: 'repeat(2, 1fr)' } },
+      renderRadioCard('Comfortable', currentDensity === 'comfortable', () => {
+        store.updateSettings({ display: { ...(settings.display || {}), density: 'comfortable' } });
+        renderDrawerContent();
+      }),
+      renderRadioCard('Compact', currentDensity === 'compact', () => {
+        store.updateSettings({ display: { ...(settings.display || {}), density: 'compact' } });
+        renderDrawerContent();
+      })
+    )
+  );
+
+  // 4.3 Show Domains Toggle
+  const showDomains = settings.display?.showDomains !== false;
+  const showDomainsRow = renderToggleRow(
+    'Show Website Domains',
+    'Display clean hostname beneath bookmark titles in list view',
+    showDomains,
+    (checked) => {
+      store.updateSettings({ display: { ...(settings.display || {}), showDomains: checked } });
+      renderDrawerContent();
+    }
+  );
+
+  // 4.3 Icon Size Slider
+  const currentIconSize = typeof settings.display?.iconSize === 'number' ? settings.display.iconSize : 20;
+  const iconSizeValSpan = el('span', { text: `${currentIconSize}px`, style: { fontSize: '12px' } });
+  const iconSizeSlider = /** @type {HTMLInputElement} */ (el('input', {
+    type: 'range',
+    min: '16',
+    max: '36',
+    step: '2',
+    value: String(currentIconSize),
+    style: { width: '100%' }
+  }));
+  iconSizeSlider.addEventListener('input', () => {
+    const val = parseInt(iconSizeSlider.value, 10);
+    iconSizeValSpan.textContent = `${val}px`;
+    store.updateSettings({ display: { ...(settings.display || {}), iconSize: val } });
+  });
+
+  const iconSizeGroup = el('div', { className: 'setting-item' },
+    el('div', { style: { display: 'flex', justifyContent: 'space-between', marginBottom: '4px' } },
+      el('span', { className: 'setting-label', text: 'Icon Size' }),
+      iconSizeValSpan
+    ),
+    iconSizeSlider
+  );
+
   section.appendChild(layoutGroup);
   section.appendChild(colsGroup);
   section.appendChild(cardWidthGroup);
   section.appendChild(gapGroup);
   section.appendChild(alignGroup);
   section.appendChild(cardStyleGroup);
+  section.appendChild(displayModeGroup);
+  section.appendChild(tileShapeGroup);
+  section.appendChild(densityGroup);
+  section.appendChild(iconSizeGroup);
+  section.appendChild(showDomainsRow);
   section.appendChild(translucentRow);
   section.appendChild(equalHeightRow);
   section.appendChild(verticalCenterRow);

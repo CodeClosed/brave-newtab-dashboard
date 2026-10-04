@@ -336,6 +336,21 @@ input, select, textarea {
   gap: var(--space-3);
 }
 
+/* 4.3 Density Controls */
+:root[data-density="compact"] .bookmark-item {
+  padding: 3px var(--space-2);
+  gap: 4px;
+}
+
+:root[data-density="compact"] .bookmarks-list {
+  gap: 1px;
+  padding: 4px;
+}
+
+:root[data-density="compact"] .bookmark-name {
+  font-size: var(--text-sm);
+}
+
 /* Top-right quick actions (Settings trigger) */
 .top-nav {
   position: fixed;

@@ -183,6 +183,106 @@
   border-radius: var(--radius-sm);
 }
 
+/* 4.3 Bookmark Display Modes: list, grid, icons */
+.bookmarks-list[data-display-mode="list"] {
+  display: flex;
+  flex-direction: column;
+}
+
+.bookmarks-list[data-display-mode="grid"] {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+  gap: var(--space-2);
+}
+
+.bookmarks-list[data-display-mode="grid"] .bookmark-item {
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: var(--space-2) var(--space-1);
+}
+
+.bookmarks-list[data-display-mode="grid"] .bookmark-link {
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 4px;
+  width: 100%;
+}
+
+.bookmarks-list[data-display-mode="grid"] .bookmark-details {
+  align-items: center;
+  width: 100%;
+}
+
+.bookmarks-list[data-display-mode="grid"] .inline-add-row {
+  grid-column: 1 / -1;
+}
+
+.bookmarks-list[data-display-mode="icons"] {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.bookmarks-list[data-display-mode="icons"] .bookmark-item {
+  padding: 5px;
+  width: auto;
+  justify-content: center;
+}
+
+.bookmarks-list[data-display-mode="icons"] .bookmark-details {
+  display: none;
+}
+
+.bookmarks-list[data-display-mode="icons"] .bookmark-actions {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.bookmarks-list[data-display-mode="icons"]:hover .bookmark-actions,
+.bookmarks-list[data-display-mode="icons"] .bookmark-item:focus-within .bookmark-actions {
+  opacity: 1;
+  pointer-events: auto;
+  position: absolute;
+  top: -18px;
+  right: 0;
+  background: var(--bg-surface);
+  border-radius: var(--radius-xs);
+  box-shadow: var(--shadow-sm);
+  z-index: 10;
+}
+
+.bookmarks-list[data-display-mode="icons"] .inline-add-row {
+  width: 100%;
+}
+
+/* 4.3 Tile Shape Controls */
+:root[data-tile-shape="rounded"] .bookmark-item,
+:root[data-tile-shape="rounded"] .favicon-container {
+  border-radius: var(--radius-sm);
+}
+
+:root[data-tile-shape="square"] .bookmark-item,
+:root[data-tile-shape="square"] .favicon-container {
+  border-radius: 0;
+}
+
+:root[data-tile-shape="circle"] .bookmark-item,
+:root[data-tile-shape="circle"] .favicon-container {
+  border-radius: 50%;
+}
+
+:root[data-tile-shape="circle"] .bookmarks-list[data-display-mode="icons"] .bookmark-item {
+  border-radius: 50%;
+}
+
+/* 4.3 Domain Visibility */
+:root[data-show-domains="false"] .bookmark-domain {
+  display: none !important;
+}
+
 /* Bookmark Item Row */
 .bookmark-item {
   display: flex;
@@ -272,8 +372,8 @@
 
 /* Favicon & Letter Tile Fallback */
 .favicon-container {
-  width: 20px;
-  height: 20px;
+  width: var(--icon-size, 20px);
+  height: var(--icon-size, 20px);
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -283,14 +383,14 @@
 }
 
 .favicon-img {
-  width: 16px;
-  height: 16px;
+  width: calc(var(--icon-size, 20px) - 4px);
+  height: calc(var(--icon-size, 20px) - 4px);
   object-fit: contain;
 }
 
 .custom-icon-img {
-  width: 16px;
-  height: 16px;
+  width: calc(var(--icon-size, 20px) - 4px);
+  height: calc(var(--icon-size, 20px) - 4px);
   object-fit: contain;
   border-radius: var(--radius-xs);
 }

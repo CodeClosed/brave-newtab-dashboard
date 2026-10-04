@@ -15,6 +15,7 @@ import { initBulkOperations } from './features/bulk-ops.js';
 import { shouldShowFirstRun, openFirstRunDialog } from './features/first-run.js';
 import { applyCardSettings } from './features/cards.js';
 import { applyLayoutSettings } from './features/layout.js';
+import { applyDisplaySettings } from './features/display.js';
 
 /**
  * Updates DOM root attributes and dynamic UI based on current settings.
@@ -50,6 +51,9 @@ function applySettings(settings) {
 
   // 4.2 Layout Controls (columns, width, gap, align, vertical center)
   applyLayoutSettings(settings, root);
+
+  // 4.3 Display Modes & Appearance (tile shape, density, icon size, show domains)
+  applyDisplaySettings(settings, root);
 
   // Search Engine
   applySearchEngine(settings.searchEngine || 'google');
