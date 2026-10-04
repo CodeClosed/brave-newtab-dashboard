@@ -219,6 +219,21 @@
   object-fit: contain;
 }
 
+.custom-icon-img {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  border-radius: var(--radius-xs);
+}
+
+.bookmark-custom-emoji {
+  font-size: 14px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .letter-tile {
   width: 18px;
   height: 18px;

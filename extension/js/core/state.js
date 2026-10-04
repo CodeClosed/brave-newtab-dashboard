@@ -363,10 +363,10 @@ class StateStore {
   /**
    * Adds a bookmark to a category.
    * @param {string} categoryId
-   * @param {{ name: string, url: string }} params
+   * @param {{ name: string, url: string, icon?: any }} params
    * @returns {import('./schema.js').Bookmark | null}
    */
-  addBookmark(categoryId, { name, url }) {
+  addBookmark(categoryId, { name, url, icon = null }) {
     const cat = this._data.categories.find(c => c.id === categoryId);
     if (!cat) return null;
 
@@ -379,7 +379,8 @@ class StateStore {
       id: generateId(),
       name: name.trim() || normalized.domain,
       url: normalized.url,
-      order: cat.bookmarks.length
+      order: cat.bookmarks.length,
+      icon: icon || null
     };
 
     cat.bookmarks.push(newBookmark);
@@ -392,7 +393,7 @@ class StateStore {
    * Updates a bookmark.
    * @param {string} categoryId
    * @param {string} bookmarkId
-   * @param {{ name?: string, url?: string, targetCategoryId?: string }} patch
+   * @param {{ name?: string, url?: string, targetCategoryId?: string, icon?: any }} patch
    */
   updateBookmark(categoryId, bookmarkId, patch) {
     const cat = this._data.categories.find(c => c.id === categoryId);
@@ -412,6 +413,10 @@ class StateStore {
       if (!norm.valid) throw new Error(norm.error || 'Invalid URL');
       bm.url = norm.url;
       if (!bm.name) bm.name = norm.domain;
+    }
+
+    if (patch.icon !== undefined) {
+      bm.icon = patch.icon;
     }
 
     // Move to another category if specified

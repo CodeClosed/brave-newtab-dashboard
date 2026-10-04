@@ -10,6 +10,7 @@ import { startInlineRename, handleInlineAddBookmark } from '../features/edit-mod
 import { isBookmarkPinned, togglePinBookmark, openAllCollectionLinks } from '../features/pinned.js';
 import { openMoveCategoryToSpaceDialog } from '../features/spaces.js';
 import { openAddManyDialog } from '../features/bulk-ops.js';
+import { renderBookmarkIcon } from '../features/custom-icons.js';
 
 let activeMenu = null;
 let activeMenuTrigger = null;
@@ -51,7 +52,7 @@ export function closeActiveMenu(returnFocus = false) {
  */
 export function renderBookmarkItem(bookmark, categoryId, bmIndex, totalBookmarks) {
   const domain = getDomainFromUrl(bookmark.url);
-  const favicon = createFaviconElement(bookmark.url, bookmark.name);
+  const favicon = renderBookmarkIcon(bookmark);
 
   // Edit mode drag handle & checkbox
   const dragHandle = el('span', {

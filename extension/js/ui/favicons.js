@@ -214,3 +214,19 @@ export function createFaviconElement(pageUrl, title) {
 
   return container;
 }
+
+/**
+ * Evicts domain favicon status from the in-memory cache to force retry.
+ * @param {string} pageUrl
+ * @returns {boolean}
+ */
+export function refreshFavicon(pageUrl) {
+  if (!pageUrl) return false;
+  const domain = getDomainFromUrl(pageUrl);
+  if (domain) {
+    domainFaviconStatusCache.delete(domain);
+    return true;
+  }
+  return false;
+}
+

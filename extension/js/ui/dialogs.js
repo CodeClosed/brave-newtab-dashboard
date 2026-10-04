@@ -3,6 +3,9 @@ import { el, clearChildren } from '../utils/dom.js';
 import { normalizeUrl } from '../utils/url.js';
 import { store } from '../core/state.js';
 import { findDuplicateBookmark } from '../features/duplicates.js';
+import { downscaleIconImage, validateCustomIcon } from '../features/custom-icons.js';
+import { refreshFavicon } from './favicons.js';
+import { showToast } from './toasts.js';
 
 let activeDialog = null;
 let lastActiveElement = null;
@@ -272,7 +275,113 @@ export function openBookmarkDialog({ mode, categoryId, bookmark, onSave }) {
     categorySelect
   );
 
-  const body = el('div', { className: 'modal-body' }, urlGroup, nameGroup, categoryGroup);
+  // Icon choice: website (null), emoji, or image
+  let chosenIcon = bookmark?.icon ? { ...bookmark.icon } : null;
+
+  const iconTypeSelect = /** @type {HTMLSelectElement} */ (el('select', { className: 'form-select' }, [
+    el('option', { value: 'website', selected: !chosenIcon }, ['Use website icon']),
+    el('option', { value: 'emoji', selected: chosenIcon?.type === 'emoji' }, ['Choose emoji']),
+    el('option', { value: 'image', selected: chosenIcon?.type === 'image' }, ['Upload custom image'])
+  ]));
+
+  const emojiInput = /** @type {HTMLInputElement} */ (el('input', {
+    type: 'text',
+    className: 'form-input',
+    placeholder: 'e.g. ⭐',
+    maxLength: 8,
+    value: chosenIcon?.type === 'emoji' ? chosenIcon.value : '⭐',
+    style: { width: '80px', textAlign: 'center', display: chosenIcon?.type === 'emoji' ? 'block' : 'none' }
+  }));
+
+  const fileInput = /** @type {HTMLInputElement} */ (el('input', {
+    type: 'file',
+    accept: 'image/*',
+    className: 'form-input',
+    style: { display: chosenIcon?.type === 'image' ? 'block' : 'none', fontSize: 'var(--text-xs)' }
+  }));
+
+  const imagePreview = /** @type {HTMLImageElement} */ (el('img', {
+    className: 'custom-icon-preview',
+    src: chosenIcon?.type === 'image' ? chosenIcon.value : '',
+    style: {
+      width: '24px',
+      height: '24px',
+      objectFit: 'contain',
+      display: chosenIcon?.type === 'image' ? 'block' : 'none',
+      border: '1px solid var(--border-default)',
+      borderRadius: 'var(--radius-xs)'
+    }
+  }));
+
+  const refreshIconBtn = mode === 'edit' ? el('button', {
+    type: 'button',
+    className: 'btn-quiet btn-sm',
+    text: '↻ Refresh icon',
+    title: 'Retry fetching website favicon',
+    onclick: () => {
+      if (bookmark?.url) {
+        refreshFavicon(bookmark.url);
+        chosenIcon = null;
+        iconTypeSelect.value = 'website';
+        emojiInput.style.display = 'none';
+        fileInput.style.display = 'none';
+        imagePreview.style.display = 'none';
+        showToast('Refreshed website icon');
+      }
+    }
+  }) : null;
+
+  iconTypeSelect.addEventListener('change', () => {
+    const val = iconTypeSelect.value;
+    if (val === 'website') {
+      chosenIcon = null;
+      emojiInput.style.display = 'none';
+      fileInput.style.display = 'none';
+      imagePreview.style.display = 'none';
+    } else if (val === 'emoji') {
+      chosenIcon = { type: 'emoji', value: emojiInput.value.trim() || '⭐' };
+      emojiInput.style.display = 'block';
+      fileInput.style.display = 'none';
+      imagePreview.style.display = 'none';
+    } else if (val === 'image') {
+      emojiInput.style.display = 'none';
+      fileInput.style.display = 'block';
+      imagePreview.style.display = chosenIcon?.type === 'image' ? 'block' : 'none';
+    }
+  });
+
+  emojiInput.addEventListener('input', () => {
+    chosenIcon = { type: 'emoji', value: emojiInput.value.trim() || '⭐' };
+  });
+
+  fileInput.addEventListener('change', async () => {
+    const file = fileInput.files?.[0];
+    if (file) {
+      try {
+        const dataUrl = await downscaleIconImage(file, 64);
+        chosenIcon = { type: 'image', value: dataUrl };
+        imagePreview.src = dataUrl;
+        imagePreview.style.display = 'block';
+      } catch (err) {
+        showToast(err.message || 'Failed to process image');
+      }
+    }
+  });
+
+  const iconControls = el('div', { style: { display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' } }, [
+    iconTypeSelect,
+    emojiInput,
+    fileInput,
+    imagePreview,
+    refreshIconBtn
+  ].filter(Boolean));
+
+  const iconGroup = el('div', { className: 'form-group' },
+    el('label', { className: 'form-label', text: 'Bookmark Icon' }),
+    iconControls
+  );
+
+  const body = el('div', { className: 'modal-body' }, urlGroup, nameGroup, categoryGroup, iconGroup);
 
   const cancelBtn = el('button', {
     className: 'btn-secondary',
@@ -306,11 +415,18 @@ export function openBookmarkDialog({ mode, categoryId, bookmark, onSave }) {
     urlError.classList.remove('visible');
     const bookmarkName = nameInput.value.trim() || norm.domain;
 
+    const iconValidation = validateCustomIcon(chosenIcon);
+    if (!iconValidation.valid) {
+      showToast(iconValidation.error || 'Invalid icon');
+      return;
+    }
+
     dialog.close();
     onSave({
       name: bookmarkName,
       url: norm.url,
-      targetCategoryId: categorySelect.value
+      targetCategoryId: categorySelect.value,
+      icon: chosenIcon
     });
   });
 
