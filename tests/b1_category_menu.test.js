@@ -95,7 +95,7 @@ function createMockElement(tag) {
   });
 
   function matches(node, sel) {
-    if (!node) return false;
+    if (!node || typeof node.getAttribute !== 'function') return false;
     if (sel.startsWith('.')) {
       const cls = sel.slice(1);
       return (node.className || '').includes(cls);

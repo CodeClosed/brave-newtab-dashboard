@@ -6,6 +6,7 @@ import { showToast } from './ui/toasts.js';
 import { applySearchEngine, initSearchShortcuts } from './features/search.js';
 import { renderClockAndGreeting, startClockTicker } from './features/clock.js';
 import { applyBackground } from './features/theme.js';
+import { initEditMode } from './features/edit-mode.js';
 
 /**
  * Updates DOM root attributes and dynamic UI based on current settings.
@@ -91,6 +92,7 @@ async function initApp() {
   // Start Clock Ticker & Keyboard Shortcuts
   startClockTicker();
   initSearchShortcuts();
+  initEditMode();
 
   // React to store mutations
   store.subscribe((state) => {

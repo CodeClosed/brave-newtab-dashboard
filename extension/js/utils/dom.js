@@ -28,6 +28,9 @@ export function el(tag, attrs = {}, ...children) {
       Object.assign(element.style, val);
     } else if (key === 'text') {
       element.textContent = String(val);
+    } else if (key === 'value') {
+      element.value = String(val);
+      element.setAttribute(key, String(val));
     } else {
       element.setAttribute(key, String(val));
     }

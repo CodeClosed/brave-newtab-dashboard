@@ -6,6 +6,7 @@ import { store } from '../core/state.js';
 import { openCategoryDialog, openBookmarkDialog, openConfirmDialog } from './dialogs.js';
 import { showToast } from './toasts.js';
 import { attachCategoryDnD, attachBookmarkDnD, attachCategoryListDrop, announceReorder } from '../features/dnd.js';
+import { startInlineRename, handleInlineAddBookmark } from '../features/edit-mode.js';
 
 let activeMenu = null;
 let activeMenuTrigger = null;
@@ -49,6 +50,35 @@ export function renderBookmarkItem(bookmark, categoryId, bmIndex, totalBookmarks
   const domain = getDomainFromUrl(bookmark.url);
   const favicon = createFaviconElement(bookmark.url, bookmark.name);
 
+  // Edit mode drag handle & checkbox
+  const dragHandle = el('span', {
+    className: 'drag-handle bookmark-drag-handle',
+    'aria-hidden': 'true',
+    title: 'Drag to reorder',
+    text: '⋮⋮'
+  });
+
+  const selectCheckbox = el('input', {
+    type: 'checkbox',
+    className: 'bookmark-select-checkbox',
+    'aria-label': `Select ${bookmark.name}`
+  });
+
+  const nameSpan = el('span', { className: 'bookmark-name', text: bookmark.name });
+
+  // Double-click inline rename
+  nameSpan.addEventListener('dblclick', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    startInlineRename(nameSpan, {
+      initialValue: bookmark.name,
+      onSave: (newName) => {
+        store.updateBookmark(categoryId, bookmark.id, { name: newName });
+        showToast(`Renamed to "${newName}"`);
+      }
+    });
+  });
+
   const link = el('a', {
     className: 'bookmark-link',
     href: bookmark.url,
@@ -56,7 +86,7 @@ export function renderBookmarkItem(bookmark, categoryId, bmIndex, totalBookmarks
   },
     favicon,
     el('div', { className: 'bookmark-details' },
-      el('span', { className: 'bookmark-name', text: bookmark.name }),
+      nameSpan,
       domain ? el('span', { className: 'bookmark-domain', text: domain }) : null
     )
   );
@@ -137,7 +167,22 @@ export function renderBookmarkItem(bookmark, categoryId, bmIndex, totalBookmarks
   const item = el('li', {
     className: 'bookmark-item',
     dataset: { id: bookmark.id }
-  }, link, actions);
+  }, dragHandle, selectCheckbox, link, actions);
+
+  // F2 inline rename shortcut
+  item.addEventListener('keydown', (e) => {
+    if (e.key === 'F2') {
+      e.preventDefault();
+      e.stopPropagation();
+      startInlineRename(nameSpan, {
+        initialValue: bookmark.name,
+        onSave: (newName) => {
+          store.updateBookmark(categoryId, bookmark.id, { name: newName });
+          showToast(`Renamed to "${newName}"`);
+        }
+      });
+    }
+  });
 
   // Attach drag-and-drop handler
   attachBookmarkDnD(item, bookmark, categoryId, bmIndex);
@@ -323,9 +368,30 @@ export function renderCategoryCard(category, categoryIndex, totalCategories) {
   const bookmarkCount = Array.isArray(category.bookmarks) ? category.bookmarks.length : 0;
 
   // Header Title Group
+  const catDragHandle = el('span', {
+    className: 'drag-handle category-drag-handle',
+    'aria-hidden': 'true',
+    title: 'Drag collection',
+    text: '⋮⋮'
+  });
+
+  const catNameEl = el('h3', { className: 'category-name', text: category.name });
+  catNameEl.addEventListener('dblclick', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    startInlineRename(catNameEl, {
+      initialValue: category.name,
+      onSave: (newName) => {
+        store.updateCategory(category.id, { name: newName });
+        showToast(`Renamed collection "${newName}"`);
+      }
+    });
+  });
+
   const titleGroup = el('div', { className: 'category-title-group' },
+    catDragHandle,
     el('span', { className: 'category-icon', text: category.icon || '📁' }),
-    el('h3', { className: 'category-name', text: category.name }),
+    catNameEl,
     el('span', { className: 'category-count', text: `(${bookmarkCount})` })
   );
 
@@ -365,6 +431,20 @@ export function renderCategoryCard(category, categoryIndex, totalCategories) {
     el('div', { className: 'category-actions' }, menuBtn, collapseBtn)
   );
 
+  header.addEventListener('keydown', (e) => {
+    if (e.key === 'F2') {
+      e.preventDefault();
+      e.stopPropagation();
+      startInlineRename(catNameEl, {
+        initialValue: category.name,
+        onSave: (newName) => {
+          store.updateCategory(category.id, { name: newName });
+          showToast(`Renamed collection "${newName}"`);
+        }
+      });
+    }
+  });
+
   // Bookmarks List
   const list = el('ul', { className: 'bookmarks-list', id: listId });
   if (Array.isArray(category.bookmarks)) {
@@ -373,6 +453,34 @@ export function renderCategoryCard(category, categoryIndex, totalCategories) {
       list.appendChild(renderBookmarkItem(bm, category.id, bIdx, sorted.length));
     });
   }
+
+  // Trailing "paste URL" inline add row
+  const inlineAddInput = el('input', {
+    className: 'inline-add-input',
+    type: 'text',
+    placeholder: 'Paste URL and press Enter...',
+    'aria-label': `Add bookmark by URL to ${category.name}`
+  });
+  inlineAddInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const rawVal = inlineAddInput.value ? inlineAddInput.value.trim() : '';
+      if (rawVal) {
+        const res = handleInlineAddBookmark(category.id, rawVal, store);
+        if (res.success) {
+          showToast(`Added "${res.name}"`);
+          inlineAddInput.value = '';
+        } else {
+          showToast(res.error || 'Invalid URL');
+        }
+      }
+    } else if (e.key === 'Escape') {
+      inlineAddInput.value = '';
+      inlineAddInput.blur();
+    }
+  });
+  const inlineAddRow = el('li', { className: 'inline-add-row' }, inlineAddInput);
+  list.appendChild(inlineAddRow);
 
   // Attach drop listener to empty space on category list
   attachCategoryListDrop(list, category.id);
