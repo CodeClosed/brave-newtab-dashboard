@@ -98,10 +98,13 @@ export function repairSettings(settings) {
 
   // cards
   const c = (s.cards && typeof s.cards === 'object') ? s.cards : {};
-  const validCardStyles = ['filled', 'outlined', 'subtle'];
+  let cardStyle = c.style;
+  if (cardStyle === 'outlined') cardStyle = 'outline';
+  if (cardStyle === 'subtle') cardStyle = 'minimal';
+  const validCardStyles = ['filled', 'frosted', 'outline', 'minimal'];
   const validAligns = ['center', 'left'];
   s.cards = {
-    style: validCardStyles.includes(c.style) ? c.style : defaults.cards.style,
+    style: validCardStyles.includes(cardStyle) ? cardStyle : defaults.cards.style,
     translucent: Boolean(c.translucent),
     columns: (c.columns === 'auto' || [1, 2, 3, 4, 5, 6].includes(c.columns)) ? c.columns : defaults.cards.columns,
     width: (typeof c.width === 'number' && c.width >= 200 && c.width <= 600) ? c.width : defaults.cards.width,

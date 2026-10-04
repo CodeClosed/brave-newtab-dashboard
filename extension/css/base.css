@@ -284,6 +284,14 @@ input, select, textarea {
   align-items: start;
 }
 
+:root[data-equal-height="true"] .categories-grid {
+  align-items: stretch;
+}
+
+:root[data-equal-height="false"] .categories-grid {
+  align-items: start;
+}
+
 /* Compact layout mode */
 :root[data-layout="compact"] .categories-grid {
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));

@@ -590,7 +590,61 @@ function renderLayoutSection(settings) {
     )
   );
 
+  // 4.1 Card Style Cards
+  const currentCardStyle = settings.cards?.style || 'filled';
+  const cardStyleGroup = el('div', { className: 'setting-item' },
+    el('div', { className: 'setting-item-header' },
+      el('span', { className: 'setting-label', text: 'Card Style' })
+    ),
+    el('div', { className: 'radio-group-cards', style: { gridTemplateColumns: 'repeat(4, 1fr)' } },
+      renderRadioCard('Filled', currentCardStyle === 'filled', () => {
+        store.updateSettings({ cards: { ...(settings.cards || {}), style: 'filled' } });
+        renderDrawerContent();
+      }),
+      renderRadioCard('Frosted', currentCardStyle === 'frosted', () => {
+        store.updateSettings({ cards: { ...(settings.cards || {}), style: 'frosted' } });
+        renderDrawerContent();
+      }),
+      renderRadioCard('Outline', currentCardStyle === 'outline', () => {
+        store.updateSettings({ cards: { ...(settings.cards || {}), style: 'outline' } });
+        renderDrawerContent();
+      }),
+      renderRadioCard('Minimal', currentCardStyle === 'minimal', () => {
+        store.updateSettings({ cards: { ...(settings.cards || {}), style: 'minimal' } });
+        renderDrawerContent();
+      })
+    )
+  );
+
+  // 4.1 Translucent Card Toggle
+  const isTranslucent = Boolean(settings.cards?.translucent);
+  const translucentRow = renderToggleRow(
+    'Translucent Cards',
+    'Subtle background blur behind cards',
+    isTranslucent,
+    (checked) => {
+      store.updateSettings({ cards: { ...(settings.cards || {}), translucent: checked } });
+      renderDrawerContent();
+    }
+  );
+
+  // 4.1 Equal Height Toggle
+  const isEqualHeight = settings.cards?.equalHeight !== false;
+  const equalHeightRow = renderToggleRow(
+    'Equal Height Cards',
+    'Stretch cards to match row height',
+    isEqualHeight,
+    (checked) => {
+      store.updateSettings({ cards: { ...(settings.cards || {}), equalHeight: checked } });
+      renderDrawerContent();
+    }
+  );
+
   section.appendChild(layoutGroup);
+  section.appendChild(cardStyleGroup);
+  section.appendChild(translucentRow);
+  section.appendChild(equalHeightRow);
+
   section.appendChild(el('button', {
     className: 'btn-secondary section-reset-btn',
     type: 'button',

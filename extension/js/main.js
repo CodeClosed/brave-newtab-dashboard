@@ -13,6 +13,7 @@ import { initKeyboardNavigation } from './features/keyboard.js';
 import { renderSpaceSwitcher } from './features/spaces.js';
 import { initBulkOperations } from './features/bulk-ops.js';
 import { shouldShowFirstRun, openFirstRunDialog } from './features/first-run.js';
+import { applyCardSettings } from './features/cards.js';
 
 /**
  * Updates DOM root attributes and dynamic UI based on current settings.
@@ -42,6 +43,9 @@ function applySettings(settings) {
   // Accent & Layout
   root.setAttribute('data-accent', settings.accent || 'slate');
   root.setAttribute('data-layout', settings.layout || 'grid');
+
+  // 4.1 Card Styles & Options
+  applyCardSettings(settings, root);
 
   // Search Engine
   applySearchEngine(settings.searchEngine || 'google');

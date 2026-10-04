@@ -17,6 +17,75 @@
   box-shadow: var(--shadow-md);
 }
 
+/* 4.1 Card Styles: filled, frosted, outline, minimal */
+:root[data-card-style="filled"] .category-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-sm);
+}
+
+:root[data-card-style="frosted"] .category-card {
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-sm);
+}
+
+:root.dark[data-card-style="frosted"] .category-card,
+:root[data-theme="dark"][data-card-style="frosted"] .category-card {
+  background: rgba(27, 30, 34, 0.75);
+}
+
+:root[data-card-style="outline"] .category-card {
+  background: transparent;
+  border: 1px solid var(--border-strong);
+  box-shadow: none;
+}
+
+:root[data-card-style="outline"] .category-card:hover {
+  border-color: var(--border-focus);
+}
+
+:root[data-card-style="minimal"] .category-card {
+  background: transparent;
+  border: 1px solid transparent;
+  box-shadow: none;
+}
+
+:root[data-card-style="minimal"] .category-card:hover {
+  background: var(--bg-surface-hover);
+  border-color: var(--border-subtle);
+}
+
+/* 4.1 Translucent Card Toggle */
+:root[data-card-translucent="true"] .category-card {
+  background: rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--border-subtle);
+}
+
+:root.dark[data-card-translucent="true"] .category-card,
+:root[data-theme="dark"][data-card-translucent="true"] .category-card {
+  background: rgba(27, 30, 34, 0.78);
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  :root[data-card-translucent="true"] .category-card,
+  :root[data-card-style="frosted"] .category-card {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: var(--bg-surface);
+  }
+}
+
+/* 4.1 Equal Height Cards */
+:root[data-equal-height="true"] .category-card {
+  height: 100%;
+}
+
+
 /* Dragging visual states */
 .category-card.is-dragging {
   opacity: 0.45;
