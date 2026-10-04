@@ -12,6 +12,7 @@ import { createSnapshot, listSnapshots, restoreSnapshot, deleteSnapshot } from '
 import { openAddSpaceDialog, openRenameSpaceDialog, openDeleteSpaceDialog } from '../features/spaces.js';
 import { THEME_PRESETS, applyThemePreset } from '../features/presets.js';
 import { getSolarTimes } from '../features/schedule.js';
+import { renderWallpaperLibrary } from '../features/wallpaper.js';
 
 let drawerElement = null;
 let activeTab = 'appearance';
@@ -753,46 +754,11 @@ function renderAppearanceSection(settings) {
     bgDetailGroup.appendChild(el('span', { className: 'setting-desc', text: 'Subdued gradient preset:' }));
     bgDetailGroup.appendChild(gradPills);
   } else if (bgConfig.type === 'image') {
-    const fileInput = /** @type {HTMLInputElement} */ (el('input', {
-      type: 'file',
-      accept: 'image/jpeg,image/png,image/webp',
-      style: { display: 'none' }
-    }));
-
-    fileInput.addEventListener('change', async () => {
-      const file = fileInput.files?.[0];
-      if (!file) return;
-
-      try {
-        showToast('Processing wallpaper...');
-        const downscaledBlob = await downscaleImage(file, 2560);
-        await saveBackgroundImage(downscaledBlob);
-        store.updateSettings({ background: { ...bgConfig, type: 'image', value: 'custom_wallpaper', updatedAt: Date.now() } });
-        showToast('Custom wallpaper applied!');
-        renderDrawerContent();
-      } catch (err) {
-        showToast('Failed to process image');
-      }
+    const libraryContainer = el('div', { className: 'wallpaper-library-container' });
+    renderWallpaperLibrary(libraryContainer, store, {
+      onRefresh: () => renderDrawerContent()
     });
-
-    const uploadBtn = el('button', {
-      className: 'btn-secondary',
-      type: 'button',
-      text: 'Upload Wallpaper Image',
-      onclick: () => fileInput.click()
-    });
-
-    const clearImgBtn = el('button', {
-      className: 'btn-secondary btn-danger',
-      type: 'button',
-      text: 'Remove Image',
-      onclick: async () => {
-        await deleteBackgroundImage();
-        store.updateSettings({ background: { ...bgConfig, type: 'none', value: null } });
-        showToast('Wallpaper removed');
-        renderDrawerContent();
-      }
-    });
+    bgDetailGroup.appendChild(libraryContainer);
 
     // Dimming overlay slider
     const dimValue = typeof bgConfig.dim === 'number' ? bgConfig.dim : 0.35;
@@ -813,7 +779,7 @@ function renderAppearanceSection(settings) {
       store.updateSettings({ background: { ...bgConfig, dim: val } });
     });
 
-    const sliderRow = el('div', { style: { display: 'flex', flexDirection: 'column', gap: '4px' } },
+    const sliderRow = el('div', { style: { display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '8px' } },
       el('div', { style: { display: 'flex', justifyContent: 'space-between' } },
         el('span', { className: 'setting-desc', text: 'Dimming Overlay (preserves contrast)' }),
         dimPercentSpan
@@ -821,8 +787,18 @@ function renderAppearanceSection(settings) {
       slider
     );
 
-    bgDetailGroup.appendChild(fileInput);
-    bgDetailGroup.appendChild(uploadBtn);
+    const clearImgBtn = el('button', {
+      className: 'btn-secondary btn-danger btn-sm',
+      style: { marginTop: '8px' },
+      type: 'button',
+      text: 'Clear Wallpaper Image',
+      onclick: () => {
+        store.updateSettings({ background: { ...bgConfig, type: 'none', activeId: null } });
+        showToast('Wallpaper cleared');
+        renderDrawerContent();
+      }
+    });
+
     bgDetailGroup.appendChild(sliderRow);
     bgDetailGroup.appendChild(clearImgBtn);
   }

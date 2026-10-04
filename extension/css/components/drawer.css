@@ -448,6 +448,123 @@ dialog.settings-drawer::backdrop {
   gap: 4px;
 }
 
+/* 5.1 Wallpaper Library UI */
+.wallpaper-library-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.wallpaper-stats {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.wallpaper-actions-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.wallpaper-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.wallpaper-card {
+  position: relative;
+  background: var(--bg-surface-subtle);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.wallpaper-card:hover {
+  border-color: var(--border-default);
+}
+
+.wallpaper-card.active {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 1px var(--accent-primary);
+}
+
+.wallpaper-thumb {
+  width: 100%;
+  height: 80px;
+  object-fit: cover;
+  background: var(--bg-surface);
+  display: block;
+}
+
+.wallpaper-card-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 6px;
+  font-size: 11px;
+}
+
+.wallpaper-card-name {
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100px;
+}
+
+.wallpaper-card-size {
+  color: var(--text-secondary);
+  font-size: 10px;
+}
+
+.wallpaper-card-del {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-xs);
+  border: none;
+  background: rgba(0, 0, 0, 0.6);
+  color: #ffffff;
+  font-size: 14px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--transition-fast), background var(--transition-fast);
+}
+
+.wallpaper-card:hover .wallpaper-card-del,
+.wallpaper-card:focus-within .wallpaper-card-del {
+  opacity: 1;
+}
+
+.wallpaper-card-del:hover {
+  background: var(--danger, #ef4444);
+}
+
+.wallpaper-empty {
+  grid-column: 1 / -1;
+  padding: var(--space-3);
+  text-align: center;
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  border: 1px dashed var(--border-subtle);
+  border-radius: var(--radius-sm);
+}
+
 /* Reduced Motion Override */
 @media (prefers-reduced-motion: reduce) {
   dialog.settings-drawer,
@@ -455,3 +572,4 @@ dialog.settings-drawer::backdrop {
     transition: none !important;
   }
 }
+
