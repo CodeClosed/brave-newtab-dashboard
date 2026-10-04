@@ -90,6 +90,25 @@ class StateStore {
   }
 
   /**
+   * Queues saving dashboard data to persistent storage and notifies subscribers.
+   * @param {import('./schema.js').DashboardData} [data]
+   */
+  queueSaveDashboardData(data = null) {
+    if (data && typeof data === 'object') {
+      this._data = data;
+    }
+    queueSaveDashboardData(this._data);
+    this._notify();
+  }
+
+  /**
+   * Alias for queueSaveDashboardData.
+   */
+  queueSave() {
+    this.queueSaveDashboardData();
+  }
+
+  /**
    * Sets entire category list and persists.
    * @param {import('./schema.js').Category[]} categories
    */

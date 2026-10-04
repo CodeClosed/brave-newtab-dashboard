@@ -342,6 +342,12 @@ export function migrate(rawData) {
     repairedSettings.firstRunDone = true;
   }
   const repairedCats = repairCategories(doc.categories, activeSpaceId);
+  const spaceIdSet = new Set(spaces.map(s => s.id));
+  repairedCats.forEach(cat => {
+    if (!cat.spaceId || !spaceIdSet.has(cat.spaceId)) {
+      cat.spaceId = activeSpaceId;
+    }
+  });
 
   return {
     version: targetVersion,

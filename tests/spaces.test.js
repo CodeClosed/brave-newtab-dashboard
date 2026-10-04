@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import { store } from '../extension/js/core/state.js';
 import { createDefaultDashboardData } from '../extension/js/core/schema.js';
 import { cycleSpace, renderSpaceSwitcher } from '../extension/js/features/spaces.js';
+import { loadDashboardData, saveDashboardDataImmediately } from '../extension/js/core/storage.js';
+import { serializeDashboardExport, parseAndValidateImport } from '../extension/js/features/data-io.js';
 
 test('3.1 Spaces: add, update, reorder, and set active space', async () => {
   const initialData = createDefaultDashboardData();
@@ -174,6 +176,48 @@ test('3.1 Spaces: renderSpaceSwitcher hidden when 1 space, visible when multiple
     assert.equal(container.style.display, 'flex');
   } finally {
     globalThis.document = origDoc;
+  }
+});
+
+test('3.1 Spaces: spaces survive reload and export/import', async () => {
+  const initialData = createDefaultDashboardData();
+  await store.replaceData(initialData, true);
+
+  const workSpace = store.addSpace({ name: 'Work', icon: '💼' });
+  const playSpace = store.addSpace({ name: 'Play', icon: '🎮' });
+
+  // Move first category to work space
+  const cat = store.get().categories[0];
+  store.moveCategoryToSpace(cat.id, workSpace.id);
+  store.setActiveSpace(workSpace.id);
+
+  // 1. Export and import round-trip
+  const exported = serializeDashboardExport(store.get());
+  const parsed = parseAndValidateImport(exported);
+  assert.equal(parsed.success, true);
+  assert.equal(parsed.data.spaces.length, 3);
+  assert.equal(parsed.data.activeSpaceId, workSpace.id);
+  const roundtripCat = parsed.data.categories.find(c => c.id === cat.id);
+  assert.equal(roundtripCat.spaceId, workSpace.id);
+
+  // 2. Storage persistence and reload
+  const mem = new Map();
+  const origLocalStorage = globalThis.localStorage;
+  globalThis.localStorage = {
+    getItem: (k) => mem.get(k) || null,
+    setItem: (k, v) => mem.set(k, String(v)),
+    removeItem: (k) => mem.delete(k)
+  };
+
+  try {
+    await saveDashboardDataImmediately(store.get());
+    const reloadedData = await loadDashboardData();
+    assert.equal(reloadedData.spaces.length, 3);
+    assert.equal(reloadedData.activeSpaceId, workSpace.id);
+    const reloadedCat = reloadedData.categories.find(c => c.id === cat.id);
+    assert.equal(reloadedCat.spaceId, workSpace.id);
+  } finally {
+    globalThis.localStorage = origLocalStorage;
   }
 });
 

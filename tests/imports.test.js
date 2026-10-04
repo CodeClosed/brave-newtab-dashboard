@@ -103,3 +103,19 @@ My Bookmark,https://mybookmark.com,Imported
   await store.replaceData(snapshot, true);
   assert.equal(store.get().categories.length, initialCatCount);
 });
+
+test('3.5 Imports: HTML and CSV imports set firstRunDone: true and never trigger first-run', () => {
+  const html = '<!DOCTYPE NETSCAPE-Bookmark-file-1><DL><p><DT><A HREF="https://example.com">Example</A></DL><p>';
+  const htmlResult = parseAndValidateBookmarksImport(html, 'html');
+  assert.equal(htmlResult.success, true);
+  assert.equal(htmlResult.data.settings.firstRunDone, true, 'HTML import must set firstRunDone: true');
+
+  const csv = 'name,url\nExample,https://example.com';
+  const csvResult = parseAndValidateBookmarksImport(csv, 'csv');
+  assert.equal(csvResult.success, true);
+  assert.equal(csvResult.data.settings.firstRunDone, true, 'CSV import must set firstRunDone: true');
+
+  // Verify categories have valid spaceId matching active space
+  assert.equal(htmlResult.data.categories[0].spaceId, htmlResult.data.activeSpaceId);
+  assert.equal(csvResult.data.categories[0].spaceId, csvResult.data.activeSpaceId);
+});

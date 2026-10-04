@@ -110,4 +110,28 @@ test('3.2 Bulk Ops: bulkPinBookmarks pins multiple items capping at 8', async ()
   assert.equal(result.pinnedCount, bmIds.length);
   const updatedSpace = store.get().spaces.find(s => s.id === store.get().activeSpaceId);
   assert.equal(updatedSpace.pinned.length, bmIds.length);
+
+  // Test undo restoration
+  result.undo();
+  const unpinnedSpace = store.get().spaces.find(s => s.id === store.get().activeSpaceId);
+  assert.equal(unpinnedSpace.pinned.length, 0);
+});
+
+test('3.2 Bulk Ops: bulk operations invoke persistence and notify subscribers', async () => {
+  const initialData = createDefaultDashboardData();
+  await store.replaceData(initialData, true);
+
+  let notified = false;
+  const unsub = store.subscribe(() => {
+    notified = true;
+  });
+
+  const cat = store.get().categories[0];
+  const bm = cat.bookmarks[0];
+
+  notified = false;
+  bulkDeleteBookmarks([bm.id], store);
+  assert.equal(notified, true, 'bulkDeleteBookmarks must notify subscribers and persist');
+
+  unsub();
 });

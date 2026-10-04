@@ -1,6 +1,6 @@
 // @ts-check
 import { store } from '../core/state.js';
-import { el } from '../utils/dom.js';
+import { el, clearChildren } from '../utils/dom.js';
 
 /**
  * @typedef {object} TourStep
@@ -135,7 +135,7 @@ export async function startTour() {
       }
     }
 
-    popover.innerHTML = '';
+    clearChildren(popover);
 
     // Step badge & Title
     const header = el('header', { className: 'tour-header' },

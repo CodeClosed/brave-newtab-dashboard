@@ -4,6 +4,7 @@ import { el, clearChildren } from '../utils/dom.js';
 import { showToast } from '../ui/toasts.js';
 import { subscribeEditMode, getEditMode } from './edit-mode.js';
 import { createSnapshot } from '../core/snapshots.js';
+import { queueSaveDashboardData } from '../core/storage.js';
 
 /**
  * Parses multi-line input into valid and invalid bookmarks.
@@ -93,8 +94,12 @@ export function bulkDeleteBookmarks(bookmarkIds, targetStore) {
     });
   }
 
-  targetStore.queueSaveDashboardData ? targetStore.queueSaveDashboardData(data) : targetStore._notify();
-  targetStore._notify();
+  if (typeof targetStore.queueSaveDashboardData === 'function') {
+    targetStore.queueSaveDashboardData(data);
+  } else {
+    queueSaveDashboardData(data);
+    targetStore._notify?.();
+  }
 
   return () => {
     targetStore.replaceData(snapshot);
@@ -141,8 +146,12 @@ export function bulkMoveBookmarks(bookmarkIds, targetCategoryId, targetStore) {
     targetCat.bookmarks.push(bm);
   }
 
-  targetStore.queueSaveDashboardData ? targetStore.queueSaveDashboardData(data) : targetStore._notify();
-  targetStore._notify();
+  if (typeof targetStore.queueSaveDashboardData === 'function') {
+    targetStore.queueSaveDashboardData(data);
+  } else {
+    queueSaveDashboardData(data);
+    targetStore._notify?.();
+  }
 
   return () => {
     targetStore.replaceData(snapshot);
@@ -150,15 +159,16 @@ export function bulkMoveBookmarks(bookmarkIds, targetCategoryId, targetStore) {
 }
 
 /**
- * Pins multiple bookmarks to the active space, capping at 8.
+ * Pins multiple bookmarks to the active space, capping at 8 with undo support.
  * @param {string[]} bookmarkIds
  * @param {any} targetStore
- * @returns {{ pinnedCount: number, capped: boolean }}
+ * @returns {{ pinnedCount: number, capped: boolean, undo: () => void }}
  */
 export function bulkPinBookmarks(bookmarkIds, targetStore) {
+  const snapshot = JSON.parse(JSON.stringify(targetStore.get()));
   const data = targetStore.get();
   const space = data.spaces?.find(s => s.id === data.activeSpaceId) || data.spaces?.[0];
-  if (!space) return { pinnedCount: 0, capped: false };
+  if (!space) return { pinnedCount: 0, capped: false, undo: () => {} };
 
   if (!Array.isArray(space.pinned)) {
     space.pinned = [];
@@ -178,10 +188,20 @@ export function bulkPinBookmarks(bookmarkIds, targetStore) {
     }
   }
 
-  targetStore.queueSaveDashboardData ? targetStore.queueSaveDashboardData(data) : targetStore._notify();
-  targetStore._notify();
+  if (typeof targetStore.queueSaveDashboardData === 'function') {
+    targetStore.queueSaveDashboardData(data);
+  } else {
+    queueSaveDashboardData(data);
+    targetStore._notify?.();
+  }
 
-  return { pinnedCount: count, capped };
+  return {
+    pinnedCount: count,
+    capped,
+    undo: () => {
+      targetStore.replaceData(snapshot);
+    }
+  };
 }
 
 // Global bulk selection state in browser UI
@@ -255,7 +275,7 @@ export function updateBulkActionBar() {
     onclick: async () => {
       const { store } = await import('../core/state.js');
       const res = bulkPinBookmarks(Array.from(selectedBookmarkIds), store);
-      showToast(res.capped ? `Pinned ${res.pinnedCount} items (capped at 8)` : `Pinned ${res.pinnedCount} items to top`);
+      showToast(res.capped ? `Pinned ${res.pinnedCount} items (capped at 8)` : `Pinned ${res.pinnedCount} items to top`, res.undo);
       clearSelection();
     }
   });

@@ -9,7 +9,7 @@ import { attachCategoryDnD, attachBookmarkDnD, attachCategoryListDrop, announceR
 import { startInlineRename, handleInlineAddBookmark } from '../features/edit-mode.js';
 import { isBookmarkPinned, togglePinBookmark, openAllCollectionLinks } from '../features/pinned.js';
 import { openMoveCategoryToSpaceDialog } from '../features/spaces.js';
-import { openAddManyDialog } from '../features/bulk-ops.js';
+import { openAddManyDialog, getSelectedBookmarkIds } from '../features/bulk-ops.js';
 import { renderBookmarkIcon } from '../features/custom-icons.js';
 
 let activeMenu = null;
@@ -62,11 +62,15 @@ export function renderBookmarkItem(bookmark, categoryId, bmIndex, totalBookmarks
     text: '⋮⋮'
   });
 
+  const isSelected = typeof getSelectedBookmarkIds === 'function' ? getSelectedBookmarkIds().has(bookmark.id) : false;
   const selectCheckbox = el('input', {
     type: 'checkbox',
     className: 'bookmark-select-checkbox',
     'aria-label': `Select ${bookmark.name}`
   });
+  if (isSelected) {
+    /** @type {HTMLInputElement} */ (selectCheckbox).checked = true;
+  }
 
   const nameSpan = el('span', { className: 'bookmark-name', text: bookmark.name });
 

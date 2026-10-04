@@ -83,7 +83,18 @@ export function repairAndValidateRawImport(raw) {
 
   // Repair settings and categories item by item
   const repairedSettings = repairSettings(raw.settings);
+  if (typeof raw?.settings?.firstRunDone !== 'boolean') {
+    repairedSettings.firstRunDone = true;
+  }
   const repairedCategories = repairCategories(raw.categories, activeSpaceId);
+
+  // Remap any categories with orphaned or missing spaceId to activeSpaceId
+  const spaceIdSet = new Set(spaces.map(s => s.id));
+  repairedCategories.forEach(cat => {
+    if (!cat.spaceId || !spaceIdSet.has(cat.spaceId)) {
+      cat.spaceId = activeSpaceId;
+    }
+  });
 
   // Collect all valid bookmark IDs
   const allBmIds = new Set();

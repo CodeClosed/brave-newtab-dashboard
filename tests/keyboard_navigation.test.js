@@ -335,3 +335,24 @@ test('2.6 Jump navigation: Escape cancels jump mode', async () => {
   assert.strictEqual(getJumpState().active, false);
   assert.strictEqual(document.querySelectorAll('.jump-badge').length, 0);
 });
+
+test('3.1 Spaces keyboard navigation: [ and ] cycle active space', async () => {
+  const { store } = await import('../extension/js/core/state.js');
+  const { createDefaultDashboardData } = await import('../extension/js/core/schema.js');
+  await store.replaceData(createDefaultDashboardData(), true);
+
+  const space1 = store.get().spaces[0];
+  const space2 = store.addSpace({ name: 'Work', icon: '💼' });
+  store.setActiveSpace(space1.id);
+
+  const { initKeyboardNavigation } = await import('../extension/js/features/keyboard.js');
+  initKeyboardNavigation();
+
+  // Press ']' -> cycle next
+  window.dispatchEvent({ type: 'keydown', key: ']', preventDefault: () => {} });
+  assert.strictEqual(store.get().activeSpaceId, space2.id);
+
+  // Press '[' -> cycle prev
+  window.dispatchEvent({ type: 'keydown', key: '[', preventDefault: () => {} });
+  assert.strictEqual(store.get().activeSpaceId, space1.id);
+});
