@@ -14,6 +14,7 @@ import { renderSpaceSwitcher } from './features/spaces.js';
 import { initBulkOperations } from './features/bulk-ops.js';
 import { shouldShowFirstRun, openFirstRunDialog } from './features/first-run.js';
 import { applyCardSettings } from './features/cards.js';
+import { applyLayoutSettings } from './features/layout.js';
 
 /**
  * Updates DOM root attributes and dynamic UI based on current settings.
@@ -46,6 +47,9 @@ function applySettings(settings) {
 
   // 4.1 Card Styles & Options
   applyCardSettings(settings, root);
+
+  // 4.2 Layout Controls (columns, width, gap, align, vertical center)
+  applyLayoutSettings(settings, root);
 
   // Search Engine
   applySearchEngine(settings.searchEngine || 'google');

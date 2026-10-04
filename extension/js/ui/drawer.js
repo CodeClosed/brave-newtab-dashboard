@@ -640,10 +640,128 @@ function renderLayoutSection(settings) {
     }
   );
 
+  // 4.2 Columns Controls (auto, 1..6)
+  const currentCols = settings.cards?.columns ?? 'auto';
+  const colsGroup = el('div', { className: 'setting-item' },
+    el('div', { className: 'setting-item-header' },
+      el('span', { className: 'setting-label', text: 'Columns' })
+    ),
+    el('div', { className: 'radio-group-cards', style: { gridTemplateColumns: 'repeat(7, 1fr)' } },
+      renderRadioCard('Auto', currentCols === 'auto', () => {
+        store.updateSettings({ cards: { ...(settings.cards || {}), columns: 'auto' } });
+        renderDrawerContent();
+      }),
+      ...[1, 2, 3, 4, 5, 6].map(num => renderRadioCard(String(num), currentCols === num, () => {
+        store.updateSettings({ cards: { ...(settings.cards || {}), columns: num } });
+        renderDrawerContent();
+      }))
+    )
+  );
+
+  // 4.2 Card Width Slider & Presets
+  const currentWidth = typeof settings.cards?.width === 'number' ? settings.cards.width : 340;
+  const widthValSpan = el('span', { text: `${currentWidth}px`, style: { fontSize: '12px' } });
+  const widthSlider = /** @type {HTMLInputElement} */ (el('input', {
+    type: 'range',
+    min: '200',
+    max: '600',
+    step: '10',
+    value: String(currentWidth),
+    style: { width: '100%' }
+  }));
+  widthSlider.addEventListener('input', () => {
+    const val = parseInt(widthSlider.value, 10);
+    widthValSpan.textContent = `${val}px`;
+    store.updateSettings({ cards: { ...(settings.cards || {}), width: val } });
+  });
+
+  const widthPresetButtons = [
+    { label: 'Compact (280px)', val: 280 },
+    { label: 'Standard (340px)', val: 340 },
+    { label: 'Spacious (420px)', val: 420 }
+  ].map(p => el('button', {
+    className: `btn-secondary btn-sm${currentWidth === p.val ? ' active' : ''}`,
+    type: 'button',
+    text: p.label,
+    onclick: () => {
+      store.updateSettings({ cards: { ...(settings.cards || {}), width: p.val } });
+      renderDrawerContent();
+    }
+  }));
+
+  const cardWidthGroup = el('div', { className: 'setting-item' },
+    el('div', { style: { display: 'flex', justifyContent: 'space-between', marginBottom: '4px' } },
+      el('span', { className: 'setting-label', text: 'Card Width' }),
+      widthValSpan
+    ),
+    widthSlider,
+    el('div', { style: { display: 'flex', gap: '6px', marginTop: '6px', flexWrap: 'wrap' } }, ...widthPresetButtons)
+  );
+
+  // 4.2 Gap Slider
+  const currentGap = typeof settings.cards?.gap === 'number' ? settings.cards.gap : 16;
+  const gapValSpan = el('span', { text: `${currentGap}px`, style: { fontSize: '12px' } });
+  const gapSlider = /** @type {HTMLInputElement} */ (el('input', {
+    type: 'range',
+    min: '0',
+    max: '48',
+    step: '4',
+    value: String(currentGap),
+    style: { width: '100%' }
+  }));
+  gapSlider.addEventListener('input', () => {
+    const val = parseInt(gapSlider.value, 10);
+    gapValSpan.textContent = `${val}px`;
+    store.updateSettings({ cards: { ...(settings.cards || {}), gap: val } });
+  });
+
+  const gapGroup = el('div', { className: 'setting-item' },
+    el('div', { style: { display: 'flex', justifyContent: 'space-between', marginBottom: '4px' } },
+      el('span', { className: 'setting-label', text: 'Card Gap' }),
+      gapValSpan
+    ),
+    gapSlider
+  );
+
+  // 4.2 Alignment Controls
+  const currentAlign = settings.cards?.align === 'left' ? 'left' : 'center';
+  const alignGroup = el('div', { className: 'setting-item' },
+    el('div', { className: 'setting-item-header' },
+      el('span', { className: 'setting-label', text: 'Grid Alignment' })
+    ),
+    el('div', { className: 'radio-group-cards', style: { gridTemplateColumns: 'repeat(2, 1fr)' } },
+      renderRadioCard('Center', currentAlign === 'center', () => {
+        store.updateSettings({ cards: { ...(settings.cards || {}), align: 'center' } });
+        renderDrawerContent();
+      }),
+      renderRadioCard('Left', currentAlign === 'left', () => {
+        store.updateSettings({ cards: { ...(settings.cards || {}), align: 'left' } });
+        renderDrawerContent();
+      })
+    )
+  );
+
+  // 4.2 Vertical Centering Toggle
+  const isVerticalCenter = Boolean(settings.cards?.verticalCenter);
+  const verticalCenterRow = renderToggleRow(
+    'Vertical Centering',
+    'Center dashboard vertically on large displays',
+    isVerticalCenter,
+    (checked) => {
+      store.updateSettings({ cards: { ...(settings.cards || {}), verticalCenter: checked } });
+      renderDrawerContent();
+    }
+  );
+
   section.appendChild(layoutGroup);
+  section.appendChild(colsGroup);
+  section.appendChild(cardWidthGroup);
+  section.appendChild(gapGroup);
+  section.appendChild(alignGroup);
   section.appendChild(cardStyleGroup);
   section.appendChild(translucentRow);
   section.appendChild(equalHeightRow);
+  section.appendChild(verticalCenterRow);
 
   section.appendChild(el('button', {
     className: 'btn-secondary section-reset-btn',

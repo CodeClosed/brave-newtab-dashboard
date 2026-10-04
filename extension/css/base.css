@@ -84,6 +84,24 @@ input, select, textarea {
   flex: 1;
 }
 
+:root[data-layout-align="left"] #app {
+  margin-left: var(--space-6);
+  margin-right: auto;
+}
+
+:root[data-layout-align="center"] #app {
+  margin: 0 auto;
+}
+
+:root[data-vertical-center="true"] body {
+  justify-content: center;
+}
+
+:root[data-vertical-center="true"] #app {
+  margin-top: auto;
+  margin-bottom: auto;
+}
+
 /* Header Section (Clock, Greeting, Search) */
 .dashboard-header {
   display: flex;
@@ -279,9 +297,29 @@ input, select, textarea {
 
 .categories-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: var(--space-5);
+  grid-template-columns: repeat(auto-fill, minmax(var(--card-width, 280px), 1fr));
+  gap: var(--card-gap, var(--space-5));
   align-items: start;
+}
+
+:root[data-columns="auto"] .categories-grid {
+  grid-template-columns: repeat(auto-fill, minmax(var(--card-width, 280px), 1fr));
+}
+
+:root:not([data-columns="auto"]) .categories-grid {
+  grid-template-columns: repeat(var(--layout-columns, 3), minmax(0, 1fr));
+}
+
+@media (max-width: 1024px) {
+  :root:not([data-columns="auto"]) .categories-grid {
+    grid-template-columns: repeat(min(var(--layout-columns, 3), 2), minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  :root:not([data-columns="auto"]) .categories-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 :root[data-equal-height="true"] .categories-grid {

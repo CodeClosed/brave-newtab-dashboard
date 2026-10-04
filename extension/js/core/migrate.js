@@ -103,10 +103,17 @@ export function repairSettings(settings) {
   if (cardStyle === 'subtle') cardStyle = 'minimal';
   const validCardStyles = ['filled', 'frosted', 'outline', 'minimal'];
   const validAligns = ['center', 'left'];
+
+  let colVal = c.columns;
+  if (typeof colVal === 'string' && colVal !== 'auto') {
+    const parsed = parseInt(colVal, 10);
+    if (!isNaN(parsed)) colVal = parsed;
+  }
+
   s.cards = {
     style: validCardStyles.includes(cardStyle) ? cardStyle : defaults.cards.style,
     translucent: Boolean(c.translucent),
-    columns: (c.columns === 'auto' || [1, 2, 3, 4, 5, 6].includes(c.columns)) ? c.columns : defaults.cards.columns,
+    columns: (colVal === 'auto' || [1, 2, 3, 4, 5, 6].includes(colVal)) ? colVal : defaults.cards.columns,
     width: (typeof c.width === 'number' && c.width >= 200 && c.width <= 600) ? c.width : defaults.cards.width,
     gap: (typeof c.gap === 'number' && c.gap >= 0 && c.gap <= 48) ? c.gap : defaults.cards.gap,
     align: validAligns.includes(c.align) ? c.align : defaults.cards.align,
