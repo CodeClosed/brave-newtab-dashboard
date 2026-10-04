@@ -9,6 +9,7 @@ import { attachCategoryDnD, attachBookmarkDnD, attachCategoryListDrop, announceR
 import { startInlineRename, handleInlineAddBookmark } from '../features/edit-mode.js';
 import { isBookmarkPinned, togglePinBookmark, openAllCollectionLinks } from '../features/pinned.js';
 import { openMoveCategoryToSpaceDialog } from '../features/spaces.js';
+import { openAddManyDialog } from '../features/bulk-ops.js';
 
 let activeMenu = null;
 let activeMenuTrigger = null;
@@ -310,6 +311,19 @@ function openCategoryMenu(triggerBtn, category, categoryIndex, totalCategories) 
     }
   });
   menu.appendChild(addItem);
+
+  // Add Many Bookmarks
+  const addManyItem = el('button', {
+    className: 'menu-item',
+    type: 'button',
+    role: 'menuitem',
+    text: '+ Add many…',
+    onclick: () => {
+      closeActiveMenu();
+      openAddManyDialog(category.id);
+    }
+  });
+  menu.appendChild(addManyItem);
 
   // Move to space (if > 1 spaces)
   const menuState = store.getState ? store.getState() : store.get();

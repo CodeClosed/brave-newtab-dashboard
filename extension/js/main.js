@@ -11,6 +11,7 @@ import { initDropAndPaste } from './features/drag-paste.js';
 import { renderPinnedStrip } from './features/pinned.js';
 import { initKeyboardNavigation } from './features/keyboard.js';
 import { renderSpaceSwitcher } from './features/spaces.js';
+import { initBulkOperations } from './features/bulk-ops.js';
 
 /**
  * Updates DOM root attributes and dynamic UI based on current settings.
@@ -113,6 +114,7 @@ async function initApp() {
   initKeyboardNavigation();
   initEditMode();
   initDropAndPaste();
+  initBulkOperations();
 
   // React to store mutations
   store.subscribe((state) => {
