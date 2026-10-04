@@ -12,6 +12,7 @@ import { renderPinnedStrip } from './features/pinned.js';
 import { initKeyboardNavigation } from './features/keyboard.js';
 import { renderSpaceSwitcher } from './features/spaces.js';
 import { initBulkOperations } from './features/bulk-ops.js';
+import { shouldShowFirstRun, openFirstRunDialog } from './features/first-run.js';
 
 /**
  * Updates DOM root attributes and dynamic UI based on current settings.
@@ -83,6 +84,11 @@ async function initApp() {
   if (typeof window !== 'undefined' && /** @type {any} */ (window).__ntd_data_unreadable_warning) {
     showToast("Your saved data couldn't be read. A backup copy was kept.");
     delete /** @type {any} */ (window).__ntd_data_unreadable_warning;
+  }
+
+  // 3.6 First-run template picker on fresh install
+  if (shouldShowFirstRun(data)) {
+    openFirstRunDialog();
   }
 
   // Bind Toolbar "New Collection" button

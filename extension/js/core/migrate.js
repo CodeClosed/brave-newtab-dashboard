@@ -336,6 +336,11 @@ export function migrate(rawData) {
 
   const { spaces, activeSpaceId } = repairSpaces(doc.spaces, doc.activeSpaceId);
   const repairedSettings = repairSettings(doc.settings);
+  // Upgrading an existing install (e.g. legacy v0, v1, or document without firstRunDone flag)
+  // must never show first-run templates/tour.
+  if (typeof doc?.settings?.firstRunDone !== 'boolean') {
+    repairedSettings.firstRunDone = true;
+  }
   const repairedCats = repairCategories(doc.categories, activeSpaceId);
 
   return {
