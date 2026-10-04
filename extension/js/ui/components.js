@@ -80,10 +80,17 @@ export function renderBookmarkItem(bookmark, categoryId, bmIndex, totalBookmarks
     });
   });
 
+  const state = store.getState ? store.getState() : store.get();
+  const openIn = state?.settings?.behavior?.openIn || 'same';
+
   const link = el('a', {
     className: 'bookmark-link',
     href: bookmark.url,
-    title: `${bookmark.name} (${bookmark.url})`
+    target: openIn === 'new' ? '_blank' : '_self',
+    rel: openIn === 'new' ? 'noopener noreferrer' : undefined,
+    title: bookmark.url,
+    dataset: { tooltip: bookmark.url },
+    'aria-label': `${bookmark.name} (${bookmark.url})`
   },
     favicon,
     el('div', { className: 'bookmark-details' },
@@ -597,3 +604,6 @@ export function renderCategoriesGrid(categories, container) {
     container.appendChild(renderCategoryCard(cat, cIdx, sortedCategories.length));
   });
 }
+
+export const createBookmarkElement = renderBookmarkItem;
+

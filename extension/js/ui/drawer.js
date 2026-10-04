@@ -663,12 +663,30 @@ function renderSearchSection(settings) {
     ),
     select
   );
-
   section.appendChild(searchGroup);
+
+  // Open Links In (same tab vs new tab)
+  const openInGroup = el('div', { className: 'setting-item' },
+    el('div', { className: 'setting-item-header' },
+      el('span', { className: 'setting-label', text: 'Open Links In' })
+    ),
+    el('div', { className: 'radio-group-cards', style: { gridTemplateColumns: 'repeat(2, 1fr)' } },
+      renderRadioCard('Same Tab', (settings.behavior?.openIn || 'same') === 'same', () => {
+        store.updateSettings({ behavior: { ...(settings.behavior || {}), openIn: 'same' } });
+        renderDrawerContent();
+      }),
+      renderRadioCard('New Tab', (settings.behavior?.openIn || 'same') === 'new', () => {
+        store.updateSettings({ behavior: { ...(settings.behavior || {}), openIn: 'new' } });
+        renderDrawerContent();
+      })
+    )
+  );
+  section.appendChild(openInGroup);
+
   section.appendChild(el('button', {
     className: 'btn-secondary section-reset-btn',
     type: 'button',
-    text: 'Reset Search to Defaults',
+    text: 'Reset Search & Behavior to Defaults',
     onclick: () => resetSettingsSection('search')
   }));
 

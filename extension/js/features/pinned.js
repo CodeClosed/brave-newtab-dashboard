@@ -142,6 +142,9 @@ export function renderPinnedStrip(container) {
 
   const list = el('div', { className: 'pinned-strip-list' });
 
+  const state = store.getState();
+  const openIn = state.settings?.behavior?.openIn || 'same';
+
   pinnedItems.forEach(({ bookmark }) => {
     const favicon = createFaviconElement(bookmark.url, bookmark.name);
     const itemLink = el(
@@ -149,21 +152,15 @@ export function renderPinnedStrip(container) {
       {
         className: 'pinned-item-btn',
         href: bookmark.url,
-        title: `${bookmark.name} (${bookmark.url})`,
+        target: openIn === 'new' ? '_blank' : '_self',
+        rel: openIn === 'new' ? 'noopener noreferrer' : undefined,
+        title: bookmark.url,
+        dataset: { tooltip: bookmark.url },
         'aria-label': bookmark.name
       },
       favicon,
       el('span', { className: 'pinned-item-name', text: bookmark.name })
     );
-
-    itemLink.addEventListener('click', (e) => {
-      const state = store.getState();
-      const openIn = state.settings?.behavior?.openIn || 'same';
-      if (openIn === 'new') {
-        e.preventDefault();
-        window.open(bookmark.url, '_blank', 'noopener,noreferrer');
-      }
-    });
 
     list.appendChild(itemLink);
   });

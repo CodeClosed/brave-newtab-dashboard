@@ -22,7 +22,11 @@ export function el(tag, attrs = {}, ...children) {
       element.className = String(val);
     } else if (key === 'dataset' && typeof val === 'object') {
       for (const [dKey, dVal] of Object.entries(val)) {
-        if (dVal != null) element.dataset[dKey] = String(dVal);
+        if (dVal != null) {
+          element.dataset[dKey] = String(dVal);
+          const attrName = 'data-' + dKey.replace(/([A-Z])/g, '-$1').toLowerCase();
+          element.setAttribute(attrName, String(dVal));
+        }
       }
     } else if (key === 'style' && typeof val === 'object') {
       Object.assign(element.style, val);
