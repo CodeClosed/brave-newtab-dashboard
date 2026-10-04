@@ -10,6 +10,7 @@ import { saveBackgroundImage, deleteBackgroundImage } from '../core/idb.js';
 import { downscaleImage, validateAccentContrast, suggestAccessibleShade } from '../features/theme.js';
 import { createSnapshot, listSnapshots, restoreSnapshot, deleteSnapshot } from '../core/snapshots.js';
 import { openAddSpaceDialog, openRenameSpaceDialog, openDeleteSpaceDialog } from '../features/spaces.js';
+import { THEME_PRESETS, applyThemePreset } from '../features/presets.js';
 
 let drawerElement = null;
 let activeTab = 'appearance';
@@ -372,6 +373,34 @@ function renderDrawerContent() {
 
 function renderAppearanceSection(settings) {
   const section = el('div', { className: 'settings-section' });
+
+  // 4.5 Curated Theme Presets
+  const presetsGroup = el('div', { className: 'setting-item' },
+    el('div', { className: 'setting-item-header' },
+      el('span', { className: 'setting-label', text: 'Curated Theme Presets' }),
+      el('span', { className: 'setting-desc', text: 'One-click visual bundles with undo' })
+    ),
+    el('div', { className: 'radio-group-cards', style: { gridTemplateColumns: 'repeat(5, 1fr)' } },
+      ...THEME_PRESETS.map(preset => {
+        const isSelected = settings.palette === preset.settings.palette &&
+          settings.accent === preset.settings.accent &&
+          settings.theme === preset.settings.theme;
+        return renderRadioCard(preset.name, isSelected, () => {
+          const res = applyThemePreset(preset.id, store);
+          if (res.success) {
+            renderDrawerContent();
+            showToast(`Applied "${preset.name}" preset`, () => {
+              if (res.undo) res.undo();
+              renderDrawerContent();
+              showToast('Preset undone');
+            });
+          }
+        });
+      })
+    )
+  );
+
+  section.appendChild(presetsGroup);
 
   // Theme cards
   const themeGroup = el('div', { className: 'setting-item' },
