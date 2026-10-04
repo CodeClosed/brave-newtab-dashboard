@@ -7,6 +7,7 @@ import { applySearchEngine, initSearchShortcuts } from './features/search.js';
 import { renderClockAndGreeting, startClockTicker } from './features/clock.js';
 import { applyBackground } from './features/theme.js';
 import { initEditMode } from './features/edit-mode.js';
+import { initDropAndPaste } from './features/drag-paste.js';
 
 /**
  * Updates DOM root attributes and dynamic UI based on current settings.
@@ -93,6 +94,7 @@ async function initApp() {
   startClockTicker();
   initSearchShortcuts();
   initEditMode();
+  initDropAndPaste();
 
   // React to store mutations
   store.subscribe((state) => {
