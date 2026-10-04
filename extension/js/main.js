@@ -3,7 +3,6 @@ import { store } from './core/state.js';
 import { renderCategoriesGrid } from './ui/components.js';
 import { openCategoryDialog } from './ui/dialogs.js';
 import { showToast } from './ui/toasts.js';
-import { openDrawer } from './ui/drawer.js';
 import { applySearchEngine, initSearchShortcuts } from './features/search.js';
 import { renderClockAndGreeting, startClockTicker } from './features/clock.js';
 import { applyBackground } from './features/theme.js';
@@ -83,7 +82,8 @@ async function initApp() {
   // Bind Settings Cog Trigger
   const settingsBtn = document.getElementById('settings-trigger-btn');
   if (settingsBtn) {
-    settingsBtn.addEventListener('click', () => {
+    settingsBtn.addEventListener('click', async () => {
+      const { openDrawer } = await import('./ui/drawer.js');
       openDrawer('appearance');
     });
   }

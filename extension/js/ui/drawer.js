@@ -4,7 +4,7 @@ import { store } from '../core/state.js';
 import { showToast } from './toasts.js';
 import { exportDashboardToFile, parseAndValidateImport } from '../features/data-io.js';
 import { openCategoryDialog, openConfirmDialog, openImportPreviewDialog } from './dialogs.js';
-import { createDefaultDashboardData, validateDashboardData } from '../core/schema.js';
+import { createDefaultDashboardData, createDefaultSettings, validateDashboardData } from '../core/schema.js';
 import { migrate } from '../core/migrate.js';
 import { saveBackgroundImage, deleteBackgroundImage } from '../core/idb.js';
 import { downscaleImage } from '../features/theme.js';
@@ -13,6 +13,8 @@ import { createSnapshot, listSnapshots, restoreSnapshot, deleteSnapshot } from '
 let drawerElement = null;
 let activeTab = 'appearance';
 let lastActiveElement = null;
+let openingSnapshot = null;
+let searchQuery = '';
 
 const TABS = [
   { id: 'appearance', label: 'Appearance' },
@@ -52,6 +54,103 @@ export function _getDrawerElementForTests() {
 }
 
 /**
+ * For testing opening snapshot.
+ */
+export function _getOpeningSnapshotForTests() {
+  return openingSnapshot;
+}
+
+const SETTINGS_CATALOG = [
+  { id: 'theme', section: 'appearance', label: 'Theme (System, Light, Dark)', keywords: 'color mode dark light system appearance' },
+  { id: 'palette', section: 'appearance', label: 'Color Palette', keywords: 'palette default amoled paper contrast' },
+  { id: 'accent', section: 'appearance', label: 'Accent Color', keywords: 'accent slate blue emerald amber rose custom color' },
+  { id: 'background', section: 'appearance', label: 'Background & Wallpaper', keywords: 'wallpaper background solid gradient image' },
+  { id: 'layout', section: 'layout', label: 'Card Layout', keywords: 'grid compact layout card style' },
+  { id: 'cards', section: 'layout', label: 'Card Columns & Width', keywords: 'columns gap width translucent cards filled' },
+  { id: 'clock', section: 'clock', label: 'Clock & Date Display', keywords: 'time clock greeting date format 12h 24h 24-hour seconds timezone' },
+  { id: 'searchEngine', section: 'search', label: 'Search Engine', keywords: 'search engine google brave duckduckgo bing' },
+  { id: 'searchShortcuts', section: 'search', label: 'Search Filter & Shortcuts', keywords: 'shortcuts filter bookmarks calculator math' },
+  { id: 'categories', section: 'categories', label: 'Manage Collections', keywords: 'categories collections add reorder delete' },
+  { id: 'snapshots', section: 'data', label: 'Snapshots & Backups', keywords: 'snapshots restore backup export import json database' }
+];
+
+/**
+ * Searches the settings catalog by search query.
+ * @param {string} query
+ * @returns {Array<{ id: string, section: string, label: string, keywords: string }>}
+ */
+export function filterSettingsByQuery(query) {
+  if (!query || typeof query !== 'string') return [];
+  const q = query.toLowerCase().trim();
+  if (!q) return [];
+  return SETTINGS_CATALOG.filter(item => {
+    return item.label.toLowerCase().includes(q) ||
+           item.keywords.toLowerCase().includes(q) ||
+           item.section.toLowerCase().includes(q);
+  });
+}
+
+/**
+ * Resets a specific settings section to defaults with undo toast.
+ * @param {string} sectionId
+ */
+export function resetSettingsSection(sectionId) {
+  const defaults = createDefaultSettings();
+  const current = store.get().settings;
+  const previous = JSON.parse(JSON.stringify(current));
+  let patch = {};
+  let label = 'Section';
+
+  if (sectionId === 'appearance') {
+    label = 'Appearance';
+    patch = {
+      theme: defaults.theme,
+      palette: defaults.palette,
+      accent: defaults.accent,
+      accentCustom: defaults.accentCustom,
+      themeSchedule: JSON.parse(JSON.stringify(defaults.themeSchedule)),
+      background: JSON.parse(JSON.stringify(defaults.background))
+    };
+    if (current.background?.type === 'image') {
+      deleteBackgroundImage().catch(() => {});
+    }
+  } else if (sectionId === 'layout') {
+    label = 'Layout';
+    patch = {
+      layout: defaults.layout,
+      cards: JSON.parse(JSON.stringify(defaults.cards))
+    };
+  } else if (sectionId === 'clock') {
+    label = 'Clock';
+    patch = {
+      showClock: defaults.showClock,
+      showDate: defaults.showDate,
+      showGreeting: defaults.showGreeting,
+      timeFormat: defaults.timeFormat,
+      clock: JSON.parse(JSON.stringify(defaults.clock))
+    };
+  } else if (sectionId === 'search') {
+    label = 'Search';
+    patch = {
+      searchEngine: defaults.searchEngine,
+      behavior: JSON.parse(JSON.stringify(defaults.behavior))
+    };
+  }
+
+  store.updateSettings(patch);
+  if (drawerElement && drawerElement.open) {
+    renderDrawerContent();
+  }
+  showToast(`${label} reset to defaults`, () => {
+    store.updateSettings(previous);
+    if (drawerElement && drawerElement.open) {
+      renderDrawerContent();
+    }
+    showToast('Reset undone');
+  });
+}
+
+/**
  * Initializes and mounts drawer DOM elements if not already present.
  */
 function ensureDrawerDOM() {
@@ -72,15 +171,15 @@ function ensureDrawerDOM() {
         rect.left <= e.clientX && e.clientX <= rect.right
       );
       if (!clickedInside) {
-        closeDrawer();
+        closeDrawer(false);
       }
     }
   });
 
-  // Native Escape cancel handling
+  // Native Escape cancel handling -> reverts state
   drawerElement.addEventListener('cancel', (e) => {
     e.preventDefault();
-    closeDrawer();
+    closeDrawer(true);
   });
 
   document.body.appendChild(drawerElement);
@@ -94,6 +193,8 @@ export function openDrawer(tab = 'appearance') {
   ensureDrawerDOM();
   lastActiveElement = /** @type {HTMLElement} */ (document.activeElement);
   activeTab = tab;
+  searchQuery = '';
+  openingSnapshot = JSON.parse(JSON.stringify(store.get()));
   renderDrawerContent();
 
   if (!drawerElement.open && typeof drawerElement.showModal === 'function') {
@@ -101,7 +202,7 @@ export function openDrawer(tab = 'appearance') {
   }
   drawerElement.classList.add('open');
 
-  const closeBtn = drawerElement.querySelector('.drawer-close-btn');
+  const closeBtn = drawerElement.querySelector('.drawer-cancel-btn') || drawerElement.querySelector('.drawer-close-btn');
   if (closeBtn && typeof closeBtn.focus === 'function') {
     closeBtn.focus();
   }
@@ -109,9 +210,16 @@ export function openDrawer(tab = 'appearance') {
 
 /**
  * Closes the settings drawer.
+ * @param {boolean} [revert=false] If true, reverts state to the snapshot taken upon opening.
  */
-export function closeDrawer() {
+export function closeDrawer(revert = false) {
   if (!drawerElement) return;
+
+  if (revert && openingSnapshot) {
+    store.replaceData(openingSnapshot, true);
+    showToast('Changes reverted');
+  }
+  openingSnapshot = null;
 
   drawerElement.classList.remove('open');
   if (drawerElement.open && typeof drawerElement.close === 'function') {
@@ -134,19 +242,49 @@ function renderDrawerContent() {
   const state = store.get();
   const settings = state.settings;
 
-  // Header with stable ID for aria-labelledby
+  // Header with stable ID for aria-labelledby, Cancel and Done buttons
   const header = el('header', { className: 'drawer-header' },
-    el('h2', { className: 'drawer-title', id: 'settings-drawer-title', text: 'Customize Dashboard' }),
-    el('button', {
-      className: 'drawer-close-btn',
-      type: 'button',
-      'aria-label': 'Close settings',
-      text: '✕',
-      onclick: closeDrawer
-    })
+    el('div', { className: 'drawer-header-left' }, [
+      el('h2', { className: 'drawer-title', id: 'settings-drawer-title', text: 'Customize Dashboard' })
+    ]),
+    el('div', { className: 'drawer-header-actions' }, [
+      el('button', {
+        className: 'btn-secondary btn-sm drawer-cancel-btn',
+        type: 'button',
+        text: 'Cancel',
+        title: 'Revert changes made since opening',
+        onclick: () => closeDrawer(true)
+      }),
+      el('button', {
+        className: 'btn-primary btn-sm drawer-done-btn',
+        type: 'button',
+        text: 'Done',
+        title: 'Keep changes and close',
+        onclick: () => closeDrawer(false)
+      })
+    ])
   );
 
-  // Tab Nav
+  // Search box
+  const searchWrapper = el('div', { className: 'drawer-search-wrapper' });
+  const searchInput = el('input', {
+    type: 'search',
+    className: 'drawer-search-input',
+    placeholder: 'Search settings...',
+    'aria-label': 'Search settings',
+    value: searchQuery
+  });
+  searchInput.addEventListener('input', (e) => {
+    searchQuery = /** @type {HTMLInputElement} */ (e.target).value;
+    renderDrawerContent();
+    const nextInput = /** @type {HTMLInputElement} */ (drawerElement?.querySelector('.drawer-search-input'));
+    if (nextInput && typeof nextInput.focus === 'function') {
+      nextInput.focus();
+    }
+  });
+  searchWrapper.appendChild(searchInput);
+
+  // Tab Nav (hidden if actively searching)
   const nav = el('nav', { className: 'drawer-nav', 'aria-label': 'Settings sections' });
   for (const tab of TABS) {
     const tabBtn = el('button', {
@@ -155,6 +293,7 @@ function renderDrawerContent() {
       text: tab.label,
       onclick: () => {
         activeTab = tab.id;
+        searchQuery = '';
         renderDrawerContent();
       }
     });
@@ -164,22 +303,64 @@ function renderDrawerContent() {
   // Content Container
   const content = el('div', { className: 'drawer-content' });
 
-  if (activeTab === 'appearance') {
-    content.appendChild(renderAppearanceSection(settings));
-  } else if (activeTab === 'layout') {
-    content.appendChild(renderLayoutSection(settings));
-  } else if (activeTab === 'clock') {
-    content.appendChild(renderClockSection(settings));
-  } else if (activeTab === 'search') {
-    content.appendChild(renderSearchSection(settings));
-  } else if (activeTab === 'categories') {
-    content.appendChild(renderCategoriesSection(state.categories));
-  } else if (activeTab === 'data') {
-    content.appendChild(renderDataSection());
+  if (searchQuery.trim().length > 0) {
+    const matches = filterSettingsByQuery(searchQuery);
+    const resultsContainer = el('div', { className: 'settings-section search-results-section' });
+    resultsContainer.appendChild(el('span', {
+      className: 'setting-label',
+      text: `Search Results (${matches.length})`
+    }));
+
+    if (matches.length === 0) {
+      resultsContainer.appendChild(el('div', {
+        className: 'snapshot-empty-hint',
+        text: `No settings matching "${searchQuery}"`
+      }));
+    } else {
+      const resultsList = el('div', { className: 'search-results-list' });
+      matches.forEach(m => {
+        const item = el('div', { className: 'search-result-item' }, [
+          el('div', { className: 'search-result-info' }, [
+            el('span', { className: 'search-result-label', text: m.label }),
+            el('span', { className: 'search-result-section-badge', text: m.section })
+          ]),
+          el('button', {
+            className: 'btn-secondary btn-sm',
+            type: 'button',
+            text: 'Configure',
+            onclick: () => {
+              activeTab = m.section;
+              searchQuery = '';
+              renderDrawerContent();
+            }
+          })
+        ]);
+        resultsList.appendChild(item);
+      });
+      resultsContainer.appendChild(resultsList);
+    }
+    content.appendChild(resultsContainer);
+  } else {
+    if (activeTab === 'appearance') {
+      content.appendChild(renderAppearanceSection(settings));
+    } else if (activeTab === 'layout') {
+      content.appendChild(renderLayoutSection(settings));
+    } else if (activeTab === 'clock') {
+      content.appendChild(renderClockSection(settings));
+    } else if (activeTab === 'search') {
+      content.appendChild(renderSearchSection(settings));
+    } else if (activeTab === 'categories') {
+      content.appendChild(renderCategoriesSection(state.categories));
+    } else if (activeTab === 'data') {
+      content.appendChild(renderDataSection());
+    }
   }
 
   drawerElement.appendChild(header);
-  drawerElement.appendChild(nav);
+  drawerElement.appendChild(searchWrapper);
+  if (!searchQuery.trim()) {
+    drawerElement.appendChild(nav);
+  }
   drawerElement.appendChild(content);
 }
 
@@ -377,6 +558,13 @@ function renderAppearanceSection(settings) {
     section.appendChild(bgDetailGroup);
   }
 
+  section.appendChild(el('button', {
+    className: 'btn-secondary section-reset-btn',
+    type: 'button',
+    text: 'Reset Appearance to Defaults',
+    onclick: () => resetSettingsSection('appearance')
+  }));
+
   return section;
 }
 
@@ -400,6 +588,13 @@ function renderLayoutSection(settings) {
   );
 
   section.appendChild(layoutGroup);
+  section.appendChild(el('button', {
+    className: 'btn-secondary section-reset-btn',
+    type: 'button',
+    text: 'Reset Layout to Defaults',
+    onclick: () => resetSettingsSection('layout')
+  }));
+
   return section;
 }
 
@@ -438,6 +633,12 @@ function renderClockSection(settings) {
     )
   );
   section.appendChild(formatGroup);
+  section.appendChild(el('button', {
+    className: 'btn-secondary section-reset-btn',
+    type: 'button',
+    text: 'Reset Clock to Defaults',
+    onclick: () => resetSettingsSection('clock')
+  }));
 
   return section;
 }
@@ -466,6 +667,13 @@ function renderSearchSection(settings) {
   );
 
   section.appendChild(searchGroup);
+  section.appendChild(el('button', {
+    className: 'btn-secondary section-reset-btn',
+    type: 'button',
+    text: 'Reset Search to Defaults',
+    onclick: () => resetSettingsSection('search')
+  }));
+
   return section;
 }
 
