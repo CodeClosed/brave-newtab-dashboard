@@ -223,3 +223,97 @@ export async function deleteSnapshotRecord(id) {
   }
 }
 
+/**
+ * Saves a wallpaper record into the wallpapers object store.
+ * @param {any} wallpaper
+ * @returns {Promise<any>}
+ */
+export async function saveWallpaperRecord(wallpaper) {
+  try {
+    const db = await getDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(WALLPAPERS_STORE, 'readwrite');
+      const store = tx.objectStore(WALLPAPERS_STORE);
+      const req = store.put(wallpaper, wallpaper.id);
+      req.onsuccess = () => resolve(wallpaper);
+      req.onerror = () => reject(req.error);
+    });
+  } catch (err) {
+    return wallpaper;
+  }
+}
+
+/**
+ * Retrieves a single wallpaper record by id.
+ * @param {string} id
+ * @returns {Promise<any | null>}
+ */
+export async function getWallpaperRecord(id) {
+  try {
+    const db = await getDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(WALLPAPERS_STORE, 'readonly');
+      const store = tx.objectStore(WALLPAPERS_STORE);
+      const req = store.get(id);
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror = () => reject(req.error);
+    });
+  } catch (err) {
+    return null;
+  }
+}
+
+/**
+ * Retrieves all wallpaper records sorted by createdAt descending.
+ * @returns {Promise<any[]>}
+ */
+export async function getAllWallpaperRecords() {
+  try {
+    const db = await getDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(WALLPAPERS_STORE, 'readonly');
+      const store = tx.objectStore(WALLPAPERS_STORE);
+      const req = store.getAll();
+      req.onsuccess = () => {
+        const items = req.result || [];
+        items.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+        resolve(items);
+      };
+      req.onerror = () => reject(req.error);
+    });
+  } catch (err) {
+    return [];
+  }
+}
+
+/**
+ * Deletes a wallpaper record by id.
+ * @param {string} id
+ * @returns {Promise<void>}
+ */
+export async function deleteWallpaperRecord(id) {
+  try {
+    const db = await getDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(WALLPAPERS_STORE, 'readwrite');
+      const store = tx.objectStore(WALLPAPERS_STORE);
+      const req = store.delete(id);
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+    });
+  } catch (err) {
+    // Ignore error
+  }
+}
+
+/**
+ * Computes the number of stored wallpapers and their total size in bytes.
+ * @returns {Promise<{ count: number, totalBytes: number }>}
+ */
+export async function getWallpaperCountAndSize() {
+  const all = await getAllWallpaperRecords();
+  const count = all.length;
+  const totalBytes = all.reduce((sum, item) => sum + (item.size || (item.blob ? item.blob.size : 0) || 0), 0);
+  return { count, totalBytes };
+}
+
