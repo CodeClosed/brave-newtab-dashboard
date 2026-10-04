@@ -85,8 +85,8 @@ test('B4: DOM verification - bookmark action controls exist in tab order with ac
   assert.ok(actions, '.bookmark-actions container must exist');
 
   const buttons = actions.querySelectorAll('.bookmark-action-btn');
-  // 4 buttons: move up, move down, edit, delete
-  assert.equal(buttons.length, 4, 'All 4 bookmark controls must be present in tab order');
+  // 5 buttons: move up, move down, pin, edit, delete
+  assert.equal(buttons.length, 5, 'All 5 bookmark controls must be present in tab order');
 
   for (const btn of buttons) {
     assert.equal(btn.tagName, 'BUTTON', 'Control must be a native focusable button');

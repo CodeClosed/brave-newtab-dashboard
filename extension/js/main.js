@@ -8,6 +8,7 @@ import { renderClockAndGreeting, startClockTicker } from './features/clock.js';
 import { applyBackground } from './features/theme.js';
 import { initEditMode } from './features/edit-mode.js';
 import { initDropAndPaste } from './features/drag-paste.js';
+import { renderPinnedStrip } from './features/pinned.js';
 
 /**
  * Updates DOM root attributes and dynamic UI based on current settings.
@@ -57,9 +58,12 @@ async function initApp() {
     return;
   }
 
+  const pinnedStripContainer = document.getElementById('pinned-strip');
+
   // Initial render
   applySettings(data.settings);
   renderClockAndGreeting(data.settings);
+  renderPinnedStrip(pinnedStripContainer);
   renderCategoriesGrid(data.categories, gridContainer);
 
   if (typeof window !== 'undefined' && /** @type {any} */ (window).__ntd_data_unreadable_warning) {
@@ -100,6 +104,7 @@ async function initApp() {
   store.subscribe((state) => {
     applySettings(state.settings);
     renderClockAndGreeting(state.settings);
+    renderPinnedStrip(pinnedStripContainer);
     renderCategoriesGrid(state.categories, gridContainer);
   });
 }

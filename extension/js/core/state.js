@@ -39,6 +39,14 @@ class StateStore {
   }
 
   /**
+   * Gets current state snapshot (alias for get).
+   * @returns {import('./schema.js').DashboardData}
+   */
+  getState() {
+    return this._data;
+  }
+
+  /**
    * Takes a deep copy snapshot of current state for undo operations.
    * @private
    * @returns {import('./schema.js').DashboardData}
@@ -275,6 +283,16 @@ class StateStore {
     if (cat) {
       cat.bookmarks = cat.bookmarks.filter(b => b.id !== bookmarkId);
       cat.bookmarks.forEach((b, idx) => { b.order = idx; });
+
+      // Remove from all spaces' pinned lists
+      if (Array.isArray(this._data.spaces)) {
+        this._data.spaces.forEach(sp => {
+          if (Array.isArray(sp.pinned)) {
+            sp.pinned = sp.pinned.filter(id => id !== bookmarkId);
+          }
+        });
+      }
+
       queueSaveDashboardData(this._data);
       this._notify();
     }

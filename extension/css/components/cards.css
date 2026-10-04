@@ -462,3 +462,58 @@ body.is-edit-mode .bookmark-select-checkbox {
   outline: none;
 }
 
+/* Pinned Strip Nav */
+.pinned-strip {
+  margin: 0 auto var(--space-4) auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  max-width: 100%;
+}
+
+.pinned-strip[hidden] {
+  display: none !important;
+}
+
+.pinned-strip-list {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 3px var(--space-2);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: 9999px;
+  box-shadow: var(--shadow-sm);
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+.pinned-item-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 4px 10px;
+  border-radius: 9999px;
+  text-decoration: none;
+  color: var(--text-primary);
+  font-size: var(--text-xs);
+  transition: background-color var(--transition-fast);
+}
+
+.pinned-item-btn:hover {
+  background: var(--bg-surface-hover);
+}
+
+.pinned-item-name {
+  max-width: 120px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: var(--weight-medium);
+}
+
+.bookmark-action-btn.pin-btn.is-pinned {
+  opacity: 1;
+}
+
+

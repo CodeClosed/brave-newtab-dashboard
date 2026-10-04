@@ -7,6 +7,7 @@ import { openCategoryDialog, openBookmarkDialog, openConfirmDialog } from './dia
 import { showToast } from './toasts.js';
 import { attachCategoryDnD, attachBookmarkDnD, attachCategoryListDrop, announceReorder } from '../features/dnd.js';
 import { startInlineRename, handleInlineAddBookmark } from '../features/edit-mode.js';
+import { isBookmarkPinned, togglePinBookmark, openAllCollectionLinks } from '../features/pinned.js';
 
 let activeMenu = null;
 let activeMenuTrigger = null;
@@ -158,9 +159,30 @@ export function renderBookmarkItem(bookmark, categoryId, bmIndex, totalBookmarks
     }
   });
 
+  // Pin Bookmark button
+  const isPinned = isBookmarkPinned(bookmark.id);
+  const pinBtn = el('button', {
+    className: `bookmark-action-btn pin-btn${isPinned ? ' is-pinned' : ''}`,
+    type: 'button',
+    'aria-label': isPinned ? `Unpin ${bookmark.name} from top` : `Pin ${bookmark.name} to top`,
+    title: isPinned ? 'Unpin from top' : 'Pin to top',
+    text: '📌',
+    onclick: (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const res = togglePinBookmark(bookmark.id);
+      if (res.success) {
+        showToast(res.pinned ? `Pinned "${bookmark.name}"` : `Unpinned "${bookmark.name}"`);
+      } else {
+        showToast(res.reason || 'Could not pin');
+      }
+    }
+  });
+
   const actions = el('div', { className: 'bookmark-actions' });
   if (moveUpBtn) actions.appendChild(moveUpBtn);
   if (moveDownBtn) actions.appendChild(moveDownBtn);
+  actions.appendChild(pinBtn);
   actions.appendChild(editBtn);
   actions.appendChild(deleteBtn);
 
@@ -280,6 +302,21 @@ function openCategoryMenu(triggerBtn, category, categoryIndex, totalCategories) 
     }
   });
   menu.appendChild(addItem);
+
+  // Open All Links
+  if (Array.isArray(category.bookmarks) && category.bookmarks.length > 0) {
+    const openAllItem = el('button', {
+      className: 'menu-item',
+      type: 'button',
+      role: 'menuitem',
+      text: `↗ Open all links (${category.bookmarks.length})`,
+      onclick: () => {
+        closeActiveMenu();
+        openAllCollectionLinks(category.bookmarks);
+      }
+    });
+    menu.appendChild(openAllItem);
+  }
 
   // Delete Category
   const deleteItem = el('button', {
