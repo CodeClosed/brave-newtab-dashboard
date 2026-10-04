@@ -8,6 +8,7 @@ import { showToast } from './toasts.js';
 import { attachCategoryDnD, attachBookmarkDnD, attachCategoryListDrop, announceReorder } from '../features/dnd.js';
 import { startInlineRename, handleInlineAddBookmark } from '../features/edit-mode.js';
 import { isBookmarkPinned, togglePinBookmark, openAllCollectionLinks } from '../features/pinned.js';
+import { openMoveCategoryToSpaceDialog } from '../features/spaces.js';
 
 let activeMenu = null;
 let activeMenuTrigger = null;
@@ -309,6 +310,22 @@ function openCategoryMenu(triggerBtn, category, categoryIndex, totalCategories) 
     }
   });
   menu.appendChild(addItem);
+
+  // Move to space (if > 1 spaces)
+  const menuState = store.getState ? store.getState() : store.get();
+  if (Array.isArray(menuState?.spaces) && menuState.spaces.length > 1) {
+    const moveToSpaceItem = el('button', {
+      className: 'menu-item',
+      type: 'button',
+      role: 'menuitem',
+      text: '⇄ Move to space…',
+      onclick: () => {
+        closeActiveMenu();
+        openMoveCategoryToSpaceDialog(category);
+      }
+    });
+    menu.appendChild(moveToSpaceItem);
+  }
 
   // Open All Links
   if (Array.isArray(category.bookmarks) && category.bookmarks.length > 0) {

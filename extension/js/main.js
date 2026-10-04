@@ -10,6 +10,7 @@ import { initEditMode } from './features/edit-mode.js';
 import { initDropAndPaste } from './features/drag-paste.js';
 import { renderPinnedStrip } from './features/pinned.js';
 import { initKeyboardNavigation } from './features/keyboard.js';
+import { renderSpaceSwitcher } from './features/spaces.js';
 
 /**
  * Updates DOM root attributes and dynamic UI based on current settings.
@@ -60,12 +61,23 @@ async function initApp() {
   }
 
   const pinnedStripContainer = document.getElementById('pinned-strip');
+  const spaceSwitcherContainer = document.getElementById('space-switcher');
+
+  /**
+   * Returns categories belonging to the active space.
+   * @param {import('./core/schema.js').DashboardData} s
+   */
+  function getVisibleCategories(s) {
+    const activeSpaceId = s.activeSpaceId || s.spaces?.[0]?.id;
+    return (s.categories || []).filter(c => !c.spaceId || c.spaceId === activeSpaceId);
+  }
 
   // Initial render
   applySettings(data.settings);
   renderClockAndGreeting(data.settings);
+  renderSpaceSwitcher(spaceSwitcherContainer);
   renderPinnedStrip(pinnedStripContainer);
-  renderCategoriesGrid(data.categories, gridContainer);
+  renderCategoriesGrid(getVisibleCategories(data), gridContainer);
 
   if (typeof window !== 'undefined' && /** @type {any} */ (window).__ntd_data_unreadable_warning) {
     showToast("Your saved data couldn't be read. A backup copy was kept.");
@@ -106,8 +118,9 @@ async function initApp() {
   store.subscribe((state) => {
     applySettings(state.settings);
     renderClockAndGreeting(state.settings);
+    renderSpaceSwitcher(spaceSwitcherContainer);
     renderPinnedStrip(pinnedStripContainer);
-    renderCategoriesGrid(state.categories, gridContainer);
+    renderCategoriesGrid(getVisibleCategories(state), gridContainer);
   });
 }
 

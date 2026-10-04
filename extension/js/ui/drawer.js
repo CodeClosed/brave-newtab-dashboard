@@ -9,6 +9,7 @@ import { migrate } from '../core/migrate.js';
 import { saveBackgroundImage, deleteBackgroundImage } from '../core/idb.js';
 import { downscaleImage } from '../features/theme.js';
 import { createSnapshot, listSnapshots, restoreSnapshot, deleteSnapshot } from '../core/snapshots.js';
+import { openAddSpaceDialog, openRenameSpaceDialog, openDeleteSpaceDialog } from '../features/spaces.js';
 
 let drawerElement = null;
 let activeTab = 'appearance';
@@ -19,6 +20,7 @@ let searchQuery = '';
 const TABS = [
   { id: 'appearance', label: 'Appearance' },
   { id: 'layout', label: 'Layout' },
+  { id: 'spaces', label: 'Spaces' },
   { id: 'clock', label: 'Clock' },
   { id: 'search', label: 'Search' },
   { id: 'categories', label: 'Categories' },
@@ -70,6 +72,7 @@ const SETTINGS_CATALOG = [
   { id: 'clock', section: 'clock', label: 'Clock & Date Display', keywords: 'time clock greeting date format 12h 24h 24-hour seconds timezone' },
   { id: 'searchEngine', section: 'search', label: 'Search Engine', keywords: 'search engine google brave duckduckgo bing' },
   { id: 'searchShortcuts', section: 'search', label: 'Search Filter & Shortcuts', keywords: 'shortcuts filter bookmarks calculator math' },
+  { id: 'spaces', section: 'spaces', label: 'Spaces & Dashboards', keywords: 'spaces dashboards add switch cycle move' },
   { id: 'categories', section: 'categories', label: 'Manage Collections', keywords: 'categories collections add reorder delete' },
   { id: 'snapshots', section: 'data', label: 'Snapshots & Backups', keywords: 'snapshots restore backup export import json database' }
 ];
@@ -345,6 +348,8 @@ function renderDrawerContent() {
       content.appendChild(renderAppearanceSection(settings));
     } else if (activeTab === 'layout') {
       content.appendChild(renderLayoutSection(settings));
+    } else if (activeTab === 'spaces') {
+      content.appendChild(renderSpacesSection(state));
     } else if (activeTab === 'clock') {
       content.appendChild(renderClockSection(settings));
     } else if (activeTab === 'search') {
@@ -690,6 +695,90 @@ function renderSearchSection(settings) {
     onclick: () => resetSettingsSection('search')
   }));
 
+  return section;
+}
+
+function renderSpacesSection(state) {
+  const section = el('div', { className: 'settings-section' });
+  const spaces = [...(state.spaces || [])].sort((a, b) => a.order - b.order);
+
+  const list = el('div', { className: 'cat-mgmt-list' });
+
+  spaces.forEach((sp, idx) => {
+    const colCount = (state.categories || []).filter(c => c.spaceId === sp.id).length;
+    const isActive = sp.id === state.activeSpaceId;
+
+    const info = el('div', { className: 'cat-mgmt-info' },
+      el('span', { text: sp.icon || '📁' }),
+      el('span', { text: sp.name, style: { fontWeight: '500' } }),
+      el('span', { text: `(${colCount} collections)`, style: { color: 'var(--text-muted)' } }),
+      isActive ? el('span', { className: 'search-result-section-badge', text: 'Active' }) : null
+    );
+
+    const upBtn = idx > 0 ? el('button', {
+      className: 'icon-action-btn',
+      type: 'button',
+      text: '↑',
+      title: 'Move up',
+      onclick: () => {
+        store.reorderSpaces(idx, idx - 1);
+        renderDrawerContent();
+      }
+    }) : null;
+
+    const downBtn = idx < spaces.length - 1 ? el('button', {
+      className: 'icon-action-btn',
+      type: 'button',
+      text: '↓',
+      title: 'Move down',
+      onclick: () => {
+        store.reorderSpaces(idx, idx + 1);
+        renderDrawerContent();
+      }
+    }) : null;
+
+    const editBtn = el('button', {
+      className: 'icon-action-btn',
+      type: 'button',
+      text: '✎',
+      title: 'Rename space',
+      onclick: () => {
+        openRenameSpaceDialog(sp);
+      }
+    });
+
+    const deleteBtn = spaces.length > 1 ? el('button', {
+      className: 'icon-action-btn delete',
+      type: 'button',
+      text: '✕',
+      title: 'Delete space',
+      onclick: () => {
+        openDeleteSpaceDialog(sp);
+      }
+    }) : null;
+
+    const actions = el('div', { className: 'cat-mgmt-actions' });
+    if (upBtn) actions.appendChild(upBtn);
+    if (downBtn) actions.appendChild(downBtn);
+    actions.appendChild(editBtn);
+    if (deleteBtn) actions.appendChild(deleteBtn);
+
+    const item = el('div', { className: 'cat-mgmt-item' }, info, actions);
+    list.appendChild(item);
+  });
+
+  const addBtn = el('button', {
+    className: 'btn-secondary',
+    type: 'button',
+    text: '+ Add New Space',
+    onclick: () => {
+      openAddSpaceDialog();
+    }
+  });
+
+  section.appendChild(el('span', { className: 'setting-label', text: 'Manage Spaces' }));
+  section.appendChild(list);
+  section.appendChild(addBtn);
   return section;
 }
 

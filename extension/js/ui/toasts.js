@@ -23,6 +23,7 @@ function ensureToastContainer() {
  * @param {number} [durationMs=5000]
  */
 export function showToast(message, onUndo = null, durationMs = 5000) {
+  if (typeof document === 'undefined') return;
   const container = ensureToastContainer();
 
   const msgSpan = el('span', { className: 'toast-message', text: message });

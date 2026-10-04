@@ -116,12 +116,14 @@ class StateStore {
 
   /**
    * Creates and adds a new category collection.
-   * @param {{ name: string, icon?: string }} params
+   * @param {{ name: string, icon?: string, spaceId?: string }} params
    * @returns {import('./schema.js').Category}
    */
-  addCategory({ name, icon = '📁' }) {
+  addCategory({ name, icon = '📁', spaceId }) {
+    const targetSpaceId = spaceId || this._data.activeSpaceId || this._data.spaces?.[0]?.id;
     const newCategory = {
       id: generateId(),
+      spaceId: targetSpaceId,
       name: name.trim() || 'New Collection',
       icon: icon || '📁',
       order: this._data.categories.length,
@@ -133,6 +135,149 @@ class StateStore {
     queueSaveDashboardData(this._data);
     this._notify();
     return newCategory;
+  }
+
+  // --- Spaces CRUD & Management ---
+
+  /**
+   * Adds a new space.
+   * @param {{ name: string, icon?: string }} params
+   * @returns {import('./schema.js').Space}
+   */
+  addSpace({ name, icon = '📁' }) {
+    if (!Array.isArray(this._data.spaces)) {
+      this._data.spaces = [];
+    }
+
+    const newSpace = {
+      id: generateId(),
+      name: name.trim() || 'New Space',
+      icon: icon || '📁',
+      order: this._data.spaces.length,
+      pinned: []
+    };
+
+    this._data.spaces.push(newSpace);
+    if (!this._data.activeSpaceId) {
+      this._data.activeSpaceId = newSpace.id;
+    }
+
+    queueSaveDashboardData(this._data);
+    this._notify();
+    return newSpace;
+  }
+
+  /**
+   * Updates an existing space.
+   * @param {string} spaceId
+   * @param {{ name?: string, icon?: string }} patch
+   */
+  updateSpace(spaceId, patch) {
+    if (!Array.isArray(this._data.spaces)) return;
+    const space = this._data.spaces.find(s => s.id === spaceId);
+    if (!space) return;
+
+    if (patch.name !== undefined) space.name = patch.name.trim();
+    if (patch.icon !== undefined) space.icon = patch.icon;
+
+    queueSaveDashboardData(this._data);
+    this._notify();
+  }
+
+  /**
+   * Sets the active space id.
+   * @param {string} spaceId
+   */
+  setActiveSpace(spaceId) {
+    if (this._data.activeSpaceId === spaceId) return;
+    const exists = this._data.spaces?.some(s => s.id === spaceId);
+    if (!exists) return;
+
+    this._data.activeSpaceId = spaceId;
+    queueSaveDashboardData(this._data);
+    this._notify();
+  }
+
+  /**
+   * Reorders spaces.
+   * @param {number} sourceIndex
+   * @param {number} targetIndex
+   */
+  reorderSpaces(sourceIndex, targetIndex) {
+    if (!Array.isArray(this._data.spaces)) return;
+    if (sourceIndex === targetIndex) return;
+    if (sourceIndex < 0 || sourceIndex >= this._data.spaces.length) return;
+    if (targetIndex < 0 || targetIndex >= this._data.spaces.length) return;
+
+    this._data.spaces.sort((a, b) => a.order - b.order);
+    const [moved] = this._data.spaces.splice(sourceIndex, 1);
+    this._data.spaces.splice(targetIndex, 0, moved);
+
+    this._data.spaces.forEach((sp, idx) => {
+      sp.order = idx;
+    });
+
+    queueSaveDashboardData(this._data);
+    this._notify();
+  }
+
+  /**
+   * Moves a category to a different space.
+   * @param {string} categoryId
+   * @param {string} targetSpaceId
+   */
+  moveCategoryToSpace(categoryId, targetSpaceId) {
+    const cat = this._data.categories.find(c => c.id === categoryId);
+    if (!cat) return;
+    const spaceExists = this._data.spaces?.some(s => s.id === targetSpaceId);
+    if (!spaceExists) return;
+
+    cat.spaceId = targetSpaceId;
+    queueSaveDashboardData(this._data);
+    this._notify();
+  }
+
+  /**
+   * Deletes a space and either transfers its collections to another space or deletes them.
+   * Takes a snapshot and returns an undo callback.
+   * @param {string} spaceId
+   * @param {{ transferToSpaceId?: string | null }} [options]
+   * @returns {() => void}
+   */
+  deleteSpace(spaceId, options = {}) {
+    createSnapshot('Before delete space', this._data).catch(() => {});
+    const snapshot = this._createSnapshot();
+
+    const transferToSpaceId = options.transferToSpaceId || null;
+
+    if (transferToSpaceId) {
+      // Transfer collections
+      this._data.categories.forEach(c => {
+        if (c.spaceId === spaceId) {
+          c.spaceId = transferToSpaceId;
+        }
+      });
+    } else {
+      // Delete collections in this space
+      this._data.categories = this._data.categories.filter(c => c.spaceId !== spaceId);
+      this._data.categories.forEach((c, idx) => { c.order = idx; });
+    }
+
+    // Remove the space
+    this._data.spaces = (this._data.spaces || []).filter(s => s.id !== spaceId);
+    this._data.spaces.forEach((s, idx) => { s.order = idx; });
+
+    // Update active space if deleted space was active
+    if (this._data.activeSpaceId === spaceId) {
+      this._data.activeSpaceId = transferToSpaceId || this._data.spaces[0]?.id || '';
+    }
+
+    queueSaveDashboardData(this._data);
+    this._notify();
+
+    return () => {
+      this.replaceData(snapshot);
+    };
   }
 
   /**

@@ -1,5 +1,5 @@
-// @ts-check
 import { el, clearChildren } from '../utils/dom.js';
+import { cycleSpace } from './spaces.js';
 
 /**
  * @typedef {object} JumpState
@@ -235,6 +235,18 @@ export function initKeyboardNavigation(options = {}) {
         jumpState.collectionIndex = null;
         renderCollectionBadges();
       }
+      return;
+    }
+
+    if (e.key === '[') {
+      e.preventDefault();
+      cycleSpace('prev');
+      return;
+    }
+
+    if (e.key === ']') {
+      e.preventDefault();
+      cycleSpace('next');
       return;
     }
 
