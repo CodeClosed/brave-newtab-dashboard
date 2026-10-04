@@ -55,8 +55,13 @@
             autocomplete="off"
             spellcheck="false"
             aria-label="Search query"
+            role="combobox"
+            aria-autocomplete="list"
+            aria-expanded="false"
+            aria-controls="search-results-list"
           >
           <kbd class="search-shortcut-badge" title="Press / to focus search">/</kbd>
+          <ul id="search-results-list" class="search-results-list" role="listbox" aria-label="Search suggestions" hidden></ul>
         </form>
       </section>
     </header>

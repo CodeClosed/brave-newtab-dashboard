@@ -164,6 +164,114 @@ input, select, textarea {
   pointer-events: none;
 }
 
+/* Unified Search Suggestions Combobox */
+.search-results-list {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  left: 0;
+  right: 0;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  max-height: 380px;
+  overflow-y: auto;
+  z-index: 100;
+  margin: 0;
+  padding: var(--space-1) 0;
+  list-style: none;
+  text-align: left;
+}
+
+.search-results-list[hidden] {
+  display: none;
+}
+
+.search-result-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  cursor: pointer;
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+  border-radius: var(--radius-sm);
+  margin: 1px var(--space-1);
+  transition: background-color var(--transition-fast);
+}
+
+.search-result-item:hover,
+.search-result-item.is-selected {
+  background: var(--bg-surface-hover);
+}
+
+.search-result-name {
+  font-weight: var(--weight-medium);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 220px;
+}
+
+.search-result-cat {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  background: var(--bg-surface-subtle);
+  padding: 1px 6px;
+  border-radius: var(--radius-xs);
+  border: 1px solid var(--border-subtle);
+  white-space: nowrap;
+}
+
+.search-result-domain {
+  margin-left: auto;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.search-result-calc {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+}
+
+.calc-icon {
+  font-weight: var(--weight-bold);
+  color: var(--accent-text);
+  font-size: var(--text-base);
+  width: 20px;
+  text-align: center;
+}
+
+.calc-val {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--text-primary);
+}
+
+.calc-hint {
+  margin-left: auto;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.search-toggle-space-row {
+  border-top: 1px solid var(--border-subtle);
+  margin-top: var(--space-1);
+  padding: var(--space-1) var(--space-2) 0 var(--space-2);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.search-toggle-space-btn {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  padding: 2px 8px;
+}
+
 /* Grid & Layout Containers */
 .dashboard-main {
   width: 100%;
