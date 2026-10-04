@@ -33,7 +33,7 @@ export function el(tag, attrs = {}, ...children) {
     }
   }
 
-  for (const child of children) {
+  for (const child of children.flat(Infinity)) {
     if (child == null) continue;
     if (typeof child === 'string' || typeof child === 'number') {
       element.appendChild(document.createTextNode(String(child)));

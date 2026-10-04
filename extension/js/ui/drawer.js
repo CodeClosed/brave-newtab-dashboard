@@ -358,9 +358,7 @@ function renderDrawerContent() {
 
   drawerElement.appendChild(header);
   drawerElement.appendChild(searchWrapper);
-  if (!searchQuery.trim()) {
-    drawerElement.appendChild(nav);
-  }
+  drawerElement.appendChild(nav);
   drawerElement.appendChild(content);
 }
 
