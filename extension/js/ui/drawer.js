@@ -760,9 +760,29 @@ function renderAppearanceSection(settings) {
     });
     bgDetailGroup.appendChild(libraryContainer);
 
+    // Auto-readability toggle
+    const autoReadability = bgConfig.autoReadability !== false;
+    const autoToggleLabel = el('label', {
+      style: { display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px', cursor: 'pointer', fontSize: '12px' }
+    });
+    const autoCheckbox = /** @type {HTMLInputElement} */ (el('input', {
+      type: 'checkbox',
+      checked: autoReadability
+    }));
+    autoCheckbox.addEventListener('change', () => {
+      store.updateSettings({
+        background: { ...bgConfig, autoReadability: autoCheckbox.checked }
+      });
+      renderDrawerContent();
+    });
+    autoToggleLabel.appendChild(autoCheckbox);
+    autoToggleLabel.appendChild(el('span', { text: 'Auto-readability (adjusts dim from wallpaper brightness)' }));
+    bgDetailGroup.appendChild(autoToggleLabel);
+
     // Dimming overlay slider
     const dimValue = typeof bgConfig.dim === 'number' ? bgConfig.dim : 0.35;
-    const dimPercentSpan = el('span', { text: `${Math.round(dimValue * 100)}%`, style: { fontSize: '12px' } });
+    const dimLabelText = autoReadability ? `Auto (${Math.round(dimValue * 100)}%)` : `${Math.round(dimValue * 100)}%`;
+    const dimPercentSpan = el('span', { text: dimLabelText, style: { fontSize: '12px' } });
 
     const slider = /** @type {HTMLInputElement} */ (el('input', {
       type: 'range',
@@ -776,7 +796,7 @@ function renderAppearanceSection(settings) {
     slider.addEventListener('input', () => {
       const val = parseFloat(slider.value);
       dimPercentSpan.textContent = `${Math.round(val * 100)}%`;
-      store.updateSettings({ background: { ...bgConfig, dim: val } });
+      store.updateSettings({ background: { ...bgConfig, autoReadability: false, dim: val } });
     });
 
     const sliderRow = el('div', { style: { display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '8px' } },
@@ -786,6 +806,33 @@ function renderAppearanceSection(settings) {
       ),
       slider
     );
+
+    // Blur slider (0..20px)
+    const blurValue = typeof bgConfig.blur === 'number' ? bgConfig.blur : 0;
+    const blurPxSpan = el('span', { text: `${blurValue}px`, style: { fontSize: '12px' } });
+    const blurSlider = /** @type {HTMLInputElement} */ (el('input', {
+      type: 'range',
+      min: '0',
+      max: '20',
+      step: '1',
+      value: String(blurValue),
+      style: { width: '100%' }
+    }));
+    blurSlider.addEventListener('input', () => {
+      const val = parseInt(blurSlider.value, 10);
+      blurPxSpan.textContent = `${val}px`;
+      store.updateSettings({ background: { ...bgConfig, blur: val } });
+    });
+    const blurRow = el('div', { style: { display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '8px' } },
+      el('div', { style: { display: 'flex', justifyContent: 'space-between' } },
+        el('span', { className: 'setting-desc', text: 'Wallpaper Blur' }),
+        blurPxSpan
+      ),
+      blurSlider
+    );
+
+    bgDetailGroup.appendChild(sliderRow);
+    bgDetailGroup.appendChild(blurRow);
 
     const clearImgBtn = el('button', {
       className: 'btn-secondary btn-danger btn-sm',

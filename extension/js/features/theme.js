@@ -1,6 +1,7 @@
 // @ts-check
 import { getBackgroundImage, getWallpaperRecord } from '../core/idb.js';
 import { resolveScheduledTheme } from './schedule.js';
+import { calculateAutoReadabilityDim } from './wallpaper.js';
 
 let activeImageUrl = null;
 let lastBgKey = null;
@@ -128,7 +129,19 @@ export async function applyBackground(bgConfig, force = false) {
     return;
   }
 
-  const dim = typeof bgConfig.dim === 'number' ? bgConfig.dim : 0.35;
+  let dim = typeof bgConfig.dim === 'number' ? bgConfig.dim : 0.35;
+  if (bgConfig?.autoReadability && bgConfig.type === 'image') {
+    const root = typeof document !== 'undefined' ? document.documentElement : null;
+    const isDark = root ? (root.getAttribute('data-theme') === 'dark' || (root.classList && root.classList.contains('dark'))) : false;
+    let lum = null;
+    if (bgConfig.activeId && Array.isArray(bgConfig.wallpapers)) {
+      const activeWp = bgConfig.wallpapers.find(w => w.id === bgConfig.activeId);
+      if (activeWp && activeWp.luminanceData) {
+        lum = activeWp.luminanceData;
+      }
+    }
+    dim = calculateAutoReadabilityDim(lum, isDark);
+  }
 
   // Security: never write arbitrary url() to style
   const rawVal = typeof bgConfig.value === 'string' ? bgConfig.value : '';
@@ -178,8 +191,10 @@ export async function applyBackground(bgConfig, force = false) {
       overlay.style.opacity = String(1 - dim);
       overlay.style.backgroundColor = '#000000';
 
-      if (bgConfig.focal && typeof bgConfig.focal.x === 'number') {
-        overlay.style.backgroundPosition = `${Math.round(bgConfig.focal.x * 100)}% ${Math.round(bgConfig.focal.y * 100)}%`;
+      const activeWp = Array.isArray(bgConfig.wallpapers) ? bgConfig.wallpapers.find(w => w.id === bgConfig.activeId) : null;
+      const focal = (activeWp && activeWp.focal) || bgConfig.focal;
+      if (focal && typeof focal.x === 'number' && typeof focal.y === 'number') {
+        overlay.style.backgroundPosition = `${Math.round(focal.x * 100)}% ${Math.round(focal.y * 100)}%`;
       } else {
         overlay.style.backgroundPosition = 'center';
       }
@@ -192,7 +207,7 @@ export async function applyBackground(bgConfig, force = false) {
         overlay.style.backgroundSize = 'cover';
       }
 
-      const blurPx = typeof bgConfig.blur === 'number' ? bgConfig.blur : 0;
+      const blurPx = typeof bgConfig.blur === 'number' ? Math.max(0, Math.min(20, bgConfig.blur)) : 0;
       overlay.style.filter = blurPx > 0 ? `blur(${blurPx}px)` : 'none';
     } else {
       if (activeImageUrl) {

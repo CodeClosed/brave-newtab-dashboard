@@ -373,6 +373,38 @@ export async function removeWallpaperFromLibrary(id, storeInstance) {
 }
 
 /**
+ * Sets the focal point for a wallpaper and updates store settings.
+ * @param {string} id
+ * @param {{ x: number, y: number }} focal
+ * @param {any} storeInstance
+ */
+export function setWallpaperFocalPoint(id, focal, storeInstance) {
+  const currentSettings = storeInstance.get().settings;
+  const bgConfig = currentSettings.background || {};
+  const wallpapers = Array.isArray(bgConfig.wallpapers) ? bgConfig.wallpapers : [];
+
+  const clampedFocal = {
+    x: Math.max(0, Math.min(1, Math.round((focal?.x ?? 0.5) * 100) / 100)),
+    y: Math.max(0, Math.min(1, Math.round((focal?.y ?? 0.5) * 100) / 100))
+  };
+
+  const nextWallpapers = wallpapers.map(w => {
+    if (w.id === id) {
+      return { ...w, focal: clampedFocal };
+    }
+    return w;
+  });
+
+  storeInstance.updateSettings({
+    background: {
+      ...bgConfig,
+      focal: clampedFocal,
+      wallpapers: nextWallpapers
+    }
+  });
+}
+
+/**
  * Sets the active wallpaper by id.
  *
  * @param {string} id
@@ -487,9 +519,43 @@ export async function renderWallpaperLibrary(container, storeInstance, options =
       const thumb = el('img', {
         className: 'wallpaper-thumb',
         src: item.thumbnailUrl || '',
-        alt: item.name || 'Wallpaper'
+        alt: item.name || 'Wallpaper',
+        title: isActive ? 'Click thumbnail to set focal point' : item.name || 'Wallpaper'
       });
-      card.appendChild(thumb);
+
+      const focalX = (item.focal && typeof item.focal.x === 'number') ? item.focal.x : 0.5;
+      const focalY = (item.focal && typeof item.focal.y === 'number') ? item.focal.y : 0.5;
+
+      const focalMarker = el('div', {
+        className: 'wallpaper-focal-marker',
+        style: {
+          left: `${Math.round(focalX * 100)}%`,
+          top: `${Math.round(focalY * 100)}%`,
+          display: isActive ? 'block' : 'none'
+        }
+      });
+
+      thumb.addEventListener('click', async (e) => {
+        if (!isActive) return;
+        if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+        const rect = typeof thumb.getBoundingClientRect === 'function' ? thumb.getBoundingClientRect() : { left: 0, top: 0, width: 1, height: 1 };
+        const w = rect.width || 1;
+        const h = rect.height || 1;
+        const clientX = e.clientX ?? 0;
+        const clientY = e.clientY ?? 0;
+        const relX = Math.max(0, Math.min(1, (clientX - rect.left) / w));
+        const relY = Math.max(0, Math.min(1, (clientY - rect.top) / h));
+        const newFocal = {
+          x: Math.round(relX * 100) / 100,
+          y: Math.round(relY * 100) / 100
+        };
+        setWallpaperFocalPoint(item.id, newFocal, storeInstance);
+        if (options.onRefresh) options.onRefresh();
+        await renderWallpaperLibrary(container, storeInstance, options);
+      });
+
+      const thumbWrap = el('div', { className: 'wallpaper-thumb-wrap' }, [thumb, focalMarker]);
+      card.appendChild(thumbWrap);
 
       // Info row
       const info = el('div', { className: 'wallpaper-card-info' }, [
@@ -516,11 +582,11 @@ export async function renderWallpaperLibrary(container, storeInstance, options =
       card.appendChild(delBtn);
 
       // Select handler
-      card.addEventListener('click', (e) => {
+      card.addEventListener('click', async (e) => {
         setActiveWallpaper(item.id, storeInstance);
         if (options.onSelect) options.onSelect(item.id);
         if (options.onRefresh) options.onRefresh();
-        renderWallpaperLibrary(container, storeInstance, options);
+        await renderWallpaperLibrary(container, storeInstance, options);
       });
 
       grid.appendChild(card);

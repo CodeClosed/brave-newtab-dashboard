@@ -497,12 +497,31 @@ dialog.settings-drawer::backdrop {
   box-shadow: 0 0 0 1px var(--accent-primary);
 }
 
-.wallpaper-thumb {
+.wallpaper-thumb-wrap {
+  position: relative;
   width: 100%;
   height: 80px;
-  object-fit: cover;
+  overflow: hidden;
   background: var(--bg-surface);
+}
+
+.wallpaper-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
   display: block;
+}
+
+.wallpaper-focal-marker {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  transform: translate(-50%, -50%);
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.7), inset 0 0 2px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+  background: rgba(255, 255, 255, 0.3);
 }
 
 .wallpaper-card-info {
