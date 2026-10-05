@@ -71,14 +71,104 @@ export function togglePinBookmark(bookmarkId) {
   }
 
   // Pin
-  if (space.pinned.length >= 8) {
-    return { success: false, pinned: false, reason: 'Maximum 8 pinned bookmarks reached' };
+  const maxItems = typeof state.settings?.dock?.maxItems === 'number'
+    ? state.settings.dock.maxItems
+    : 12;
+
+  if (space.pinned.length >= maxItems) {
+    return { success: false, pinned: false, reason: `Maximum ${maxItems} pinned bookmarks reached` };
   }
 
   space.pinned.push(bookmarkId);
   queueSaveDashboardData(state);
   store._notify();
   return { success: true, pinned: true };
+}
+
+/**
+ * Directly pins a bookmark into the active space dock at an optional index.
+ * @param {string} bookmarkId
+ * @param {number} [targetIndex]
+ * @returns {{ success: boolean, pinned: boolean, reason?: string, alreadyPinned?: boolean }}
+ */
+export function pinBookmark(bookmarkId, targetIndex = -1) {
+  const state = store.getState();
+  let space = state.spaces?.find((s) => s.id === state.activeSpaceId);
+  if (!space && state.spaces?.length) {
+    space = state.spaces[0];
+  }
+  if (!space) {
+    return { success: false, pinned: false, reason: 'no-space' };
+  }
+
+  if (!Array.isArray(space.pinned)) {
+    space.pinned = [];
+  }
+
+  const existingIdx = space.pinned.indexOf(bookmarkId);
+  if (existingIdx !== -1) {
+    if (targetIndex >= 0 && targetIndex < space.pinned.length && targetIndex !== existingIdx) {
+      reorderPinnedBookmark(existingIdx, targetIndex);
+    }
+    return { success: true, pinned: true, alreadyPinned: true };
+  }
+
+  const maxItems = typeof state.settings?.dock?.maxItems === 'number'
+    ? state.settings.dock.maxItems
+    : 12;
+
+  if (space.pinned.length >= maxItems) {
+    return { success: false, pinned: false, reason: `Maximum ${maxItems} pinned bookmarks reached` };
+  }
+
+  if (targetIndex >= 0 && targetIndex <= space.pinned.length) {
+    space.pinned.splice(targetIndex, 0, bookmarkId);
+  } else {
+    space.pinned.push(bookmarkId);
+  }
+
+  queueSaveDashboardData(state);
+  store._notify();
+  return { success: true, pinned: true };
+}
+
+/**
+ * Reorders a pinned bookmark within the active space from one index to another.
+ * @param {number} fromIndex
+ * @param {number} toIndex
+ * @returns {boolean}
+ */
+export function reorderPinnedBookmark(fromIndex, toIndex) {
+  const state = store.getState();
+  let space = state.spaces?.find((s) => s.id === state.activeSpaceId) || state.spaces?.[0];
+  if (!space || !Array.isArray(space.pinned)) return false;
+  if (fromIndex < 0 || fromIndex >= space.pinned.length) return false;
+  if (toIndex < 0 || toIndex >= space.pinned.length) return false;
+  if (fromIndex === toIndex) return false;
+
+  const [movedId] = space.pinned.splice(fromIndex, 1);
+  space.pinned.splice(toIndex, 0, movedId);
+  queueSaveDashboardData(state);
+  store._notify();
+  return true;
+}
+
+/**
+ * Moves a pinned bookmark by relative direction (-1 or +1) within the dock.
+ * @param {string} bookmarkId
+ * @param {number} direction
+ * @returns {number} The new index or -1 if not found
+ */
+export function moveDockItem(bookmarkId, direction) {
+  const state = store.getState();
+  let space = state.spaces?.find((s) => s.id === state.activeSpaceId) || state.spaces?.[0];
+  if (!space || !Array.isArray(space.pinned)) return -1;
+  const currentIdx = space.pinned.indexOf(bookmarkId);
+  if (currentIdx === -1) return -1;
+  const targetIdx = currentIdx + direction;
+  if (targetIdx < 0 || targetIdx >= space.pinned.length) return currentIdx;
+  reorderPinnedBookmark(currentIdx, targetIdx);
+  return targetIdx;
 }
 
 /**

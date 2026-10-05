@@ -439,6 +439,15 @@ class StateStore {
     }
     const snapshot = this._createSnapshot();
     this._data.categories = this._data.categories.filter(c => c.id !== categoryId);
+    // Remove deleted category bookmarks from all spaces' pinned lists
+    if (cat && Array.isArray(cat.bookmarks) && cat.bookmarks.length > 0 && Array.isArray(this._data.spaces)) {
+      const deletedBmIds = new Set(cat.bookmarks.map(b => b.id));
+      this._data.spaces.forEach(sp => {
+        if (Array.isArray(sp.pinned)) {
+          sp.pinned = sp.pinned.filter(id => !deletedBmIds.has(id));
+        }
+      });
+    }
     // Recalculate order indices
     this._data.categories.forEach((c, idx) => { c.order = idx; });
     queueSaveDashboardData(this._data);

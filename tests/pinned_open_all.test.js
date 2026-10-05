@@ -13,6 +13,7 @@ test('2.5 Pinned strip: toggles pin/unpin and caps at 8 items', () => {
   const initial = createDefaultDashboardData();
   const spaceId = initial.activeSpaceId;
   initial.spaces[0].pinned = [];
+  initial.settings.dock = { position: 'top', autoHide: false, maxItems: 8 };
   store.replaceData(initial);
 
   // Pin bookmark 1

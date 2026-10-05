@@ -25,6 +25,7 @@ import { renderTodoWidget } from './features/todo.js';
 import { applyPageMode, applyLanding, initPageShell } from './features/page-shell.js';
 import { applyHeroLayout, initHero } from './features/hero.js';
 import { renderDailyQuote } from './features/quote.js';
+import { renderDock, initDock } from './features/dock.js';
 
 /**
  * Updates DOM root attributes and dynamic UI based on current settings.
@@ -105,6 +106,7 @@ async function initApp() {
     return;
   }
 
+  const appDockEl = document.getElementById('app-dock');
   const pinnedStripContainer = document.getElementById('pinned-strip');
   const spaceSwitcherContainer = document.getElementById('space-switcher');
   const widgetsContainer = document.getElementById('widgets-container');
@@ -132,6 +134,10 @@ async function initApp() {
   renderClockAndGreeting(data.settings);
   renderSpaceSwitcher(spaceSwitcherContainer);
   renderPinnedStrip(pinnedStripContainer);
+  if (appDockEl) {
+    initDock(appDockEl);
+    renderDock(appDockEl, data);
+  }
   updateWidgetsVisibility(data.settings);
   renderNotesWidget(notesWidgetContainer, data, (note) => store.updateSpaceNote(data.activeSpaceId, note, true));
   renderTodoWidget(todoWidgetContainer, data);
@@ -200,6 +206,9 @@ async function initApp() {
     renderClockAndGreeting(state.settings);
     renderSpaceSwitcher(spaceSwitcherContainer);
     renderPinnedStrip(pinnedStripContainer);
+    if (appDockEl) {
+      renderDock(appDockEl, state);
+    }
     updateWidgetsVisibility(state.settings);
     renderNotesWidget(notesWidgetContainer, state, (note) => store.updateSpaceNote(state.activeSpaceId, note, true));
     renderTodoWidget(todoWidgetContainer, state);

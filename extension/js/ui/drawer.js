@@ -132,7 +132,8 @@ export function resetSettingsSection(sectionId) {
     patch = {
       layout: defaults.layout,
       cards: JSON.parse(JSON.stringify(defaults.cards)),
-      display: JSON.parse(JSON.stringify(defaults.display))
+      display: JSON.parse(JSON.stringify(defaults.display)),
+      dock: JSON.parse(JSON.stringify(defaults.dock))
     };
   } else if (sectionId === 'clock') {
     label = 'Clock';
@@ -1389,7 +1390,75 @@ function renderLayoutSection(settings) {
     iconSizeSlider
   );
 
+  // 11.1 - 11.3 App Dock Settings
+  const dockSettings = settings.dock || { position: 'top', autoHide: false, maxItems: 12 };
+  const currentDockPos = dockSettings.position || 'top';
+  const dockPosGroup = el('div', { className: 'setting-item' },
+    el('div', { className: 'setting-item-header' },
+      el('span', { className: 'setting-label', text: 'App Dock Position' })
+    ),
+    el('div', { className: 'radio-group-cards', style: { gridTemplateColumns: 'repeat(5, 1fr)' } },
+      renderRadioCard('Top', currentDockPos === 'top', () => {
+        store.updateSettings({ dock: { ...dockSettings, position: 'top' } });
+        renderDrawerContent();
+      }),
+      renderRadioCard('Bottom', currentDockPos === 'bottom', () => {
+        store.updateSettings({ dock: { ...dockSettings, position: 'bottom' } });
+        renderDrawerContent();
+      }),
+      renderRadioCard('Left', currentDockPos === 'left', () => {
+        store.updateSettings({ dock: { ...dockSettings, position: 'left' } });
+        renderDrawerContent();
+      }),
+      renderRadioCard('Right', currentDockPos === 'right', () => {
+        store.updateSettings({ dock: { ...dockSettings, position: 'right' } });
+        renderDrawerContent();
+      }),
+      renderRadioCard('Off', currentDockPos === 'off', () => {
+        store.updateSettings({ dock: { ...dockSettings, position: 'off' } });
+        renderDrawerContent();
+      })
+    )
+  );
+
+  const dockAutoHideRow = renderToggleRow(
+    'Dock Auto-Hide',
+    'Reveal dock on screen edge hover or keyboard focus',
+    Boolean(dockSettings.autoHide),
+    (checked) => {
+      store.updateSettings({ dock: { ...dockSettings, autoHide: checked } });
+      renderDrawerContent();
+    }
+  );
+
+  const currentMaxItems = typeof dockSettings.maxItems === 'number' ? dockSettings.maxItems : 12;
+  const maxItemsValSpan = el('span', { text: `${currentMaxItems} items`, style: { fontSize: '12px' } });
+  const maxItemsSlider = /** @type {HTMLInputElement} */ (el('input', {
+    type: 'range',
+    min: '4',
+    max: '24',
+    step: '1',
+    value: String(currentMaxItems),
+    style: { width: '100%' }
+  }));
+  maxItemsSlider.addEventListener('input', () => {
+    const val = parseInt(maxItemsSlider.value, 10);
+    maxItemsValSpan.textContent = `${val} items`;
+    store.updateSettings({ dock: { ...dockSettings, maxItems: val } });
+  });
+
+  const maxItemsGroup = el('div', { className: 'setting-item' },
+    el('div', { style: { display: 'flex', justifyContent: 'space-between', marginBottom: '4px' } },
+      el('span', { className: 'setting-label', text: 'Max Pinned Items' }),
+      maxItemsValSpan
+    ),
+    maxItemsSlider
+  );
+
   section.appendChild(layoutGroup);
+  section.appendChild(dockPosGroup);
+  section.appendChild(dockAutoHideRow);
+  section.appendChild(maxItemsGroup);
   section.appendChild(colsGroup);
   section.appendChild(cardWidthGroup);
   section.appendChild(gapGroup);

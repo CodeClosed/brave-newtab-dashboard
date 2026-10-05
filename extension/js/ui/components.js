@@ -179,8 +179,8 @@ export function renderBookmarkItem(bookmark, categoryId, bmIndex, totalBookmarks
   const pinBtn = el('button', {
     className: `bookmark-action-btn pin-btn${isPinned ? ' is-pinned' : ''}`,
     type: 'button',
-    'aria-label': isPinned ? `Unpin ${bookmark.name} from top` : `Pin ${bookmark.name} to top`,
-    title: isPinned ? 'Unpin from top' : 'Pin to top',
+    'aria-label': isPinned ? `Unpin ${bookmark.name} from dock` : `Pin ${bookmark.name} to dock`,
+    title: isPinned ? 'Unpin from dock' : 'Pin to dock',
     text: '📌',
     onclick: (e) => {
       e.preventDefault();
