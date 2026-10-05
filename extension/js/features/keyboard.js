@@ -33,7 +33,15 @@ export function toggleFocusMode(force) {
   if (typeof document === 'undefined') return false;
   focusModeActive = force !== undefined ? Boolean(force) : !focusModeActive;
   if (document.body) {
-    document.body.classList.toggle('focus-mode', focusModeActive);
+    if (document.body.classList && typeof document.body.classList.toggle === 'function') {
+      document.body.classList.toggle('focus-mode', focusModeActive);
+    }
+    if (typeof document.body.setAttribute === 'function') {
+      document.body.setAttribute('data-focus-mode', String(focusModeActive));
+    }
+    if (focusModeActive && typeof window !== 'undefined' && typeof window.scrollTo === 'function') {
+      window.scrollTo(0, 0);
+    }
   }
   return focusModeActive;
 }
@@ -257,6 +265,13 @@ export function initKeyboardNavigation(options = {}) {
         e.preventDefault();
         jumpState.active = true;
         jumpState.collectionIndex = null;
+        if (document.body && document.body.getAttribute('data-page') === 'two-stage') {
+          const hub = document.getElementById('collections-hub');
+          if (hub && typeof hub.scrollIntoView === 'function') {
+            const isReduced = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+            hub.scrollIntoView({ behavior: isReduced ? 'auto' : 'smooth' });
+          }
+        }
         renderCollectionBadges();
       }
       return;

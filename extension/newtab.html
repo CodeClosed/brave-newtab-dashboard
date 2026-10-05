@@ -13,9 +13,12 @@
   <link rel="stylesheet" href="css/components/toasts.css">
   <link rel="stylesheet" href="css/components/drawer.css">
 </head>
-<body>
+<body data-page="classic">
   <!-- Optional custom background overlay container -->
   <div id="bg-overlay" aria-hidden="true"></div>
+
+  <!-- Omnidirectional Floating App Dock (Pinned items) -->
+  <nav id="app-dock" class="app-dock" data-position="top" aria-label="Quick launch" hidden></nav>
 
   <!-- Top-right utility navigation -->
   <nav class="top-nav" aria-label="Quick actions">
@@ -35,51 +38,67 @@
 
   <!-- Main App Shell -->
   <div id="app">
-    <!-- Header: Clock, Greeting & Search -->
-    <header class="dashboard-header">
-      <div id="clock-display" class="clock-display" aria-live="off"></div>
-      <div class="date-greeting-row">
-        <span id="greeting-display"></span>
-        <span id="date-display"></span>
-      </div>
-      <div id="clock-second-tz" class="clock-second-tz" style="display: none;"></div>
-      <div id="countdown-display" class="countdown-display" style="display: none;"></div>
+    <!-- Stage 1: Hero Panel (Clean, Uncluttered) -->
+    <section id="hero-panel" class="hero-panel" data-hero-layout="studio" aria-label="Home">
+      <header class="dashboard-header">
+        <div id="clock-display" class="clock-display" aria-live="off"></div>
+        <div class="date-greeting-row">
+          <span id="greeting-display"></span>
+          <span id="date-display"></span>
+        </div>
+        <div id="clock-second-tz" class="clock-second-tz" style="display: none;"></div>
+        <div id="countdown-display" class="countdown-display" style="display: none;"></div>
 
-      <!-- Space Switcher -->
-      <nav id="space-switcher" class="space-switcher" aria-label="Spaces" hidden></nav>
+        <!-- Space Switcher -->
+        <nav id="space-switcher" class="space-switcher" aria-label="Spaces" hidden></nav>
 
-      <!-- Search Field -->
-      <section class="search-container" aria-label="Web search">
-        <form id="search-form" class="search-form" method="get" action="https://www.google.com/search">
-          <span class="search-icon-prefix" aria-hidden="true">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="11" cy="11" r="8"></circle>
-              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-            </svg>
-          </span>
-          <input
-            id="search-input"
-            class="search-input"
-            type="search"
-            name="q"
-            placeholder="Search the web..."
-            autocomplete="off"
-            spellcheck="false"
-            aria-label="Search query"
-            role="combobox"
-            aria-autocomplete="list"
-            aria-expanded="false"
-            aria-controls="search-results-list"
-          >
-          <kbd class="search-shortcut-badge" title="Press / to focus search">/</kbd>
-          <ul id="search-results-list" class="search-results-list" role="listbox" aria-label="Search suggestions" hidden></ul>
-        </form>
-      </section>
-    </header>
+        <!-- Search Field -->
+        <section class="search-container" aria-label="Web search">
+          <form id="search-form" class="search-form" method="get" action="https://www.google.com/search">
+            <span class="search-icon-prefix" aria-hidden="true">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+            </span>
+            <input
+              id="search-input"
+              class="search-input"
+              type="search"
+              name="q"
+              placeholder="Search the web..."
+              autocomplete="off"
+              spellcheck="false"
+              aria-label="Search query"
+              role="combobox"
+              aria-autocomplete="list"
+              aria-expanded="false"
+              aria-controls="search-results-list"
+            >
+            <kbd class="search-shortcut-badge" title="Press / to focus search">/</kbd>
+            <ul id="search-results-list" class="search-results-list" role="listbox" aria-label="Search suggestions" hidden></ul>
+          </form>
+        </section>
+      </header>
 
-    <!-- Main Content: Categorized Bookmarks Grid -->
-    <main class="dashboard-main" aria-label="Bookmark collections">
-      <div class="dashboard-toolbar">
+      <!-- Scroll prompt for Stage 2 (Two-stage layout) -->
+      <button id="scroll-to-hub" class="scroll-prompt" type="button" aria-label="Scroll down for collections">
+        <span>Scroll down for your collections</span>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </button>
+    </section>
+
+    <!-- Stage 2: Collections Hub (Frosted glass windows below the fold) -->
+    <main id="collections-hub" class="dashboard-main collections-hub" aria-label="Bookmark collections">
+      <div class="hub-toolbar dashboard-toolbar">
+        <button id="scroll-to-hero" class="scroll-to-top-btn btn-quiet" type="button" aria-label="Back to top" title="Scroll to top">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="18 15 12 9 6 15"></polyline>
+          </svg>
+          <span>Top</span>
+        </button>
         <button id="add-category-toolbar-btn" class="btn-quiet" type="button">
           <span>+</span>
           <span>New Collection</span>

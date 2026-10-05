@@ -22,6 +22,7 @@ import { initAutoHide } from './features/auto-hide.js';
 import { applyAccessibilitySettings } from './features/accessibility.js';
 import { renderNotesWidget } from './features/notes.js';
 import { renderTodoWidget } from './features/todo.js';
+import { applyPageMode, applyLanding, initPageShell } from './features/page-shell.js';
 
 /**
  * Updates DOM root attributes and dynamic UI based on current settings.
@@ -59,6 +60,9 @@ function applySettings(settings) {
 
   // 6.5 Auto-Hide Mode
   initAutoHide(settings);
+
+  // 9.1 Two-Stage / Classic Page Shell
+  applyPageMode(settings, document.body);
 }
 
 /**
@@ -66,6 +70,12 @@ function applySettings(settings) {
  */
 async function initApp() {
   const data = await store.init();
+
+  // 9.3 Landing guarantee
+  applyLanding(data.settings, window);
+
+  // 9.1 & 9.2 Two-Stage Page Shell Interactions
+  initPageShell();
 
   // 5.5 Wallpaper rotation check at load time
   const bg = data.settings?.background;
