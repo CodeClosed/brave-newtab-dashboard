@@ -236,6 +236,86 @@ class StateStore {
   }
 
   /**
+   * Adds a to-do item to the specified space.
+   * @param {string} spaceId
+   * @param {string} text
+   * @returns {{ id: string, text: string, done: boolean } | null}
+   */
+  addTodo(spaceId, text) {
+    if (!Array.isArray(this._data.spaces)) return null;
+    const space = this._data.spaces.find(s => s.id === spaceId);
+    if (!space) return null;
+
+    if (!Array.isArray(space.todos)) {
+      space.todos = [];
+    }
+
+    const trimmed = (typeof text === 'string') ? text.trim().slice(0, 200) : '';
+    if (!trimmed) return null;
+
+    const newTodo = {
+      id: generateId(),
+      text: trimmed,
+      done: false
+    };
+
+    space.todos.push(newTodo);
+    queueSaveDashboardData(this._data);
+    this._notify();
+    return newTodo;
+  }
+
+  /**
+   * Toggles the completion state of a to-do item.
+   * @param {string} spaceId
+   * @param {string} todoId
+   */
+  toggleTodo(spaceId, todoId) {
+    if (!Array.isArray(this._data.spaces)) return;
+    const space = this._data.spaces.find(s => s.id === spaceId);
+    if (!space || !Array.isArray(space.todos)) return;
+
+    const item = space.todos.find(t => t.id === todoId);
+    if (!item) return;
+
+    item.done = !item.done;
+    queueSaveDashboardData(this._data);
+    this._notify();
+  }
+
+  /**
+   * Deletes a to-do item from the specified space.
+   * @param {string} spaceId
+   * @param {string} todoId
+   */
+  deleteTodo(spaceId, todoId) {
+    if (!Array.isArray(this._data.spaces)) return;
+    const space = this._data.spaces.find(s => s.id === spaceId);
+    if (!space || !Array.isArray(space.todos)) return;
+
+    const idx = space.todos.findIndex(t => t.id === todoId);
+    if (idx === -1) return;
+
+    space.todos.splice(idx, 1);
+    queueSaveDashboardData(this._data);
+    this._notify();
+  }
+
+  /**
+   * Clears all completed to-do items from the specified space.
+   * @param {string} spaceId
+   */
+  clearCompletedTodos(spaceId) {
+    if (!Array.isArray(this._data.spaces)) return;
+    const space = this._data.spaces.find(s => s.id === spaceId);
+    if (!space || !Array.isArray(space.todos)) return;
+
+    space.todos = space.todos.filter(t => !t.done);
+    queueSaveDashboardData(this._data);
+    this._notify();
+  }
+
+  /**
    * Sets the active space id.
    * @param {string} spaceId
    */

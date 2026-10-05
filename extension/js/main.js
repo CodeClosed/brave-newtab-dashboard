@@ -21,6 +21,7 @@ import { resolveRotatedWallpaperId } from './features/wallpaper.js';
 import { initAutoHide } from './features/auto-hide.js';
 import { applyAccessibilitySettings } from './features/accessibility.js';
 import { renderNotesWidget } from './features/notes.js';
+import { renderTodoWidget } from './features/todo.js';
 
 /**
  * Updates DOM root attributes and dynamic UI based on current settings.
@@ -88,6 +89,15 @@ async function initApp() {
   const pinnedStripContainer = document.getElementById('pinned-strip');
   const spaceSwitcherContainer = document.getElementById('space-switcher');
   const widgetsContainer = document.getElementById('widgets-container');
+  const notesWidgetContainer = document.getElementById('notes-widget-container') || widgetsContainer;
+  const todoWidgetContainer = document.getElementById('todo-widget-container') || widgetsContainer;
+
+  function updateWidgetsVisibility(s) {
+    if (widgetsContainer) {
+      const hasAny = Boolean(s?.widgets?.notes || s?.widgets?.todo);
+      widgetsContainer.hidden = !hasAny;
+    }
+  }
 
   /**
    * Returns categories belonging to the active space.
@@ -103,7 +113,9 @@ async function initApp() {
   renderClockAndGreeting(data.settings);
   renderSpaceSwitcher(spaceSwitcherContainer);
   renderPinnedStrip(pinnedStripContainer);
-  renderNotesWidget(widgetsContainer, data, (note) => store.updateSpaceNote(data.activeSpaceId, note, true));
+  updateWidgetsVisibility(data.settings);
+  renderNotesWidget(notesWidgetContainer, data, (note) => store.updateSpaceNote(data.activeSpaceId, note, true));
+  renderTodoWidget(todoWidgetContainer, data);
   renderCategoriesGrid(getVisibleCategories(data), gridContainer);
 
   if (typeof window !== 'undefined' && /** @type {any} */ (window).__ntd_data_unreadable_warning) {
@@ -169,7 +181,9 @@ async function initApp() {
     renderClockAndGreeting(state.settings);
     renderSpaceSwitcher(spaceSwitcherContainer);
     renderPinnedStrip(pinnedStripContainer);
-    renderNotesWidget(widgetsContainer, state, (note) => store.updateSpaceNote(state.activeSpaceId, note, true));
+    updateWidgetsVisibility(state.settings);
+    renderNotesWidget(notesWidgetContainer, state, (note) => store.updateSpaceNote(state.activeSpaceId, note, true));
+    renderTodoWidget(todoWidgetContainer, state);
     renderCategoriesGrid(getVisibleCategories(state), gridContainer);
   });
 }

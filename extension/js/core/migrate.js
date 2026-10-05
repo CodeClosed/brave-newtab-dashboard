@@ -26,14 +26,23 @@ export function repairSpaces(rawSpaces, rawActiveSpaceId) {
         ? s.pinned.filter(p => typeof p === 'string' && p.trim().length > 0)
         : [];
       const note = typeof s.note === 'string' ? s.note.slice(0, 10000) : '';
+      const todos = Array.isArray(s.todos)
+        ? s.todos
+            .filter(t => t && typeof t === 'object' && typeof t.text === 'string' && t.text.trim().length > 0)
+            .map(t => ({
+              id: (typeof t.id === 'string' && t.id.trim()) ? t.id.trim() : generateId(),
+              text: t.text.trim().slice(0, 200),
+              done: Boolean(t.done)
+            }))
+        : [];
 
-      spaces.push({ id, name, icon, order, pinned, note });
+      spaces.push({ id, name, icon, order, pinned, note, todos });
     });
   }
 
   if (spaces.length === 0) {
     const homeId = generateId();
-    spaces.push({ id: homeId, name: 'Home', icon: '🏠', order: 0, pinned: [], note: '' });
+    spaces.push({ id: homeId, name: 'Home', icon: '🏠', order: 0, pinned: [], note: '', todos: [] });
   }
 
   const activeSpaceId = typeof rawActiveSpaceId === 'string' && spaces.some(s => s.id === rawActiveSpaceId)

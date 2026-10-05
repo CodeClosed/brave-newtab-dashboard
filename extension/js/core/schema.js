@@ -97,7 +97,7 @@ export function createDefaultSpaces() {
   return {
     activeSpaceId: homeSpaceId,
     spaces: [
-      { id: homeSpaceId, name: 'Home', icon: '🏠', order: 0, pinned: [], note: '' }
+      { id: homeSpaceId, name: 'Home', icon: '🏠', order: 0, pinned: [], note: '', todos: [] }
     ]
   };
 }
