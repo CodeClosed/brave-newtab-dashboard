@@ -28,6 +28,7 @@ const TABS = [
   { id: 'spaces', label: 'Spaces' },
   { id: 'clock', label: 'Clock' },
   { id: 'search', label: 'Search' },
+  { id: 'widgets', label: 'Widgets' },
   { id: 'categories', label: 'Categories' },
   { id: 'data', label: 'Data' }
 ];
@@ -79,6 +80,7 @@ const SETTINGS_CATALOG = [
   { id: 'clock', section: 'clock', label: 'Clock & Date Display', keywords: 'time clock greeting date format 12h 24h 24-hour seconds timezone' },
   { id: 'searchEngine', section: 'search', label: 'Search Engine', keywords: 'search engine google brave duckduckgo bing' },
   { id: 'searchShortcuts', section: 'search', label: 'Search Filter & Shortcuts', keywords: 'shortcuts filter bookmarks calculator math' },
+  { id: 'widgets', section: 'widgets', label: 'Optional Widgets', keywords: 'widgets notes todo tasks scratchpad plain text checklist' },
   { id: 'spaces', section: 'spaces', label: 'Spaces & Dashboards', keywords: 'spaces dashboards add switch cycle move' },
   { id: 'categories', section: 'categories', label: 'Manage Collections', keywords: 'categories collections add reorder delete' },
   { id: 'snapshots', section: 'data', label: 'Snapshots & Backups', keywords: 'snapshots restore backup export import json database' }
@@ -155,6 +157,11 @@ export function resetSettingsSection(sectionId) {
     patch = {
       searchEngine: defaults.searchEngine,
       behavior: JSON.parse(JSON.stringify(defaults.behavior))
+    };
+  } else if (sectionId === 'widgets') {
+    label = 'Widgets';
+    patch = {
+      widgets: JSON.parse(JSON.stringify(defaults.widgets))
     };
   }
 
@@ -374,6 +381,8 @@ function renderDrawerContent() {
       content.appendChild(renderClockSection(settings));
     } else if (activeTab === 'search') {
       content.appendChild(renderSearchSection(settings));
+    } else if (activeTab === 'widgets') {
+      content.appendChild(renderWidgetsSection(settings));
     } else if (activeTab === 'categories') {
       content.appendChild(renderCategoriesSection(state.categories));
     } else if (activeTab === 'data') {
@@ -1772,6 +1781,49 @@ function renderSearchSection(settings) {
     type: 'button',
     text: 'Reset Search & Behavior to Defaults',
     onclick: () => resetSettingsSection('search')
+  }));
+
+  return section;
+}
+
+function renderWidgetsSection(settings) {
+  const section = el('div', { className: 'settings-section' });
+  const widgets = settings.widgets || { notes: false, todo: false };
+
+  // Notes Widget
+  const notesToggleRow = renderToggleRow(
+    'Notes Widget',
+    'A single plain-text note per space with automatic debounced saving',
+    Boolean(widgets.notes),
+    (checked) => {
+      store.updateSettings({
+        widgets: { ...widgets, notes: checked }
+      });
+      renderDrawerContent();
+    }
+  );
+  section.appendChild(notesToggleRow);
+
+  // To-do Widget
+  const todoToggleRow = renderToggleRow(
+    'To-do Widget',
+    'Simple checklist for tasks and reminders',
+    Boolean(widgets.todo),
+    (checked) => {
+      store.updateSettings({
+        widgets: { ...widgets, todo: checked }
+      });
+      renderDrawerContent();
+    }
+  );
+  section.appendChild(todoToggleRow);
+
+  // Reset Widgets
+  section.appendChild(el('button', {
+    className: 'btn-secondary section-reset-btn',
+    type: 'button',
+    text: 'Reset Widgets to Defaults',
+    onclick: () => resetSettingsSection('widgets')
   }));
 
   return section;

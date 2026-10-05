@@ -25,14 +25,15 @@ export function repairSpaces(rawSpaces, rawActiveSpaceId) {
       const pinned = Array.isArray(s.pinned)
         ? s.pinned.filter(p => typeof p === 'string' && p.trim().length > 0)
         : [];
+      const note = typeof s.note === 'string' ? s.note.slice(0, 10000) : '';
 
-      spaces.push({ id, name, icon, order, pinned });
+      spaces.push({ id, name, icon, order, pinned, note });
     });
   }
 
   if (spaces.length === 0) {
     const homeId = generateId();
-    spaces.push({ id: homeId, name: 'Home', icon: '🏠', order: 0, pinned: [] });
+    spaces.push({ id: homeId, name: 'Home', icon: '🏠', order: 0, pinned: [], note: '' });
   }
 
   const activeSpaceId = typeof rawActiveSpaceId === 'string' && spaces.some(s => s.id === rawActiveSpaceId)

@@ -202,7 +202,7 @@ class StateStore {
   /**
    * Updates an existing space.
    * @param {string} spaceId
-   * @param {{ name?: string, icon?: string }} patch
+   * @param {{ name?: string, icon?: string, note?: string }} patch
    */
   updateSpace(spaceId, patch) {
     if (!Array.isArray(this._data.spaces)) return;
@@ -211,9 +211,28 @@ class StateStore {
 
     if (patch.name !== undefined) space.name = patch.name.trim();
     if (patch.icon !== undefined) space.icon = patch.icon;
+    if (patch.note !== undefined) space.note = typeof patch.note === 'string' ? patch.note.slice(0, 10000) : '';
 
     queueSaveDashboardData(this._data);
     this._notify();
+  }
+
+  /**
+   * Updates note text for a specific space with quiet debounced save.
+   * @param {string} spaceId
+   * @param {string} note
+   * @param {boolean} [silent=false] If true, saves without triggering full notify
+   */
+  updateSpaceNote(spaceId, note, silent = false) {
+    if (!Array.isArray(this._data.spaces)) return;
+    const space = this._data.spaces.find(s => s.id === spaceId);
+    if (!space) return;
+
+    space.note = typeof note === 'string' ? note.slice(0, 10000) : '';
+    queueSaveDashboardData(this._data);
+    if (!silent) {
+      this._notify();
+    }
   }
 
   /**
