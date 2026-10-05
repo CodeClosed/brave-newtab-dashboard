@@ -58,6 +58,21 @@
   border-color: var(--border-subtle);
 }
 
+/* 8.2 Card Style: Glass (Frosted-glass window with specular border) */
+:root[data-card-style="glass"] .category-card {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  border-radius: var(--glass-radius);
+}
+
+:root[data-card-style="glass"] .category-card:hover {
+  border-color: var(--glass-highlight);
+  box-shadow: var(--glass-shadow);
+}
+
 /* 4.1 Translucent Card Toggle */
 :root[data-card-translucent="true"] .category-card {
   background: rgba(255, 255, 255, 0.78);
@@ -73,7 +88,8 @@
 
 @media (prefers-reduced-transparency: reduce) {
   :root[data-card-translucent="true"] .category-card,
-  :root[data-card-style="frosted"] .category-card {
+  :root[data-card-style="frosted"] .category-card,
+  :root[data-card-style="glass"] .category-card {
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
     background: var(--bg-surface);

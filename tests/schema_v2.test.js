@@ -4,11 +4,11 @@ import { createDefaultDashboardData, validateDashboardData, CURRENT_SCHEMA_VERSI
 import { migrate } from '../extension/js/core/migrate.js';
 import { serializeDashboardExport, parseAndValidateImport } from '../extension/js/features/data-io.js';
 
-test('1.1 Schema v2: CURRENT_SCHEMA_VERSION is 2 and default document satisfies v2 structure', () => {
-  assert.equal(CURRENT_SCHEMA_VERSION, 2, 'CURRENT_SCHEMA_VERSION must be 2');
+test('1.1 Schema: CURRENT_SCHEMA_VERSION is 3 and default document satisfies structure', () => {
+  assert.equal(CURRENT_SCHEMA_VERSION, 3, 'CURRENT_SCHEMA_VERSION must be 3');
 
   const doc = createDefaultDashboardData();
-  assert.equal(doc.version, 2, 'Default document must have version 2');
+  assert.equal(doc.version, 3, 'Default document must have version 3');
   assert.ok(Array.isArray(doc.spaces), 'Document must have spaces array');
   assert.ok(doc.spaces.length >= 1, 'Document must have at least one default space');
   assert.ok(doc.activeSpaceId, 'Document must have an activeSpaceId');
@@ -65,7 +65,7 @@ test('1.1 Migration: migrates v1 document to v2 preserving all categories and bo
   };
 
   const v2Migrated = migrate(v1Doc);
-  assert.equal(v2Migrated.version, 2);
+  assert.equal(v2Migrated.version, 3);
   assert.ok(Array.isArray(v2Migrated.spaces));
   assert.equal(v2Migrated.spaces.length, 1);
   assert.equal(v2Migrated.spaces[0].name, 'Home');
@@ -100,7 +100,7 @@ test('1.1 Round-trip: v2 file exports and re-imports identically', () => {
   const parsed = parseAndValidateImport(serialized);
 
   assert.equal(parsed.success, true);
-  assert.equal(parsed.data.version, 2);
+  assert.equal(parsed.data.version, 3);
   assert.equal(parsed.data.activeSpaceId, original.activeSpaceId);
   assert.equal(parsed.data.spaces.length, original.spaces.length);
   assert.equal(parsed.data.categories.length, original.categories.length);

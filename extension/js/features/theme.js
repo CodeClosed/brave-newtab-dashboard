@@ -127,6 +127,9 @@ export async function applyBackground(bgConfig, force = false) {
       URL.revokeObjectURL(activeImageUrl);
       activeImageUrl = null;
     }
+    if (root && typeof root.setAttribute === 'function') {
+      root.setAttribute('data-bg', 'none');
+    }
     overlay.style.backgroundImage = 'none';
     overlay.style.backgroundColor = 'transparent';
     overlay.style.opacity = '0';
@@ -152,6 +155,9 @@ export async function applyBackground(bgConfig, force = false) {
       URL.revokeObjectURL(activeImageUrl);
       activeImageUrl = null;
     }
+    if (root && typeof root.setAttribute === 'function') {
+      root.setAttribute('data-bg', 'solid');
+    }
     const safeColor = validateSolidColor(bgConfig.value) || '#1e293b';
     overlay.style.backgroundImage = 'none';
     overlay.style.backgroundColor = safeColor;
@@ -161,6 +167,9 @@ export async function applyBackground(bgConfig, force = false) {
     if (activeImageUrl) {
       URL.revokeObjectURL(activeImageUrl);
       activeImageUrl = null;
+    }
+    if (root && typeof root.setAttribute === 'function') {
+      root.setAttribute('data-bg', 'gradient');
     }
     let safeGrad = null;
     if (typeof bgConfig.value === 'object' && bgConfig.value !== null) {
@@ -193,6 +202,9 @@ export async function applyBackground(bgConfig, force = false) {
       if (activeImageUrl) {
         URL.revokeObjectURL(activeImageUrl);
       }
+      if (root && typeof root.setAttribute === 'function') {
+        root.setAttribute('data-bg', 'image');
+      }
       activeImageUrl = URL.createObjectURL(blob);
       overlay.style.backgroundImage = `url("${activeImageUrl}")`;
       overlay.style.opacity = String(1 - dim);
@@ -220,6 +232,9 @@ export async function applyBackground(bgConfig, force = false) {
       if (activeImageUrl) {
         URL.revokeObjectURL(activeImageUrl);
         activeImageUrl = null;
+      }
+      if (root && typeof root.setAttribute === 'function') {
+        root.setAttribute('data-bg', 'none');
       }
       overlay.style.backgroundImage = 'none';
       overlay.style.backgroundColor = 'transparent';

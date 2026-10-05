@@ -3,7 +3,7 @@
 /**
  * Valid card style names.
  */
-export const VALID_CARD_STYLES = ['filled', 'frosted', 'outline', 'minimal'];
+export const VALID_CARD_STYLES = ['filled', 'frosted', 'outline', 'minimal', 'glass'];
 
 /**
  * Applies card settings (style, translucent, equalHeight) to the root element.

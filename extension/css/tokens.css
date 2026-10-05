@@ -213,3 +213,36 @@
   --text-secondary: #ededed;
   --text-muted: #cccccc;
 }
+
+/* 8.2 Glass Tokens (Glass v2) */
+:root {
+  --glass-bg: rgba(255, 255, 255, var(--glass-opacity, 0.62));
+  --glass-border: rgba(255, 255, 255, 0.35);
+  --glass-blur: blur(var(--glass-blur-px, 16px)) saturate(150%);
+  --glass-radius: 16px;
+  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.12);
+  --glass-highlight: rgba(255, 255, 255, 0.25);
+  --hero-clock-size: clamp(56px, 7vw, 96px);
+}
+
+:root.dark,
+:root[data-theme="dark"] {
+  --glass-bg: rgba(18, 21, 26, var(--glass-opacity, 0.62));
+  --glass-border: rgba(255, 255, 255, 0.10);
+  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  --glass-highlight: rgba(255, 255, 255, 0.08);
+}
+
+/* Glass only when there is something behind it */
+:root:not([data-bg="image"]):not([data-bg="gradient"]) {
+  --glass-blur: none;
+  --glass-bg: var(--bg-surface);
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  :root {
+    --glass-blur: none;
+    --glass-bg: var(--bg-surface);
+  }
+}
+

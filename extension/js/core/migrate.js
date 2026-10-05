@@ -1,5 +1,5 @@
 // @ts-check
-import { CURRENT_SCHEMA_VERSION, createDefaultDashboardData, createDefaultSettings, generateId } from './schema.js';
+import { CURRENT_SCHEMA_VERSION, createDefaultDashboardData, createDefaultSettings, generateId, VALID_TAB_GROUP_COLORS } from './schema.js';
 import { normalizeUrl } from '../utils/url.js';
 
 /**
@@ -82,6 +82,12 @@ export function repairSettings(settings) {
   const validLayouts = ['grid', 'compact'];
   s.layout = validLayouts.includes(s.layout) ? s.layout : defaults.layout;
 
+  const validPages = ['two-stage', 'classic'];
+  s.page = validPages.includes(s.page) ? s.page : defaults.page;
+
+  const validLandings = ['hero', 'remember'];
+  s.landing = validLandings.includes(s.landing) ? s.landing : defaults.landing;
+
   const validEngines = ['google', 'brave', 'duckduckgo', 'bing'];
   s.searchEngine = validEngines.includes(s.searchEngine) ? s.searchEngine : defaults.searchEngine;
 
@@ -112,7 +118,7 @@ export function repairSettings(settings) {
   let cardStyle = c.style;
   if (cardStyle === 'outlined') cardStyle = 'outline';
   if (cardStyle === 'subtle') cardStyle = 'minimal';
-  const validCardStyles = ['filled', 'frosted', 'outline', 'minimal'];
+  const validCardStyles = ['filled', 'frosted', 'outline', 'minimal', 'glass'];
   const validAligns = ['center', 'left'];
 
   let colVal = c.columns;
@@ -228,6 +234,97 @@ export function repairSettings(settings) {
     todo: Boolean(w.todo)
   };
 
+  // hero
+  const h = (s.hero && typeof s.hero === 'object') ? s.hero : {};
+  const validHeroLayouts = ['studio', 'centered'];
+  const validZoneSlots = ['left', 'right', 'off'];
+  const hz = (h.zones && typeof h.zones === 'object') ? h.zones : {};
+  const hw = (h.widgets && typeof h.widgets === 'object') ? h.widgets : {};
+
+  const repairWidgetSlot = (rawW, defaultHidden = false) => {
+    if (!rawW || typeof rawW !== 'object') {
+      return { x: null, y: null, w: null, hidden: defaultHidden };
+    }
+    const x = (typeof rawW.x === 'number' && rawW.x >= 0 && rawW.x <= 100) ? Math.round(rawW.x * 10) / 10 : null;
+    const y = (typeof rawW.y === 'number' && rawW.y >= 0 && rawW.y <= 100) ? Math.round(rawW.y * 10) / 10 : null;
+    const w = (typeof rawW.w === 'number' && rawW.w >= 160 && rawW.w <= 900) ? Math.round(rawW.w) : null;
+    return {
+      x,
+      y,
+      w,
+      hidden: typeof rawW.hidden === 'boolean' ? rawW.hidden : defaultHidden
+    };
+  };
+
+  s.hero = {
+    layout: validHeroLayouts.includes(h.layout) ? h.layout : defaults.hero.layout,
+    zones: {
+      clock: validZoneSlots.includes(hz.clock) ? hz.clock : defaults.hero.zones.clock,
+      weather: validZoneSlots.includes(hz.weather) ? hz.weather : defaults.hero.zones.weather,
+      search: validZoneSlots.includes(hz.search) ? hz.search : defaults.hero.zones.search,
+      quote: validZoneSlots.includes(hz.quote) ? hz.quote : defaults.hero.zones.quote,
+      tasks: validZoneSlots.includes(hz.tasks) ? hz.tasks : defaults.hero.zones.tasks
+    },
+    widgets: {
+      clock: repairWidgetSlot(hw.clock, false),
+      weather: repairWidgetSlot(hw.weather, false),
+      search: repairWidgetSlot(hw.search, false),
+      quote: repairWidgetSlot(hw.quote, false),
+      tasks: repairWidgetSlot(hw.tasks, true)
+    }
+  };
+
+  // dock
+  const dock = (s.dock && typeof s.dock === 'object') ? s.dock : {};
+  const validDockPositions = ['top', 'left', 'bottom', 'right', 'off'];
+  s.dock = {
+    position: validDockPositions.includes(dock.position) ? dock.position : defaults.dock.position,
+    autoHide: Boolean(dock.autoHide),
+    maxItems: typeof dock.maxItems === 'number'
+      ? Math.max(1, Math.min(24, Math.round(dock.maxItems)))
+      : defaults.dock.maxItems
+  };
+
+  // glass
+  const gl = (s.glass && typeof s.glass === 'object') ? s.glass : {};
+  s.glass = {
+    blur: typeof gl.blur === 'number'
+      ? Math.max(0, Math.min(20, Math.round(gl.blur)))
+      : defaults.glass.blur,
+    opacity: typeof gl.opacity === 'number'
+      ? Math.max(0.45, Math.min(0.90, Math.round(gl.opacity * 100) / 100))
+      : defaults.glass.opacity
+  };
+
+  // weather
+  const wth = (s.weather && typeof s.weather === 'object') ? s.weather : {};
+  s.weather = {
+    enabled: Boolean(wth.enabled),
+    city: typeof wth.city === 'string' ? wth.city.slice(0, 100) : defaults.weather.city,
+    lat: (typeof wth.lat === 'number' && wth.lat >= -90 && wth.lat <= 90) ? wth.lat : null,
+    lon: (typeof wth.lon === 'number' && wth.lon >= -180 && wth.lon <= 180) ? wth.lon : null,
+    unit: ['c', 'f'].includes(wth.unit) ? wth.unit : defaults.weather.unit
+  };
+
+  // quote
+  const q = (s.quote && typeof s.quote === 'object') ? s.quote : {};
+  s.quote = {
+    enabled: typeof q.enabled === 'boolean' ? q.enabled : defaults.quote.enabled
+  };
+
+  // tabs
+  const tb = (s.tabs && typeof s.tabs === 'object') ? s.tabs : {};
+  s.tabs = {
+    closeAfterSave: Boolean(tb.closeAfterSave),
+    openAsGroup: typeof tb.openAsGroup === 'boolean' ? tb.openAsGroup : defaults.tabs.openAsGroup
+  };
+
+  // hub
+  const hb = (s.hub && typeof s.hub === 'object') ? s.hub : {};
+  s.hub = {
+    view: ['columns', 'tabs'].includes(hb.view) ? hb.view : defaults.hub.view
+  };
+
   // background
   const bg = (s.background && typeof s.background === 'object') ? s.background : {};
   const validBgTypes = ['none', 'solid', 'gradient', 'image'];
@@ -313,6 +410,9 @@ export function repairCategories(rawCategories, fallbackSpaceId = null) {
     const validDisplayModes = ['list', 'grid', 'icons'];
     const displayMode = validDisplayModes.includes(cat.displayMode) ? cat.displayMode : null;
     const accent = (typeof cat.accent === 'string' && cat.accent.length <= 40) ? cat.accent : null;
+    const color = VALID_TAB_GROUP_COLORS.includes(cat.color) ? cat.color : null;
+    const source = cat.source === 'tabs' ? 'tabs' : null;
+    const savedAt = (typeof cat.savedAt === 'string' && !isNaN(new Date(cat.savedAt).getTime())) ? cat.savedAt : null;
 
     const validBookmarks = [];
     if (Array.isArray(cat.bookmarks)) {
@@ -357,6 +457,9 @@ export function repairCategories(rawCategories, fallbackSpaceId = null) {
       collapsed: catCollapsed,
       displayMode,
       accent,
+      color,
+      source,
+      savedAt,
       bookmarks: validBookmarks
     });
   });
