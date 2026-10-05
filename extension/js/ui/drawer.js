@@ -137,6 +137,8 @@ export function resetSettingsSection(sectionId) {
       showDate: defaults.showDate,
       showGreeting: defaults.showGreeting,
       timeFormat: defaults.timeFormat,
+      userName: defaults.userName,
+      countdown: JSON.parse(JSON.stringify(defaults.countdown)),
       clock: JSON.parse(JSON.stringify(defaults.clock))
     };
   } else if (sectionId === 'search') {
@@ -1410,6 +1412,85 @@ function renderClockSection(settings) {
   section.appendChild(renderToggleRow('Show Greeting', 'Display time-of-day greeting', settings.showGreeting, (val) => {
     store.updateSettings({ showGreeting: val });
   }));
+
+  // 6.3 Greeting Name
+  const nameInput = /** @type {HTMLInputElement} */ (el('input', {
+    type: 'text',
+    className: 'form-input',
+    placeholder: 'Your name (e.g. Alex)',
+    value: settings.userName || '',
+    style: { marginTop: '4px' }
+  }));
+  nameInput.addEventListener('input', () => {
+    store.updateSettings({ userName: nameInput.value });
+  });
+
+  const nameGroup = el('div', { className: 'setting-item' },
+    el('div', { className: 'setting-item-header' },
+      el('span', { className: 'setting-label', text: 'Greeting Name' }),
+      el('span', { className: 'setting-desc', text: 'Personalizes greeting (e.g. Good evening, Alex)' })
+    ),
+    nameInput
+  );
+  section.appendChild(nameGroup);
+
+  // 6.3 Countdown to Date
+  const cdConf = settings.countdown || { label: '', date: null };
+  const cdLabelInput = /** @type {HTMLInputElement} */ (el('input', {
+    type: 'text',
+    className: 'form-input',
+    placeholder: 'Event label (e.g. Vacation, Launch)',
+    value: cdConf.label || '',
+    style: { flex: '1' }
+  }));
+
+  const cdDateInput = /** @type {HTMLInputElement} */ (el('input', {
+    type: 'date',
+    className: 'form-input',
+    value: cdConf.date || '',
+    style: { width: '150px' }
+  }));
+
+  const updateCountdown = () => {
+    const lbl = cdLabelInput.value.trim();
+    const dt = cdDateInput.value;
+    store.updateSettings({
+      countdown: {
+        label: lbl,
+        date: dt || null
+      }
+    });
+  };
+
+  cdLabelInput.addEventListener('input', updateCountdown);
+  cdDateInput.addEventListener('change', updateCountdown);
+
+  const cdClearBtn = el('button', {
+    className: 'btn-secondary btn-sm',
+    type: 'button',
+    text: 'Clear',
+    onclick: () => {
+      cdLabelInput.value = '';
+      cdDateInput.value = '';
+      store.updateSettings({ countdown: { label: '', date: null } });
+      renderDrawerContent();
+    }
+  });
+
+  const cdRow = el('div', { style: { display: 'flex', gap: '8px', alignItems: 'center' } }, [
+    cdLabelInput,
+    cdDateInput,
+    cdClearBtn
+  ]);
+
+  const countdownGroup = el('div', { className: 'setting-item' },
+    el('div', { className: 'setting-item-header' },
+      el('span', { className: 'setting-label', text: 'Event Countdown' }),
+      el('span', { className: 'setting-desc', text: 'Displays days remaining badge beneath clock' })
+    ),
+    cdRow
+  );
+  section.appendChild(countdownGroup);
 
   // 6.1 Clock Style
   const currentClockStyle = clockConf.style === 'small' ? 'small' : (clockConf.style === 'left' || clockConf.style === 'left-aligned' ? 'left' : 'large');

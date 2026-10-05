@@ -182,9 +182,10 @@ export function repairSettings(settings) {
 
   // countdown
   const cd = (s.countdown && typeof s.countdown === 'object') ? s.countdown : {};
+  const isDateValid = typeof cd.date === 'string' && cd.date.trim().length > 0 && !isNaN(new Date(cd.date).getTime());
   s.countdown = {
     label: typeof cd.label === 'string' ? cd.label.slice(0, 80) : '',
-    date: typeof cd.date === 'string' ? cd.date : null
+    date: isDateValid ? cd.date : null
   };
 
   // behavior

@@ -104,6 +104,51 @@ export function formatSecondTimezone(date, timezone, is24h = false, showSeconds 
 }
 
 /**
+ * Calculates calendar days remaining until a target date.
+ * Positive = future, 0 = today, negative = past.
+ * @param {string} targetDateStr
+ * @param {Date} [nowDate=new Date()]
+ * @returns {number | null}
+ */
+export function calculateDaysRemaining(targetDateStr, nowDate = new Date()) {
+  if (!targetDateStr || typeof targetDateStr !== 'string') return null;
+  const target = new Date(targetDateStr);
+  if (isNaN(target.getTime())) return null;
+
+  const nowStart = new Date(nowDate.getFullYear(), nowDate.getMonth(), nowDate.getDate());
+  const targetStart = new Date(target.getFullYear(), target.getMonth(), target.getDate());
+
+  const diffMs = targetStart.getTime() - nowStart.getTime();
+  return Math.round(diffMs / (1000 * 60 * 60 * 24));
+}
+
+/**
+ * Formats a friendly label and days remaining for an event.
+ * @param {string} label
+ * @param {string} targetDateStr
+ * @param {Date} [nowDate=new Date()]
+ * @returns {string}
+ */
+export function formatCountdown(label, targetDateStr, nowDate = new Date()) {
+  const days = calculateDaysRemaining(targetDateStr, nowDate);
+  if (days === null) return '';
+
+  const cleanLabel = (label || '').trim() || 'Event';
+
+  if (days > 1) {
+    return `${cleanLabel}: ${days} days left`;
+  } else if (days === 1) {
+    return `${cleanLabel}: 1 day left`;
+  } else if (days === 0) {
+    return `${cleanLabel}: Today!`;
+  } else if (days === -1) {
+    return `${cleanLabel}: 1 day ago`;
+  } else {
+    return `${cleanLabel}: ${Math.abs(days)} days ago`;
+  }
+}
+
+/**
  * Updates the digital clock, date string, and personalized greeting in the DOM.
  * @param {import('../core/schema.js').DashboardData['settings']} settings
  */
@@ -112,9 +157,10 @@ export function renderClockAndGreeting(settings) {
   const dateEl = document.getElementById('date-display');
   const greetingEl = document.getElementById('greeting-display');
   let secondTzEl = document.getElementById('clock-second-tz');
+  let countdownEl = document.getElementById('countdown-display');
   const headerEl = document.querySelector('.dashboard-header');
 
-  if (!clockEl && !dateEl && !greetingEl && !secondTzEl) return;
+  if (!clockEl && !dateEl && !greetingEl && !secondTzEl && !countdownEl) return;
 
   const now = new Date();
   const clockConf = settings?.clock || {};
@@ -201,6 +247,29 @@ export function renderClockAndGreeting(settings) {
     secondTzEl.textContent = '';
   }
 
+  // Countdown
+  const cd = settings?.countdown;
+  if (cd && cd.date) {
+    const cdText = formatCountdown(cd.label, cd.date, now);
+    if (cdText) {
+      if (!countdownEl) {
+        countdownEl = document.createElement('div');
+        countdownEl.id = 'countdown-display';
+        countdownEl.className = 'countdown-display';
+        if (headerEl) headerEl.appendChild(countdownEl);
+      }
+      if (countdownEl) {
+        countdownEl.style.display = 'inline-flex';
+        countdownEl.textContent = cdText;
+      }
+    } else if (countdownEl) {
+      countdownEl.style.display = 'none';
+      countdownEl.textContent = '';
+    }
+  } else if (countdownEl) {
+    countdownEl.style.display = 'none';
+    countdownEl.textContent = '';
+  }
 }
 
 /**
