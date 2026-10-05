@@ -78,6 +78,10 @@ To preserve privacy, performance, and simplicity, the following are strictly non
 - No AI assistant chatbots, productivity scoreboards, or habit tracking widgets.
 - No dynamic external web fonts or CDN script dependencies.
 
+**Approved exceptions from v0.3 (see `docs/ROADMAP_V2.md`):**
+- **Weather** is the only network feature. It is opt-in and off by default, calls Open-Meteo only (no API key, no tracking), caches for 30 minutes, and the CSP `connect-src` allows only `api.open-meteo.com` and `geocoding-api.open-meteo.com`.
+- **Tabs / tab groups:** the `tabs` and `tabGroups` permissions are *optional* and requested only when the user first clicks "Save current tabs" or "Open as tab group". Tab data is read only at that moment, never in the background.
+
 ---
 
 ## 4. User Journeys & Core Flows

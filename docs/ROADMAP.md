@@ -1,5 +1,7 @@
 # New Tab Dashboard — Unified Roadmap (for Google Antigravity)
 
+> **Status:** Phases 0–7 shipped as v0.2.0. The v0.3 UI overhaul (Phases 8–16: two-stage glass dashboard, dock, tab groups, weather) continues in `docs/ROADMAP_V2.md`. Its approved decisions replace the "Deferred" entries below for weather and tab groups, and the visual rules now follow the Glass v2 design skill.
+
 This merges three things into one plan for the existing repo (`CodeClosed/brave-newtab-dashboard`, v0.1.0):
 
 1. The bug and accessibility fixes found in the code review.
