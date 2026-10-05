@@ -13,6 +13,7 @@ import { openAddSpaceDialog, openRenameSpaceDialog, openDeleteSpaceDialog } from
 import { THEME_PRESETS, applyThemePreset } from '../features/presets.js';
 import { getSolarTimes } from '../features/schedule.js';
 import { renderWallpaperLibrary } from '../features/wallpaper.js';
+import { isValidTimezone, getSupportedTimezones } from '../features/clock.js';
 
 let drawerElement = null;
 let activeTab = 'appearance';
@@ -1341,6 +1342,7 @@ function renderLayoutSection(settings) {
 
 function renderClockSection(settings) {
   const section = el('div', { className: 'settings-section' });
+  const clockConf = settings.clock || {};
 
   // Clock toggle
   section.appendChild(renderToggleRow('Show Clock', 'Display current time', settings.showClock, (val) => {
@@ -1356,6 +1358,29 @@ function renderClockSection(settings) {
   section.appendChild(renderToggleRow('Show Greeting', 'Display time-of-day greeting', settings.showGreeting, (val) => {
     store.updateSettings({ showGreeting: val });
   }));
+
+  // 6.1 Clock Style
+  const currentClockStyle = clockConf.style === 'small' ? 'small' : (clockConf.style === 'left' || clockConf.style === 'left-aligned' ? 'left' : 'large');
+  const clockStyleGroup = el('div', { className: 'setting-item' },
+    el('div', { className: 'setting-item-header' },
+      el('span', { className: 'setting-label', text: 'Clock Layout Style' })
+    ),
+    el('div', { className: 'radio-group-cards', style: { gridTemplateColumns: 'repeat(3, 1fr)' } },
+      renderRadioCard('Large', currentClockStyle === 'large', () => {
+        store.updateSettings({ clock: { ...clockConf, style: 'large' } });
+        renderDrawerContent();
+      }),
+      renderRadioCard('Small', currentClockStyle === 'small', () => {
+        store.updateSettings({ clock: { ...clockConf, style: 'small' } });
+        renderDrawerContent();
+      }),
+      renderRadioCard('Left-aligned', currentClockStyle === 'left', () => {
+        store.updateSettings({ clock: { ...clockConf, style: 'left' } });
+        renderDrawerContent();
+      })
+    )
+  );
+  section.appendChild(clockStyleGroup);
 
   // 12h / 24h format
   const formatGroup = el('div', { className: 'setting-item' },
@@ -1374,6 +1399,98 @@ function renderClockSection(settings) {
     )
   );
   section.appendChild(formatGroup);
+
+  // 6.1 Show Seconds toggle
+  section.appendChild(renderToggleRow('Show Seconds', 'Display running seconds counter', Boolean(clockConf.showSeconds), (val) => {
+    store.updateSettings({ clock: { ...clockConf, showSeconds: val } });
+  }));
+
+  // 6.1 Date Format Picker
+  const currentDateFmt = clockConf.dateFormat || 'weekday-short';
+  const dateFmtSelect = /** @type {HTMLSelectElement} */ (el('select', { className: 'form-select' },
+    el('option', { value: 'weekday-short', text: 'Weekday, Short (e.g. Monday, Oct 5)' }),
+    el('option', { value: 'weekday-full', text: 'Weekday, Full (e.g. Monday, October 5, 2026)' }),
+    el('option', { value: 'short', text: 'Short (e.g. Oct 5, 2026)' }),
+    el('option', { value: 'iso', text: 'ISO 8601 (e.g. 2026-10-05)' }),
+    el('option', { value: 'day-first', text: 'Day First (e.g. 5 Oct 2026)' })
+  ));
+  dateFmtSelect.value = currentDateFmt;
+  dateFmtSelect.addEventListener('change', () => {
+    store.updateSettings({ clock: { ...clockConf, dateFormat: dateFmtSelect.value } });
+  });
+
+  const dateFmtGroup = el('div', { className: 'setting-item' },
+    el('div', { className: 'setting-item-header' },
+      el('span', { className: 'setting-label', text: 'Date Display Format' })
+    ),
+    dateFmtSelect
+  );
+  section.appendChild(dateFmtGroup);
+
+  // 6.1 Second Timezone Picker
+  const currentTz = clockConf.secondTimezone || '';
+  const tzInput = /** @type {HTMLInputElement} */ (el('input', {
+    type: 'text',
+    className: 'form-input',
+    placeholder: 'e.g. America/New_York, Asia/Tokyo, UTC',
+    value: currentTz
+  }));
+  tzInput.setAttribute('list', 'supported-tz-list');
+
+  const tzDatalist = el('datalist', { id: 'supported-tz-list' });
+  const sampleTimezones = getSupportedTimezones();
+  for (const tzName of sampleTimezones.slice(0, 50)) {
+    tzDatalist.appendChild(el('option', { value: tzName }));
+  }
+
+  const tzStatus = el('span', {
+    className: 'setting-desc',
+    text: currentTz ? (isValidTimezone(currentTz) ? `Active: ${currentTz}` : 'Invalid timezone') : 'Optional secondary world clock'
+  });
+
+  const applyTz = (val) => {
+    const trimmed = (val || '').trim();
+    if (!trimmed) {
+      store.updateSettings({ clock: { ...clockConf, secondTimezone: null } });
+      tzStatus.textContent = 'Optional secondary world clock';
+      tzStatus.style.color = '';
+    } else if (isValidTimezone(trimmed)) {
+      store.updateSettings({ clock: { ...clockConf, secondTimezone: trimmed } });
+      tzStatus.textContent = `Active: ${trimmed}`;
+      tzStatus.style.color = '';
+    } else {
+      tzStatus.textContent = 'Invalid timezone (e.g. America/New_York or UTC)';
+      tzStatus.style.color = 'var(--text-danger, #ef4444)';
+    }
+  };
+
+  tzInput.addEventListener('change', () => applyTz(tzInput.value));
+
+  const tzClearBtn = el('button', {
+    className: 'btn-secondary btn-sm',
+    type: 'button',
+    text: 'Clear',
+    onclick: () => {
+      tzInput.value = '';
+      applyTz('');
+    }
+  });
+
+  const tzInputRow = el('div', { style: { display: 'flex', gap: '8px', alignItems: 'center' } }, [
+    tzInput,
+    tzClearBtn
+  ]);
+
+  const tzGroup = el('div', { className: 'setting-item' },
+    el('div', { className: 'setting-item-header' },
+      el('span', { className: 'setting-label', text: 'Second Timezone' }),
+      tzStatus
+    ),
+    tzInputRow,
+    tzDatalist
+  );
+  section.appendChild(tzGroup);
+
   section.appendChild(el('button', {
     className: 'btn-secondary section-reset-btn',
     type: 'button',

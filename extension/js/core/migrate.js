@@ -137,12 +137,34 @@ export function repairSettings(settings) {
 
   // clock
   const clk = (s.clock && typeof s.clock === 'object') ? s.clock : {};
-  const validClockStyles = ['large', 'minimal', 'analog', 'off'];
-  const validDateFormats = ['weekday-short', 'full', 'short', 'off'];
+  let clkStyle = clk.style;
+  if (clkStyle === 'left-aligned') clkStyle = 'left';
+  if (clkStyle === 'minimal') clkStyle = 'small';
+  const validClockStyles = ['large', 'small', 'left', 'analog', 'off'];
+  const validDateFormats = ['weekday-short', 'weekday-full', 'full', 'short', 'iso', 'day-first', 'off'];
+
+  const isTzValid = (tz) => {
+    if (!tz || typeof tz !== 'string') return false;
+    if (tz === 'UTC' || tz === 'GMT') return true;
+    if (typeof Intl !== 'undefined' && typeof Intl.supportedValuesOf === 'function') {
+      try {
+        return Intl.supportedValuesOf('timeZone').includes(tz);
+      } catch {
+        // fallback
+      }
+    }
+    try {
+      new Intl.DateTimeFormat(undefined, { timeZone: tz });
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
   s.clock = {
-    style: validClockStyles.includes(clk.style) ? clk.style : defaults.clock.style,
-    showSeconds: Boolean(clk.showSeconds),
-    secondTimezone: typeof clk.secondTimezone === 'string' ? clk.secondTimezone : null,
+    style: validClockStyles.includes(clkStyle) ? clkStyle : defaults.clock.style,
+    showSeconds: typeof clk.showSeconds === 'boolean' ? clk.showSeconds : defaults.clock.showSeconds,
+    secondTimezone: (typeof clk.secondTimezone === 'string' && isTzValid(clk.secondTimezone)) ? clk.secondTimezone : null,
     dateFormat: validDateFormats.includes(clk.dateFormat) ? clk.dateFormat : defaults.clock.dateFormat
   };
 
