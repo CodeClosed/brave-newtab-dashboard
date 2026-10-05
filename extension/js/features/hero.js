@@ -1,6 +1,6 @@
-// @ts-check
 import { renderDailyQuote, loadQuotes } from './quote.js';
 import { openShortcutsHelpDialog } from './keyboard.js';
+import { applyWidgetPositions, initWidgetDrag } from './widget-drag.js';
 
 /**
  * Applies hero layout ('studio' | 'centered') to #hero-panel.
@@ -14,6 +14,7 @@ export function applyHeroLayout(heroConf, heroElement = null) {
   const valid = ['studio', 'centered'];
   const layout = valid.includes(heroConf?.layout) ? heroConf.layout : 'studio';
   hero.setAttribute('data-hero-layout', layout);
+  applyWidgetPositions(hero, heroConf?.widgets);
 }
 
 /**
@@ -51,6 +52,7 @@ export async function initHero(store) {
 
   // 10.1 Hero layout
   applyHeroLayout(settings.hero, heroPanel);
+  initWidgetDrag(heroPanel, store);
 
   if (layoutToggleBtn && store) {
     layoutToggleBtn.addEventListener('click', () => {

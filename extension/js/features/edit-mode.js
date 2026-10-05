@@ -62,6 +62,7 @@ export function subscribeEditMode(fn) {
   listeners.add(fn);
   return () => listeners.delete(fn);
 }
+export { subscribeEditMode as onEditModeChange };
 
 /**
  * Normalizes input URL, derives bookmark name from domain if unspecified,

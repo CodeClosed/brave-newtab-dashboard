@@ -937,6 +937,68 @@ body.auto-hide-enabled.auto-hide-idle:not(.focus-mode) .corner:focus-within {
   max-width: 480px;
 }
 
+/* 16.1 Free-Drag Widget Frame & Handles */
+body.is-edit-mode [data-free-drag="true"] {
+  z-index: 20 !important;
+}
+
+.widget-drag-frame {
+  position: absolute;
+  inset: -6px;
+  border: 1.5px dashed var(--accent-primary, #3b82f6);
+  border-radius: var(--radius-md, 8px);
+  pointer-events: none;
+  z-index: 25;
+}
+
+.widget-drag-frame:focus-visible {
+  outline: 2px solid var(--accent-primary, #3b82f6);
+  outline-offset: 2px;
+}
+
+.widget-drag-handle {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--accent-primary, #3b82f6);
+  color: #ffffff;
+  font-size: 11px;
+  line-height: 1;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill, 9999px);
+  cursor: grab;
+  pointer-events: auto;
+  user-select: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.widget-drag-handle:active {
+  cursor: grabbing;
+}
+
+.widget-resize-handle {
+  position: absolute;
+  right: -6px;
+  bottom: -6px;
+  width: 12px;
+  height: 12px;
+  background: var(--accent-primary, #3b82f6);
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+  cursor: nwse-resize;
+  pointer-events: auto;
+}
+
+.is-dragging {
+  opacity: 0.85;
+  transition: none !important;
+}
+
+.is-resizing {
+  transition: none !important;
+}
+
 /* 14.1 Weather Capsule Widget (Glass v2) */
 .hero-weather-slot {
   width: 100%;

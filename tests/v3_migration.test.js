@@ -20,7 +20,7 @@ test('8.1 Schema v3: CURRENT_SCHEMA_VERSION is 3 and defaults satisfy v3 specifi
   const doc = createDefaultDashboardData();
   assert.equal(doc.version, 3);
   assert.ok(Array.isArray(doc.spaces));
-  assert.equal(doc.settings.page, 'classic');
+  assert.equal(doc.settings.page, 'two-stage');
   assert.equal(doc.settings.landing, 'hero');
   assert.equal(doc.settings.hero.layout, 'studio');
   assert.deepEqual(doc.settings.hero.zones, {
@@ -99,7 +99,7 @@ test('8.1 Migration: migrates legacy v2 document to v3 preserving existing field
   assert.equal(migrated.categories[0].accent, '#10b981');
 
   // Injected v3 defaults
-  assert.equal(migrated.settings.page, 'classic');
+  assert.equal(migrated.settings.page, 'two-stage');
   assert.equal(migrated.settings.landing, 'hero');
   assert.equal(migrated.settings.hero.layout, 'studio');
   assert.equal(migrated.settings.dock.position, 'top');
@@ -161,7 +161,7 @@ test('8.1 Settings repair & clamp: clamps glass blur, glass opacity, dock maxIte
   };
 
   const repaired = repairSettings(custom);
-  assert.equal(repaired.page, 'classic');
+  assert.equal(repaired.page, 'two-stage');
   assert.equal(repaired.landing, 'hero');
   assert.equal(repaired.cards.style, 'glass');
   assert.equal(repaired.dock.position, 'top');

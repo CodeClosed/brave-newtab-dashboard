@@ -38,7 +38,7 @@ export function createDefaultSettings() {
     searchEngine: 'google',
     palette: 'default',
     userName: '',
-    page: 'classic',
+    page: 'two-stage',
     landing: 'hero',
     hero: {
       layout: 'studio',

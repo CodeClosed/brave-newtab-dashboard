@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "New Tab Dashboard",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "A clean, local-first customizable New Tab dashboard for Brave and Chrome.",
   "default_locale": "en",
   "chrome_url_overrides": {

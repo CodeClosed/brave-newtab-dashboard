@@ -1115,6 +1115,26 @@ function renderAppearanceSection(settings) {
 function renderLayoutSection(settings) {
   const section = el('div', { className: 'settings-section' });
 
+  // 16.3 Page Architecture Mode
+  const currentPageMode = settings.page || 'two-stage';
+  const pageModeGroup = el('div', { className: 'setting-item' },
+    el('div', { className: 'setting-item-header' },
+      el('span', { className: 'setting-label', text: 'Dashboard Page Layout' }),
+      el('span', { className: 'setting-desc', text: 'Two-stage provides an uncluttered hero stage with glass collections below the fold.' })
+    ),
+    el('div', { className: 'radio-group-cards', style: { gridTemplateColumns: 'repeat(2, 1fr)' } },
+      renderRadioCard('Two-Stage Hub', currentPageMode === 'two-stage', () => {
+        store.updateSettings({ page: 'two-stage' });
+        renderDrawerContent();
+      }),
+      renderRadioCard('Classic (Deprecated)', currentPageMode === 'classic', () => {
+        store.updateSettings({ page: 'classic' });
+        renderDrawerContent();
+      })
+    )
+  );
+  section.appendChild(pageModeGroup);
+
   const layoutGroup = el('div', { className: 'setting-item' },
     el('div', { className: 'setting-item-header' },
       el('span', { className: 'setting-label', text: 'Dashboard Grid Density' })
