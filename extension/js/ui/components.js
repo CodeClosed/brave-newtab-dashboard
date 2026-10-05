@@ -140,7 +140,7 @@ export function renderBookmarkItem(bookmark, categoryId, bmIndex, totalBookmarks
 
   // Edit Bookmark button
   const editBtn = el('button', {
-    className: 'bookmark-action-btn',
+    className: 'bookmark-action-btn edit-btn',
     type: 'button',
     'aria-label': `Edit bookmark ${bookmark.name}`,
     title: 'Edit bookmark',
@@ -617,7 +617,7 @@ export function renderCategoryCard(category, categoryIndex, totalCategories) {
 
   // Collapse / Expand trigger
   const collapseBtn = el('button', {
-    className: 'icon-action-btn',
+    className: 'icon-action-btn card-collapse-btn',
     type: 'button',
     'aria-label': `Toggle ${category.name}`,
     'aria-expanded': isCollapsed ? 'false' : 'true',

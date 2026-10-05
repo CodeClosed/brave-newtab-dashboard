@@ -262,12 +262,15 @@
   opacity: 1;
   pointer-events: auto;
   position: absolute;
-  top: -18px;
-  right: 0;
+  top: 2px;
+  right: 2px;
   background: var(--bg-surface);
-  border-radius: var(--radius-xs);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm, 6px);
   box-shadow: var(--shadow-sm);
   z-index: 10;
+  padding: 1px 2px;
+  gap: 2px;
 }
 
 .bookmarks-list[data-display-mode="icons"] .inline-add-row {
@@ -381,9 +384,9 @@
   background: rgba(239, 68, 68, 0.12);
 }
 
-.bookmark-action-btn.reorder-btn {
-  font-size: 12px;
-  font-weight: var(--weight-semibold);
+.bookmark-action-btn.reorder-btn,
+.bookmark-action-btn.edit-btn {
+  display: none !important;
 }
 
 /* Favicon & Letter Tile Fallback */
@@ -542,9 +545,9 @@ body[data-page="classic"] .category-card.collapsed .card-footer {
 .category-card[data-color="cyan"]   .category-header { background: rgba(18, 181, 203, 0.08); }
 .category-card[data-color="orange"] .category-header { background: rgba(232, 113, 10, 0.08); }
 
-.icon-action-btn.quick-add-btn {
-  font-size: 15px;
-  line-height: 1;
+.category-header .quick-add-btn,
+.category-header .card-collapse-btn {
+  display: none !important;
 }
 
 /* Phase 13: Saved from tabs badge */
