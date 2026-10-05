@@ -69,17 +69,48 @@ export async function initHero(store) {
   }
 
   if (cornerJumpBtn) {
-    cornerJumpBtn.addEventListener('click', () => {
-      const hub = document.getElementById('collections-hub');
-      if (hub && typeof hub.scrollIntoView === 'function') {
-        const isReduced = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
-        hub.scrollIntoView({ behavior: isReduced ? 'auto' : 'smooth' });
+    const updateJumpBtnState = () => {
+      const isScrolled = typeof window !== 'undefined' && window.scrollY > 200;
+      cornerJumpBtn.setAttribute('data-direction', isScrolled ? 'top' : 'down');
+      cornerJumpBtn.setAttribute('title', isScrolled ? 'Back to top' : 'Jump to collections (g)');
+      cornerJumpBtn.setAttribute('aria-label', isScrolled ? 'Back to top' : 'Jump to collections');
+
+      const svg = cornerJumpBtn.querySelector('svg');
+      if (svg) {
+        if (isScrolled) {
+          svg.innerHTML = '<polyline points="18 15 12 9 6 15"></polyline>';
+        } else {
+          svg.innerHTML = '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>';
+        }
       }
-      try {
-        const gEvent = new KeyboardEvent('keydown', { key: 'g', bubbles: true });
-        window.dispatchEvent(gEvent);
-      } catch (err) {
-        // fallback
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('scroll', updateJumpBtnState, { passive: true });
+      updateJumpBtnState();
+    }
+
+    cornerJumpBtn.addEventListener('click', () => {
+      const isScrolled = typeof window !== 'undefined' && window.scrollY > 200;
+      const isReduced = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+      if (isScrolled) {
+        const hero = document.getElementById('hero-panel');
+        if (hero && typeof hero.scrollIntoView === 'function') {
+          hero.scrollIntoView({ behavior: isReduced ? 'auto' : 'smooth' });
+        } else if (typeof window !== 'undefined' && typeof window.scrollTo === 'function') {
+          window.scrollTo({ top: 0, behavior: isReduced ? 'auto' : 'smooth' });
+        }
+      } else {
+        const hub = document.getElementById('collections-hub');
+        if (hub && typeof hub.scrollIntoView === 'function') {
+          hub.scrollIntoView({ behavior: isReduced ? 'auto' : 'smooth' });
+        }
+        try {
+          const gEvent = new KeyboardEvent('keydown', { key: 'g', bubbles: true });
+          window.dispatchEvent(gEvent);
+        } catch (err) {
+          // fallback
+        }
       }
     });
   }
