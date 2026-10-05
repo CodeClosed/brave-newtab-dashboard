@@ -18,6 +18,7 @@ import { applyLayoutSettings } from './features/layout.js';
 import { applyDisplaySettings } from './features/display.js';
 import { startThemeScheduleTicker } from './features/schedule.js';
 import { resolveRotatedWallpaperId } from './features/wallpaper.js';
+import { initAutoHide } from './features/auto-hide.js';
 
 /**
  * Updates DOM root attributes and dynamic UI based on current settings.
@@ -49,6 +50,9 @@ function applySettings(settings) {
 
   // Background
   applyBackground(settings.background || { type: 'none', value: null, dim: 0.35 });
+
+  // 6.5 Auto-Hide Mode
+  initAutoHide(settings);
 }
 
 /**

@@ -1676,6 +1676,19 @@ function renderSearchSection(settings) {
   );
   section.appendChild(openInGroup);
 
+  // 6.5 Auto-Hide Mode
+  const isAutoHide = Boolean(settings.behavior?.autoHide);
+  const autoHideRow = renderToggleRow(
+    'Auto-hide Dashboard',
+    'Show only clock and search until mouse moves or a key is pressed',
+    isAutoHide,
+    (checked) => {
+      store.updateSettings({ behavior: { ...(settings.behavior || {}), autoHide: checked } });
+      renderDrawerContent();
+    }
+  );
+  section.appendChild(autoHideRow);
+
   section.appendChild(el('button', {
     className: 'btn-secondary section-reset-btn',
     type: 'button',

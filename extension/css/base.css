@@ -531,6 +531,31 @@ body.focus-mode #app {
   justify-content: center;
 }
 
+/* 6.5 Auto-Hide Mode */
+body.auto-hide-enabled .top-nav,
+body.auto-hide-enabled .dashboard-main,
+body.auto-hide-enabled #space-switcher {
+  transition: opacity var(--transition-normal, 200ms) ease, visibility var(--transition-normal, 200ms) ease;
+}
+
+body.auto-hide-enabled.auto-hide-idle:not(.focus-mode) .dashboard-main,
+body.auto-hide-enabled.auto-hide-idle:not(.focus-mode) #space-switcher {
+  opacity: 0;
+  pointer-events: none;
+}
+
+body.auto-hide-enabled.auto-hide-idle:not(.focus-mode) .top-nav {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Settings cog remains focusable and reveals itself on focus */
+body.auto-hide-enabled.auto-hide-idle:not(.focus-mode) .top-nav:focus-within,
+body.auto-hide-enabled.auto-hide-idle:not(.focus-mode) .nav-icon-btn:focus-visible {
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
 /* Reduced Motion Override */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
