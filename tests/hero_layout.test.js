@@ -111,7 +111,7 @@ test('10.3 & 10.4 DOM Elements: newtab.html includes corner anchors, hero zones,
   // Hero zones & quote
   assert.ok(html.includes('class="hero-zone hero-zone-left"'), 'Must contain hero-zone-left');
   assert.ok(html.includes('class="hero-zone hero-zone-right"'), 'Must contain hero-zone-right');
-  assert.ok(html.includes('id="quote-display"'), 'Must contain #quote-display');
+  assert.ok(!html.includes('id="quote-display"'), 'Must not contain #quote-display');
   assert.ok(html.includes('id="hero-tasks-slot"'), 'Must contain #hero-tasks-slot');
 });
 
@@ -125,5 +125,5 @@ test('10.1 & 10.3 CSS: base.css defines studio grid, centered flex, search pill,
   assert.ok(css.includes('.corner-bl'), 'Must position bottom-left corner');
   assert.ok(css.includes('.corner-br'), 'Must position bottom-right corner');
   assert.ok(css.includes('clock-hero'), 'Must define clock-hero styles');
-  assert.ok(css.includes('.quote-display'), 'Must style quote-display');
+  assert.ok(!css.includes('.quote-display'), 'Must not style quote-display');
 });

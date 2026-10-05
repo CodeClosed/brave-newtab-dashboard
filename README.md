@@ -9,7 +9,7 @@ A local-first, customizable New Tab extension for Chromium browsers that transfo
 ## Features
 
 ### 1. Two-Stage Glass Architecture (v0.3.0)
-- **Uncluttered Hero Stage:** Clean opening view featuring wallpaper, clock typography, personalized greeting, offline daily quote, pill search bar, and optional weather capsule.
+- **Uncluttered Hero Stage:** Clean opening view featuring wallpaper, clock typography, personalized greeting, pill search bar, and optional weather capsule.
 - **Frosted Glass Hub:** Scroll down or press `g` to reveal collections rendered as translucent frosted glass windows (`backdrop-filter: blur()`).
 - **Responsive Hub Columns:** Automatic responsive column layout (1 to 5 columns based on viewport) with collapse animations.
 - **Tabbed Stack View:** One-click toggle between traditional multi-column layout and a single tabbed glass window with category pills.
@@ -63,7 +63,6 @@ A local-first, customizable New Tab extension for Chromium browsers that transfo
 
 ### 9. Optional Widgets
 - **Weather Capsule:** Opt-in weather widget powered by Open-Meteo with 30-minute local caching, WMO weather code mapping, and offline fallback.
-- **Daily Quotes:** 120 curated public-domain daily quotes with on-demand refresh button.
 - **Notes Widget:** Plain-text scratchpad isolated per space with debounced automatic saving.
 - **To-do Widget:** Lightweight task checklist per space with add, check, delete, and clear-completed actions.
 

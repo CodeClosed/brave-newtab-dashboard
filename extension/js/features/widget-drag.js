@@ -129,12 +129,11 @@ export function clampPosition({
  * @param {Record<string, { x: number|null, y: number|null, w: number|null, hidden?: boolean }>} [widgetsConfig]
  */
 export function applyWidgetPositions(heroPanel, widgetsConfig) {
-  if (!heroPanel || !widgetsConfig) return;
+  if (!heroPanel || typeof heroPanel.querySelector !== 'function' || !widgetsConfig) return;
 
   const widgetSelectors = {
     clock: '.dashboard-header',
     search: '.search-container',
-    quote: '#quote-display',
     weather: '#hero-weather-slot',
     tasks: '#hero-tasks-slot'
   };
@@ -189,12 +188,11 @@ export function applyWidgetPositions(heroPanel, widgetsConfig) {
  * @param {any} store
  */
 export function initWidgetDrag(heroPanel, store) {
-  if (!heroPanel || !store || typeof document === 'undefined') return;
+  if (!heroPanel || typeof heroPanel.querySelector !== 'function' || !store || typeof document === 'undefined') return;
 
   const widgetSelectors = {
     clock: '.dashboard-header',
     search: '.search-container',
-    quote: '#quote-display',
     weather: '#hero-weather-slot',
     tasks: '#hero-tasks-slot'
   };

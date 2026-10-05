@@ -262,14 +262,12 @@ export function repairSettings(settings) {
       clock: validZoneSlots.includes(hz.clock) ? hz.clock : defaults.hero.zones.clock,
       weather: validZoneSlots.includes(hz.weather) ? hz.weather : defaults.hero.zones.weather,
       search: validZoneSlots.includes(hz.search) ? hz.search : defaults.hero.zones.search,
-      quote: validZoneSlots.includes(hz.quote) ? hz.quote : defaults.hero.zones.quote,
       tasks: validZoneSlots.includes(hz.tasks) ? hz.tasks : defaults.hero.zones.tasks
     },
     widgets: {
       clock: repairWidgetSlot(hw.clock, false),
       weather: repairWidgetSlot(hw.weather, false),
       search: repairWidgetSlot(hw.search, false),
-      quote: repairWidgetSlot(hw.quote, false),
       tasks: repairWidgetSlot(hw.tasks, true)
     }
   };
@@ -305,12 +303,7 @@ export function repairSettings(settings) {
     lon: (typeof wth.lon === 'number' && wth.lon >= -180 && wth.lon <= 180) ? wth.lon : null,
     unit: ['c', 'f'].includes(wth.unit) ? wth.unit : defaults.weather.unit
   };
-
-  // quote
-  const q = (s.quote && typeof s.quote === 'object') ? s.quote : {};
-  s.quote = {
-    enabled: typeof q.enabled === 'boolean' ? q.enabled : defaults.quote.enabled
-  };
+  delete s.quote;
 
   // tabs
   const tb = (s.tabs && typeof s.tabs === 'object') ? s.tabs : {};

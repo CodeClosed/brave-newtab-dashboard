@@ -42,12 +42,11 @@ export function createDefaultSettings() {
     landing: 'hero',
     hero: {
       layout: 'studio',
-      zones: { clock: 'left', weather: 'right', search: 'right', quote: 'left', tasks: 'off' },
+      zones: { clock: 'left', weather: 'right', search: 'right', tasks: 'off' },
       widgets: {
         clock:   { x: null, y: null, w: null, hidden: false },
         weather: { x: null, y: null, w: null, hidden: false },
         search:  { x: null, y: null, w: null, hidden: false },
-        quote:   { x: null, y: null, w: null, hidden: false },
         tasks:   { x: null, y: null, w: null, hidden: true }
       }
     },
@@ -66,9 +65,6 @@ export function createDefaultSettings() {
       lat: null,
       lon: null,
       unit: 'c'
-    },
-    quote: {
-      enabled: true
     },
     tabs: {
       closeAfterSave: false,

@@ -21,9 +21,9 @@ import { resolveRotatedWallpaperId } from './features/wallpaper.js';
 import { initAutoHide } from './features/auto-hide.js';
 import { applyAccessibilitySettings } from './features/accessibility.js';
 import { renderNotesWidget } from './features/notes.js';
+import { renderTodoWidget } from './features/todo.js';
 import { applyPageMode, applyLanding, initPageShell, scrollToHero } from './features/page-shell.js';
 import { applyHeroLayout, initHero } from './features/hero.js';
-import { renderDailyQuote } from './features/quote.js';
 import { renderDock, initDock } from './features/dock.js';
 import { filterHubCollections, renderTabbedHub, initHubToolbar } from './features/hub.js';
 import { saveCurrentTabs } from './features/tab-groups.js';
@@ -37,44 +37,43 @@ function applySettings(settings) {
   const root = document.documentElement;
 
   // 7.1 Accessibility settings (motion preference & large touch targets)
-  applyAccessibilitySettings(settings, root);
+  try { applyAccessibilitySettings(settings, root); } catch (e) { console.error('[NTD] Accessibility error:', e); }
 
   // 4.4 Theme, Palette & Accent
-  applyThemeAndAccent(settings, root);
+  try { applyThemeAndAccent(settings, root); } catch (e) { console.error('[NTD] Theme error:', e); }
 
   // 6.2 Typography
-  applyTypography(settings, root);
+  try { applyTypography(settings, root); } catch (e) { console.error('[NTD] Typography error:', e); }
 
   // Layout mode
-  root.setAttribute('data-layout', settings.layout || 'grid');
+  try { root.setAttribute('data-layout', settings?.layout || 'grid'); } catch (e) { console.error('[NTD] Layout error:', e); }
 
   // 4.1 Card Styles & Options
-  applyCardSettings(settings, root);
+  try { applyCardSettings(settings, root); } catch (e) { console.error('[NTD] Card settings error:', e); }
 
   // 4.2 Layout Controls (columns, width, gap, align, vertical center)
-  applyLayoutSettings(settings, root);
+  try { applyLayoutSettings(settings, root); } catch (e) { console.error('[NTD] Layout controls error:', e); }
 
   // 4.3 Display Modes & Appearance (tile shape, density, icon size, show domains)
-  applyDisplaySettings(settings, root);
+  try { applyDisplaySettings(settings, root); } catch (e) { console.error('[NTD] Display settings error:', e); }
 
   // Search Engine
-  applySearchEngine(settings.searchEngine || 'google');
+  try { applySearchEngine(settings?.searchEngine || 'google'); } catch (e) { console.error('[NTD] Search engine error:', e); }
 
   // Background
-  applyBackground(settings.background || { type: 'none', value: null, dim: 0.35 });
+  try { applyBackground(settings?.background || { type: 'none', value: null, dim: 0.35 }); } catch (e) { console.error('[NTD] Background error:', e); }
 
   // 6.5 Auto-Hide Mode
-  initAutoHide(settings);
+  try { initAutoHide(settings); } catch (e) { console.error('[NTD] Auto-hide error:', e); }
 
   // 9.1 Two-Stage / Classic Page Shell
-  applyPageMode(settings, document.body);
+  try { applyPageMode(settings, document.body); } catch (e) { console.error('[NTD] Page mode error:', e); }
 
-  // 10.1 Hero Layout & 10.2 Daily Quote
-  applyHeroLayout(settings.hero);
-  renderDailyQuote(settings.quote, document.getElementById('quote-display'));
+  // 10.1 Hero Layout
+  try { applyHeroLayout(settings?.hero); } catch (e) { console.error('[NTD] Hero layout error:', e); }
 
   // 14.1 Weather Capsule
-  loadAndRenderWeather(settings.weather);
+  try { loadAndRenderWeather(settings?.weather); } catch (e) { console.error('[NTD] Weather load error:', e); }
 }
 
 /**
@@ -154,9 +153,13 @@ async function initApp() {
     upgrades.cards = { ...(data.settings?.cards || {}), style: 'glass', translucent: true };
     data.settings.cards = upgrades.cards;
   }
-  if (!data.settings?.dock?.position || data.settings?.dock?.position === 'top') {
-    upgrades.dock = { ...(data.settings?.dock || {}), position: 'bottom' };
-    data.settings.dock = upgrades.dock;
+  if (!data.settings?.dockMigrated) {
+    if (!data.settings?.dock?.position || data.settings?.dock?.position === 'top') {
+      upgrades.dock = { ...(data.settings?.dock || {}), position: 'bottom' };
+      data.settings.dock = upgrades.dock;
+    }
+    upgrades.dockMigrated = true;
+    data.settings.dockMigrated = true;
   }
   if (!data.settings?.clock?.style || data.settings?.clock?.style === 'large') {
     upgrades.clock = { ...(data.settings?.clock || {}), style: 'hero' };
@@ -178,6 +181,27 @@ async function initApp() {
   }
   if (Object.keys(upgrades).length > 0) {
     store.updateSettings(upgrades);
+  }
+
+  // Glass v2: Auto-populate pinned items for dock if active space has none
+  try {
+    const activeSpace = data.spaces?.find(s => s.id === data.activeSpaceId) || data.spaces?.[0];
+    if (activeSpace && (!Array.isArray(activeSpace.pinned) || activeSpace.pinned.length === 0)) {
+      const initialPinned = [];
+      for (const cat of data.categories || []) {
+        for (const bm of cat.bookmarks || []) {
+          initialPinned.push(bm.id);
+          if (initialPinned.length >= 5) break;
+        }
+        if (initialPinned.length >= 5) break;
+      }
+      if (initialPinned.length > 0) {
+        activeSpace.pinned = initialPinned;
+        store.updateSpace(activeSpace.id, { pinned: initialPinned });
+      }
+    }
+  } catch (err) {
+    console.error('[NTD] Auto-pin error:', err);
   }
 
   // 9.3 Landing guarantee
@@ -260,118 +284,160 @@ async function initApp() {
     }
   }
 
-  // Initial render
-  applySettings(data.settings);
-  renderClockAndGreeting(data.settings);
-  renderSpaceSwitcher(spaceSwitcherContainer);
-  renderPinnedStrip(pinnedStripContainer);
-  if (appDockEl) {
-    initDock(appDockEl);
-    renderDock(appDockEl, data);
-  }
-  updateWidgetsVisibility(data.settings);
-  renderNotesWidget(notesWidgetContainer, data, (note) => store.updateSpaceNote(data.activeSpaceId, note, true));
-  renderTodoWidget(todoWidgetContainer, data);
-  renderHubCollections(data);
+  // Initial render with safe boundaries
+  try { applySettings(data.settings); } catch (e) { console.error('[NTD] applySettings error:', e); }
+  try { renderClockAndGreeting(data.settings); } catch (e) { console.error('[NTD] clock render error:', e); }
+  try { renderSpaceSwitcher(spaceSwitcherContainer); } catch (e) { console.error('[NTD] spaces render error:', e); }
+  try { renderPinnedStrip(pinnedStripContainer); } catch (e) { console.error('[NTD] pinned render error:', e); }
+  try {
+    if (appDockEl) {
+      initDock(appDockEl);
+      renderDock(appDockEl, data);
+    }
+  } catch (e) { console.error('[NTD] dock render error:', e); }
+  try { updateWidgetsVisibility(data.settings); } catch (e) { console.error('[NTD] widgets visibility error:', e); }
+  try { renderNotesWidget(notesWidgetContainer, data, (note) => store.updateSpaceNote(data.activeSpaceId, note, true)); } catch (e) { console.error('[NTD] notes error:', e); }
+  try { renderTodoWidget(todoWidgetContainer, data); } catch (e) { console.error('[NTD] todo error:', e); }
+  try { renderHubCollections(data); } catch (e) { console.error('[NTD] hub error:', e); }
 
   if (typeof window !== 'undefined' && /** @type {any} */ (window).__ntd_data_unreadable_warning) {
-    showToast("Your saved data couldn't be read. A backup copy was kept.");
+    try { showToast("Your saved data couldn't be read. A backup copy was kept."); } catch (_) {}
     delete /** @type {any} */ (window).__ntd_data_unreadable_warning;
   }
 
   // 3.6 First-run template picker on fresh install
-  if (shouldShowFirstRun(data)) {
-    openFirstRunDialog();
+  try {
+    if (shouldShowFirstRun(data)) {
+      openFirstRunDialog();
+    }
+  } catch (e) {
+    console.error('[NTD] First run error:', e);
   }
 
   // Bind Toolbar "New Collection" button
-  const addCategoryBtn = document.getElementById('add-category-toolbar-btn');
-  if (addCategoryBtn) {
-    addCategoryBtn.addEventListener('click', () => {
-      openCategoryDialog({
-        mode: 'add',
-        onSave: (catData) => {
-          store.addCategory(catData);
-          showToast(`Created collection "${catData.name}"`);
-        }
+  try {
+    const addCategoryBtn = document.getElementById('add-category-toolbar-btn');
+    if (addCategoryBtn) {
+      addCategoryBtn.addEventListener('click', () => {
+        openCategoryDialog({
+          mode: 'add',
+          onSave: (catData) => {
+            store.addCategory(catData);
+            showToast(`Created collection "${catData.name}"`);
+          }
+        });
       });
-    });
+    }
+  } catch (e) {
+    console.error('[NTD] Add category btn error:', e);
   }
 
   // Bind Toolbar Collapse All / Expand All buttons
-  const collapseAllBtn = document.getElementById('collapse-all-btn');
-  if (collapseAllBtn) {
-    collapseAllBtn.addEventListener('click', () => {
-      store.setAllCategoriesCollapsed(true);
-    });
-  }
-
-  const expandAllBtn = document.getElementById('expand-all-btn');
-  if (expandAllBtn) {
-    expandAllBtn.addEventListener('click', () => {
-      store.setAllCategoriesCollapsed(false);
-    });
+  try {
+    const collapseAllBtn = document.getElementById('collapse-all-btn');
+    if (collapseAllBtn) {
+      collapseAllBtn.addEventListener('click', () => {
+        store.setAllCategoriesCollapsed(true);
+      });
+    }
+    const expandAllBtn = document.getElementById('expand-all-btn');
+    if (expandAllBtn) {
+      expandAllBtn.addEventListener('click', () => {
+        store.setAllCategoriesCollapsed(false);
+      });
+    }
+  } catch (e) {
+    console.error('[NTD] Collapse/expand btns error:', e);
   }
 
   // 12.4 Initialize Hub Toolbar (filter, view toggle, top jump)
-  initHubToolbar({
-    store,
-    scrollToHero,
-    onFilterChange: (query) => {
-      currentHubFilter = query;
-      const s = store.getState ? store.getState() : store.get();
-      renderHubCollections(s);
-    },
-    onViewToggle: () => {
-      const s = store.getState ? store.getState() : store.get();
-      renderHubCollections(s);
-    }
-  });
-
-  const saveTabsBtn = document.getElementById('save-tabs-toolbar-btn');
-  if (saveTabsBtn) {
-    saveTabsBtn.addEventListener('click', () => {
-      saveCurrentTabs();
+  try {
+    initHubToolbar({
+      store,
+      scrollToHero,
+      onFilterChange: (query) => {
+        currentHubFilter = query;
+        const s = store.getState ? store.getState() : store.get();
+        renderHubCollections(s);
+      },
+      onViewToggle: () => {
+        const s = store.getState ? store.getState() : store.get();
+        renderHubCollections(s);
+      }
     });
+  } catch (e) {
+    console.error('[NTD] Hub toolbar error:', e);
+  }
+
+  try {
+    const saveTabsBtn = document.getElementById('save-tabs-toolbar-btn');
+    if (saveTabsBtn) {
+      saveTabsBtn.addEventListener('click', () => {
+        saveCurrentTabs();
+      });
+    }
+  } catch (e) {
+    console.error('[NTD] Save tabs btn error:', e);
   }
 
   // Bind Settings Cog Trigger
-  const settingsBtn = document.getElementById('settings-trigger-btn');
-  if (settingsBtn) {
-    settingsBtn.addEventListener('click', async () => {
-      const { openDrawer } = await import('./ui/drawer.js');
-      openDrawer('appearance');
-    });
+  try {
+    const settingsBtn = document.getElementById('settings-trigger-btn');
+    if (settingsBtn) {
+      settingsBtn.addEventListener('click', async () => {
+        try {
+          const { openDrawer } = await import('./ui/drawer.js');
+          openDrawer('appearance');
+        } catch (err) {
+          console.error('[NTD] Open drawer error:', err);
+        }
+      });
+    }
+  } catch (e) {
+    console.error('[NTD] Settings btn error:', e);
   }
 
   // Start Clock Ticker & Keyboard Shortcuts
-  startClockTicker();
-  startThemeScheduleTicker(store);
-  initSearchShortcuts();
-  initKeyboardNavigation();
-  initEditMode();
-  initDropAndPaste();
-  initBulkOperations();
+  try { startClockTicker(); } catch (e) { console.error('[NTD] startClockTicker error:', e); }
+  try { startThemeScheduleTicker(store); } catch (e) { console.error('[NTD] startThemeScheduleTicker error:', e); }
+  try { initSearchShortcuts(); } catch (e) { console.error('[NTD] initSearchShortcuts error:', e); }
+  try { initKeyboardNavigation(); } catch (e) { console.error('[NTD] initKeyboardNavigation error:', e); }
+  try { initEditMode(); } catch (e) { console.error('[NTD] initEditMode error:', e); }
+  try { initDropAndPaste(); } catch (e) { console.error('[NTD] initDropAndPaste error:', e); }
+  try { initBulkOperations(); } catch (e) { console.error('[NTD] initBulkOperations error:', e); }
 
   // React to store mutations
   store.subscribe((state) => {
-    applySettings(state.settings);
-    renderClockAndGreeting(state.settings);
-    renderSpaceSwitcher(spaceSwitcherContainer);
-    renderPinnedStrip(pinnedStripContainer);
-    if (appDockEl) {
-      renderDock(appDockEl, state);
-    }
-    updateWidgetsVisibility(state.settings);
-    renderNotesWidget(notesWidgetContainer, state, (note) => store.updateSpaceNote(state.activeSpaceId, note, true));
-    renderTodoWidget(todoWidgetContainer, state);
-    renderHubCollections(state);
+    try { applySettings(state.settings); } catch (e) { console.error('[NTD] Sub applySettings error:', e); }
+    try { renderClockAndGreeting(state.settings); } catch (e) { console.error('[NTD] Sub clock error:', e); }
+    try { renderSpaceSwitcher(spaceSwitcherContainer); } catch (e) { console.error('[NTD] Sub spaces error:', e); }
+    try { renderPinnedStrip(pinnedStripContainer); } catch (e) { console.error('[NTD] Sub pinned error:', e); }
+    try {
+      if (appDockEl) {
+        renderDock(appDockEl, state);
+      }
+    } catch (e) { console.error('[NTD] Sub dock error:', e); }
+    try { updateWidgetsVisibility(state.settings); } catch (e) { console.error('[NTD] Sub widgets error:', e); }
+    try { renderNotesWidget(notesWidgetContainer, state, (note) => store.updateSpaceNote(state.activeSpaceId, note, true)); } catch (e) { console.error('[NTD] Sub notes error:', e); }
+    try { renderTodoWidget(todoWidgetContainer, state); } catch (e) { console.error('[NTD] Sub todo error:', e); }
+    try { renderHubCollections(state); } catch (e) { console.error('[NTD] Sub hub error:', e); }
+  });
+}
+
+// Global error logger
+if (typeof window !== 'undefined') {
+  window.addEventListener('error', (event) => {
+    console.error('[NTD Global Error]', event.error || event.message);
   });
 }
 
 // Start app once DOM is ready
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initApp);
-} else {
-  initApp();
+if (typeof document !== 'undefined') {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initApp);
+  } else {
+    initApp();
+  }
 }
+
+export { initApp, applySettings };

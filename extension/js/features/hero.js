@@ -1,4 +1,3 @@
-import { renderDailyQuote, loadQuotes } from './quote.js';
 import { openShortcutsHelpDialog } from './keyboard.js';
 import { applyWidgetPositions, initWidgetDrag } from './widget-drag.js';
 
@@ -36,14 +35,13 @@ export function toggleHeroLayout(store) {
 }
 
 /**
- * Initializes Hero Panel interactions, corner buttons, and daily quote.
+ * Initializes Hero Panel interactions, corner buttons.
  * @param {any} store
  */
 export async function initHero(store) {
   if (typeof document === 'undefined') return;
 
   const heroPanel = document.getElementById('hero-panel');
-  const quoteContainer = document.getElementById('quote-display');
   const layoutToggleBtn = document.getElementById('hero-layout-toggle-btn');
   const wallpaperTunerBtn = document.getElementById('wallpaper-tuner-btn');
   const cornerJumpBtn = document.getElementById('corner-jump-btn');
@@ -74,11 +72,5 @@ export async function initHero(store) {
       const gEvent = new KeyboardEvent('keydown', { key: 'g', bubbles: true });
       window.dispatchEvent(gEvent);
     });
-  }
-
-  // 10.2 Daily Quote
-  if (quoteContainer) {
-    const quotes = await loadQuotes();
-    renderDailyQuote(settings.quote, quoteContainer, quotes);
   }
 }

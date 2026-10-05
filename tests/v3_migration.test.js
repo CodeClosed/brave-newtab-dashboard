@@ -27,7 +27,6 @@ test('8.1 Schema v3: CURRENT_SCHEMA_VERSION is 3 and defaults satisfy v3 specifi
     clock: 'left',
     weather: 'right',
     search: 'right',
-    quote: 'left',
     tasks: 'off'
   });
   assert.equal(doc.settings.dock.position, 'top');
@@ -37,7 +36,7 @@ test('8.1 Schema v3: CURRENT_SCHEMA_VERSION is 3 and defaults satisfy v3 specifi
   assert.equal(doc.settings.glass.opacity, 0.62);
   assert.equal(doc.settings.weather.enabled, false);
   assert.equal(doc.settings.weather.unit, 'c');
-  assert.equal(doc.settings.quote.enabled, true);
+  assert.equal(doc.settings.quote, undefined);
   assert.equal(doc.settings.tabs.closeAfterSave, false);
   assert.equal(doc.settings.tabs.openAsGroup, true);
   assert.equal(doc.settings.hub.view, 'columns');

@@ -12,7 +12,6 @@ import {
   fetchWeatherData,
   renderWeatherWidget
 } from '../extension/js/features/weather.js';
-import { pickRandomQuote, renderDailyQuote } from '../extension/js/features/quote.js';
 
 let origDocument;
 
@@ -300,29 +299,4 @@ test('14.1 renderWeatherWidget builds DOM elements and handles refresh', () => {
   // Clearing on null
   renderWeatherWidget(null, container);
   assert.equal(container.hidden, true);
-});
-
-test('14.3 Quotes: pickRandomQuote picks alternate quote and refresh button updates display', () => {
-  const quotesList = [
-    { quote: 'First quote', author: 'Author A' },
-    { quote: 'Second quote', author: 'Author B' },
-    { quote: 'Third quote', author: 'Author C' }
-  ];
-
-  const picked = pickRandomQuote(quotesList, 'First quote');
-  assert.ok(picked);
-  assert.notEqual(picked.quote, 'First quote');
-
-  const container = document.createElement('div');
-  renderDailyQuote({ enabled: true }, container, quotesList);
-
-  const refreshBtn = container.querySelector('.quote-refresh-btn');
-  assert.ok(refreshBtn, 'Quote refresh button must be rendered');
-
-  const textEl = container.querySelector('.quote-text');
-  assert.ok(textEl.textContent.length > 0);
-
-  // Trigger refresh
-  refreshBtn.dispatchEvent({ type: 'click' });
-  assert.ok(textEl.textContent.length > 0);
 });

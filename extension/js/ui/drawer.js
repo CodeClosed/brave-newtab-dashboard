@@ -165,7 +165,6 @@ export function resetSettingsSection(sectionId) {
     patch = {
       widgets: JSON.parse(JSON.stringify(defaults.widgets)),
       weather: JSON.parse(JSON.stringify(defaults.weather)),
-      quote: JSON.parse(JSON.stringify(defaults.quote))
     };
   }
 
@@ -1902,7 +1901,6 @@ function renderWidgetsSection(settings) {
   const section = el('div', { className: 'settings-section' });
   const widgets = settings.widgets || { notes: false, todo: false };
   const weather = settings.weather || { enabled: false, city: '', lat: null, lon: null, unit: 'c' };
-  const quote = settings.quote || { enabled: true };
 
   // 14.1 & 14.2 Weather Widget (Opt-in)
   const weatherToggleRow = renderToggleRow(
@@ -1962,20 +1960,6 @@ function renderWidgetsSection(settings) {
     );
     section.appendChild(unitGroup);
   }
-
-  // 14.3 Daily Quote
-  const quoteToggleRow = renderToggleRow(
-    'Daily Quote',
-    'Displays an offline thought-provoking quote rotating daily on the main panel',
-    Boolean(quote.enabled),
-    (checked) => {
-      store.updateSettings({
-        quote: { ...quote, enabled: checked }
-      });
-      renderDrawerContent();
-    }
-  );
-  section.appendChild(quoteToggleRow);
 
   // Notes Widget
   const notesToggleRow = renderToggleRow(
