@@ -12,7 +12,7 @@ import { createSnapshot, listSnapshots, restoreSnapshot, deleteSnapshot } from '
 import { openAddSpaceDialog, openRenameSpaceDialog, openDeleteSpaceDialog } from '../features/spaces.js';
 import { THEME_PRESETS, applyThemePreset } from '../features/presets.js';
 import { getSolarTimes } from '../features/schedule.js';
-import { renderWallpaperLibrary } from '../features/wallpaper.js';
+import { renderWallpaperLibrary, BUNDLED_WALLPAPERS } from '../features/wallpaper.js';
 import { isValidTimezone, getSupportedTimezones } from '../features/clock.js';
 
 let drawerElement = null;
@@ -49,9 +49,9 @@ const SOLID_PRESETS = [
 ];
 
 const GRADIENT_PRESETS = [
-  { name: 'Slate Calm', value: 'linear-gradient(135deg, #111827 0%, #1f2937 100%)' },
-  { name: 'Nordic Deep', value: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)' },
-  { name: 'Quiet Dusk', value: 'linear-gradient(135deg, #1c1917 0%, #292524 100%)' }
+  { name: 'Slate Calm', value: { from: '#111827', to: '#1f2937', angle: 135 } },
+  { name: 'Nordic Deep', value: { from: '#0f172a', to: '#1e293b', angle: 135 } },
+  { name: 'Quiet Dusk', value: { from: '#1c1917', to: '#292524', angle: 135 } }
 ];
 
 /**
@@ -740,11 +740,13 @@ function renderAppearanceSection(settings) {
         renderDrawerContent();
       }),
       renderRadioCard('Gradient', bgConfig.type === 'gradient', () => {
-        store.updateSettings({ background: { ...bgConfig, type: 'gradient', value: GRADIENT_PRESETS[0].value } });
+        const val = validateGradientConfig(bgConfig.value) || GRADIENT_PRESETS[0].value;
+        store.updateSettings({ background: { ...bgConfig, type: 'gradient', value: val } });
         renderDrawerContent();
       }),
       renderRadioCard('Image', bgConfig.type === 'image', () => {
-        store.updateSettings({ background: { ...bgConfig, type: 'image' } });
+        const activeId = bgConfig.activeId || (bgConfig.wallpapers?.[0]?.id) || 'bundled:misty-forest';
+        store.updateSettings({ background: { ...bgConfig, type: 'image', activeId } });
         renderDrawerContent();
       })
     )
@@ -935,6 +937,54 @@ function renderAppearanceSection(settings) {
     bgDetailGroup.appendChild(el('span', { className: 'setting-desc', text: 'Quick presets:' }));
     bgDetailGroup.appendChild(gradPills);
   } else if (bgConfig.type === 'image') {
+    const curActiveId = bgConfig.activeId || '';
+    const presetsSection = el('div', { style: { marginBottom: '14px' } }, [
+      el('span', { className: 'setting-desc', text: 'Curated Presets', style: { display: 'block', marginBottom: '6px', fontWeight: '500' } })
+    ]);
+    const presetsGrid = el('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' } });
+    BUNDLED_WALLPAPERS.forEach((wp) => {
+      const isWpActive = curActiveId === wp.id;
+      const card = el('button', {
+        type: 'button',
+        className: 'btn-secondary',
+        style: {
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          padding: '6px',
+          borderRadius: '8px',
+          border: isWpActive ? '2px solid var(--accent-base)' : '1px solid var(--border-subtle)',
+          background: isWpActive ? 'var(--accent-tint)' : 'var(--bg-surface-subtle)',
+          cursor: 'pointer',
+          textAlign: 'center'
+        },
+        onclick: () => {
+          store.updateSettings({
+            background: {
+              ...bgConfig,
+              type: 'image',
+              activeId: wp.id,
+              autoReadability: true
+            }
+          });
+          renderDrawerContent();
+        }
+      });
+      const assetUrl = (typeof chrome !== 'undefined' && chrome.runtime?.getURL)
+        ? chrome.runtime.getURL(`assets/wallpapers/${wp.file}`)
+        : `assets/wallpapers/${wp.file}`;
+      const img = el('img', {
+        src: assetUrl,
+        alt: wp.name,
+        style: { width: '100%', height: '48px', objectFit: 'cover', borderRadius: '4px', marginBottom: '4px' }
+      });
+      card.appendChild(img);
+      card.appendChild(el('span', { text: wp.name, style: { fontSize: '11px', color: 'var(--text-primary)' } }));
+      presetsGrid.appendChild(card);
+    });
+    presetsSection.appendChild(presetsGrid);
+    bgDetailGroup.appendChild(presetsSection);
+
     const libraryContainer = el('div', { className: 'wallpaper-library-container' });
     renderWallpaperLibrary(libraryContainer, store, {
       onRefresh: () => renderDrawerContent()

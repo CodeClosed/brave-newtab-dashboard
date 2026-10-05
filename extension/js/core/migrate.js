@@ -339,9 +339,20 @@ export function repairSettings(settings) {
         to: bgVal.to,
         angle: (typeof bgVal.angle === 'number' && bgVal.angle >= 0 && bgVal.angle <= 360) ? bgVal.angle : 135
       };
+    } else if (typeof bgVal === 'string' && !bgVal.toLowerCase().includes('url(')) {
+      const hexMatches = bgVal.match(/#[0-9a-fA-F]{3,6}/g);
+      const angleMatch = bgVal.match(/([0-9]+)deg/);
+      if (hexMatches && hexMatches.length >= 2) {
+        bgVal = {
+          from: hexMatches[0],
+          to: hexMatches[1],
+          angle: angleMatch ? parseInt(angleMatch[1], 10) : 135
+        };
+      } else {
+        bgVal = { from: '#0f172a', to: '#1e293b', angle: 135 };
+      }
     } else {
-      bgVal = null;
-      bgType = 'none';
+      bgVal = { from: '#0f172a', to: '#1e293b', angle: 135 };
     }
   } else if (bgType === 'image') {
     if (typeof bgVal === 'string' && bgVal.toLowerCase().includes('url(')) {

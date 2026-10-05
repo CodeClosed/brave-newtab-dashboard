@@ -205,6 +205,12 @@ export async function applyBackground(bgConfig, force = false) {
     if (!blob && !bundledUrl) {
       blob = await getBackgroundImage();
     }
+    if (!blob && !bundledUrl) {
+      const fallbackId = 'misty-forest';
+      bundledUrl = (typeof chrome !== 'undefined' && chrome.runtime?.getURL)
+        ? chrome.runtime.getURL(`assets/wallpapers/${fallbackId}.svg`)
+        : `assets/wallpapers/${fallbackId}.svg`;
+    }
 
     // Guard against out-of-order async results
     if (requestId !== currentRequestId) {
@@ -509,7 +515,19 @@ export function validateSolidColor(val) {
  * @returns {{ from: string, to: string, angle: number } | null}
  */
 export function validateGradientConfig(val) {
-  if (!val || typeof val !== 'object') return null;
+  if (!val) return null;
+  if (typeof val === 'string') {
+    const hexMatches = val.match(/#[0-9a-fA-F]{3,6}/g);
+    const angleMatch = val.match(/([0-9]+)deg/);
+    if (hexMatches && hexMatches.length >= 2) {
+      const from = validateSolidColor(hexMatches[0]);
+      const to = validateSolidColor(hexMatches[1]);
+      const angle = angleMatch ? parseInt(angleMatch[1], 10) : 135;
+      if (from && to) return { from, to, angle };
+    }
+    return null;
+  }
+  if (typeof val !== 'object') return null;
   const from = validateSolidColor(val.from);
   const to = validateSolidColor(val.to);
   if (!from || !to) return null;

@@ -29,7 +29,7 @@ body {
 #bg-overlay {
   position: fixed;
   inset: 0;
-  z-index: -1;
+  z-index: 0;
   pointer-events: none;
   background-size: cover;
   background-position: center;
@@ -74,6 +74,8 @@ input, select, textarea {
 
 /* App Shell Layout */
 #app {
+  position: relative;
+  z-index: 1;
   width: 100%;
   max-width: 1360px;
   margin: 0 auto;
