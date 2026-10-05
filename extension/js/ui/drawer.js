@@ -7,7 +7,7 @@ import { openCategoryDialog, openConfirmDialog, openImportPreviewDialog } from '
 import { createDefaultDashboardData, createDefaultSettings, validateDashboardData } from '../core/schema.js';
 import { migrate } from '../core/migrate.js';
 import { saveBackgroundImage, deleteBackgroundImage } from '../core/idb.js';
-import { downscaleImage, validateAccentContrast, suggestAccessibleShade } from '../features/theme.js';
+import { downscaleImage, validateAccentContrast, suggestAccessibleShade, validateSolidColor, validateGradientConfig, formatGradientCss } from '../features/theme.js';
 import { createSnapshot, listSnapshots, restoreSnapshot, deleteSnapshot } from '../core/snapshots.js';
 import { openAddSpaceDialog, openRenameSpaceDialog, openDeleteSpaceDialog } from '../features/spaces.js';
 import { THEME_PRESETS, applyThemePreset } from '../features/presets.js';
@@ -722,6 +722,40 @@ function renderAppearanceSection(settings) {
   const bgDetailGroup = el('div', { className: 'setting-item' });
 
   if (bgConfig.type === 'solid') {
+    const currentColor = typeof bgConfig.value === 'string' && validateSolidColor(bgConfig.value) ? bgConfig.value : '#1e293b';
+
+    const colorPickerInput = /** @type {HTMLInputElement} */ (el('input', {
+      type: 'color',
+      value: currentColor,
+      style: { width: '32px', height: '32px', padding: '0', border: 'none', borderRadius: '4px', cursor: 'pointer', background: 'transparent' }
+    }));
+
+    const hexInput = /** @type {HTMLInputElement} */ (el('input', {
+      type: 'text',
+      className: 'form-input',
+      value: currentColor,
+      placeholder: '#1e293b',
+      style: { width: '100px', height: '32px', fontSize: '12px' }
+    }));
+
+    const updateColor = (val) => {
+      const valid = validateSolidColor(val);
+      if (valid) {
+        colorPickerInput.value = valid;
+        hexInput.value = valid;
+        store.updateSettings({ background: { ...bgConfig, value: valid } });
+      }
+    };
+
+    colorPickerInput.addEventListener('input', () => updateColor(colorPickerInput.value));
+    hexInput.addEventListener('change', () => updateColor(hexInput.value));
+
+    const pickerRow = el('div', { style: { display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' } }, [
+      colorPickerInput,
+      hexInput,
+      el('span', { className: 'setting-desc', text: 'Custom solid hex' })
+    ]);
+
     const presetPills = el('div', { style: { display: 'flex', gap: '6px', flexWrap: 'wrap' } });
     for (const preset of SOLID_PRESETS) {
       const pBtn = el('button', {
@@ -729,15 +763,125 @@ function renderAppearanceSection(settings) {
         style: { fontSize: '11px', padding: '4px 8px' },
         type: 'button',
         text: preset.name,
-        onclick: () => {
-          store.updateSettings({ background: { ...bgConfig, value: preset.value } });
-        }
+        onclick: () => updateColor(preset.value)
       });
       presetPills.appendChild(pBtn);
     }
-    bgDetailGroup.appendChild(el('span', { className: 'setting-desc', text: 'Subtle solid preset:' }));
+
+    bgDetailGroup.appendChild(pickerRow);
+    bgDetailGroup.appendChild(el('span', { className: 'setting-desc', text: 'Quick presets:' }));
     bgDetailGroup.appendChild(presetPills);
   } else if (bgConfig.type === 'gradient') {
+    let gradConfig = { from: '#0f172a', to: '#1e293b', angle: 135 };
+    if (typeof bgConfig.value === 'object' && bgConfig.value !== null) {
+      const validated = validateGradientConfig(bgConfig.value);
+      if (validated) gradConfig = validated;
+    }
+
+    const previewBar = el('div', {
+      style: {
+        height: '24px',
+        borderRadius: 'var(--radius-xs)',
+        background: formatGradientCss(gradConfig),
+        marginBottom: '10px',
+        border: '1px solid var(--border-subtle)'
+      }
+    });
+
+    const updateGrad = (newConf) => {
+      const valid = validateGradientConfig(newConf);
+      if (valid) {
+        gradConfig = valid;
+        previewBar.style.background = formatGradientCss(valid);
+        store.updateSettings({ background: { ...bgConfig, value: valid } });
+      }
+    };
+
+    // Color stop 1
+    const fromColor = /** @type {HTMLInputElement} */ (el('input', {
+      type: 'color',
+      value: gradConfig.from,
+      style: { width: '28px', height: '28px', padding: '0', border: 'none', borderRadius: '4px', cursor: 'pointer', background: 'transparent' }
+    }));
+    const fromHex = /** @type {HTMLInputElement} */ (el('input', {
+      type: 'text',
+      className: 'form-input',
+      value: gradConfig.from,
+      style: { width: '80px', height: '28px', fontSize: '11px' }
+    }));
+    fromColor.addEventListener('input', () => {
+      fromHex.value = fromColor.value;
+      updateGrad({ ...gradConfig, from: fromColor.value });
+    });
+    fromHex.addEventListener('change', () => {
+      const v = validateSolidColor(fromHex.value);
+      if (v) {
+        fromColor.value = v;
+        updateGrad({ ...gradConfig, from: v });
+      }
+    });
+
+    // Color stop 2
+    const toColor = /** @type {HTMLInputElement} */ (el('input', {
+      type: 'color',
+      value: gradConfig.to,
+      style: { width: '28px', height: '28px', padding: '0', border: 'none', borderRadius: '4px', cursor: 'pointer', background: 'transparent' }
+    }));
+    const toHex = /** @type {HTMLInputElement} */ (el('input', {
+      type: 'text',
+      className: 'form-input',
+      value: gradConfig.to,
+      style: { width: '80px', height: '28px', fontSize: '11px' }
+    }));
+    toColor.addEventListener('input', () => {
+      toHex.value = toColor.value;
+      updateGrad({ ...gradConfig, to: toColor.value });
+    });
+    toHex.addEventListener('change', () => {
+      const v = validateSolidColor(toHex.value);
+      if (v) {
+        toColor.value = v;
+        updateGrad({ ...gradConfig, to: v });
+      }
+    });
+
+    // Angle slider
+    const angleSpan = el('span', { text: `${gradConfig.angle}°`, style: { fontSize: '12px' } });
+    const angleSlider = /** @type {HTMLInputElement} */ (el('input', {
+      type: 'range',
+      min: '0',
+      max: '360',
+      step: '5',
+      value: String(gradConfig.angle),
+      style: { width: '100%' }
+    }));
+    angleSlider.addEventListener('input', () => {
+      const a = parseInt(angleSlider.value, 10);
+      angleSpan.textContent = `${a}°`;
+      updateGrad({ ...gradConfig, angle: a });
+    });
+
+    const stopsRow = el('div', { style: { display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '8px' } }, [
+      el('div', { style: { display: 'flex', alignItems: 'center', gap: '4px' } }, [
+        el('span', { className: 'setting-desc', text: 'From:' }),
+        fromColor,
+        fromHex
+      ]),
+      el('div', { style: { display: 'flex', alignItems: 'center', gap: '4px' } }, [
+        el('span', { className: 'setting-desc', text: 'To:' }),
+        toColor,
+        toHex
+      ])
+    ]);
+
+    const angleRow = el('div', { style: { display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '10px' } }, [
+      el('div', { style: { display: 'flex', justifyContent: 'space-between' } }, [
+        el('span', { className: 'setting-desc', text: 'Angle' }),
+        angleSpan
+      ]),
+      angleSlider
+    ]);
+
     const gradPills = el('div', { style: { display: 'flex', gap: '6px', flexWrap: 'wrap' } });
     for (const preset of GRADIENT_PRESETS) {
       const gBtn = el('button', {
@@ -747,11 +891,16 @@ function renderAppearanceSection(settings) {
         text: preset.name,
         onclick: () => {
           store.updateSettings({ background: { ...bgConfig, value: preset.value } });
+          renderDrawerContent();
         }
       });
       gradPills.appendChild(gBtn);
     }
-    bgDetailGroup.appendChild(el('span', { className: 'setting-desc', text: 'Subdued gradient preset:' }));
+
+    bgDetailGroup.appendChild(previewBar);
+    bgDetailGroup.appendChild(stopsRow);
+    bgDetailGroup.appendChild(angleRow);
+    bgDetailGroup.appendChild(el('span', { className: 'setting-desc', text: 'Quick presets:' }));
     bgDetailGroup.appendChild(gradPills);
   } else if (bgConfig.type === 'image') {
     const libraryContainer = el('div', { className: 'wallpaper-library-container' });

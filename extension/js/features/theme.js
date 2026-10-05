@@ -147,16 +147,14 @@ export async function applyBackground(bgConfig, force = false) {
   }
 
   // Security: never write arbitrary url() to style
-  const rawVal = typeof bgConfig.value === 'string' ? bgConfig.value : '';
-  const containsUrl = rawVal.toLowerCase().includes('url(');
-
   if (bgConfig.type === 'solid') {
     if (activeImageUrl) {
       URL.revokeObjectURL(activeImageUrl);
       activeImageUrl = null;
     }
+    const safeColor = validateSolidColor(bgConfig.value) || '#1e293b';
     overlay.style.backgroundImage = 'none';
-    overlay.style.backgroundColor = (!containsUrl && rawVal) ? rawVal : '#1e293b';
+    overlay.style.backgroundColor = safeColor;
     overlay.style.opacity = String(1 - dim * 0.5);
     overlay.style.filter = 'none';
   } else if (bgConfig.type === 'gradient') {
@@ -164,8 +162,14 @@ export async function applyBackground(bgConfig, force = false) {
       URL.revokeObjectURL(activeImageUrl);
       activeImageUrl = null;
     }
+    let safeGrad = null;
+    if (typeof bgConfig.value === 'object' && bgConfig.value !== null) {
+      safeGrad = formatGradientCss(bgConfig.value);
+    } else if (typeof bgConfig.value === 'string' && !bgConfig.value.toLowerCase().includes('url(')) {
+      safeGrad = bgConfig.value;
+    }
     overlay.style.backgroundColor = 'transparent';
-    overlay.style.backgroundImage = (!containsUrl && rawVal) ? rawVal : 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)';
+    overlay.style.backgroundImage = safeGrad || 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)';
     overlay.style.opacity = String(1 - dim * 0.4);
     overlay.style.filter = 'none';
   } else if (bgConfig.type === 'image') {
@@ -449,3 +453,49 @@ export function applyThemeAndAccent(settings, rootElement) {
     }
   }
 }
+
+/**
+ * Validates a solid color hex string (#rgb or #rrggbb).
+ * Strictly rejects any value containing url( or invalid hex characters.
+ * @param {any} val
+ * @returns {string | null}
+ */
+export function validateSolidColor(val) {
+  if (typeof val !== 'string') return null;
+  const trimmed = val.trim();
+  if (trimmed.toLowerCase().includes('url(')) return null;
+  if (/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(trimmed)) {
+    return trimmed;
+  }
+  return null;
+}
+
+/**
+ * Validates and normalizes a gradient configuration { from, to, angle }.
+ * @param {any} val
+ * @returns {{ from: string, to: string, angle: number } | null}
+ */
+export function validateGradientConfig(val) {
+  if (!val || typeof val !== 'object') return null;
+  const from = validateSolidColor(val.from);
+  const to = validateSolidColor(val.to);
+  if (!from || !to) return null;
+
+  let angle = typeof val.angle === 'number' && !isNaN(val.angle) ? val.angle : 135;
+  // Normalize angle to [0, 360)
+  angle = ((angle % 360) + 360) % 360;
+
+  return { from, to, angle };
+}
+
+/**
+ * Formats a gradient configuration into a safe CSS linear-gradient string.
+ * @param {{ from: string, to: string, angle: number }} config
+ * @returns {string}
+ */
+export function formatGradientCss(config) {
+  const safe = validateGradientConfig(config);
+  if (!safe) return 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)';
+  return `linear-gradient(${safe.angle}deg, ${safe.from} 0%, ${safe.to} 100%)`;
+}
+
