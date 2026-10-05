@@ -22,15 +22,15 @@ let openingSnapshot = null;
 let searchQuery = '';
 
 const TABS = [
-  { id: 'appearance', label: 'Appearance' },
-  { id: 'layout', label: 'Layout' },
-  { id: 'accessibility', label: 'Accessibility' },
-  { id: 'spaces', label: 'Spaces' },
-  { id: 'clock', label: 'Clock' },
-  { id: 'search', label: 'Search' },
-  { id: 'widgets', label: 'Widgets' },
-  { id: 'categories', label: 'Categories' },
-  { id: 'data', label: 'Data' }
+  { id: 'appearance', label: 'Appearance', icon: '🎨' },
+  { id: 'layout', label: 'Layout', icon: '📐' },
+  { id: 'clock', label: 'Clock & Date', icon: '⏰' },
+  { id: 'search', label: 'Search', icon: '🔍' },
+  { id: 'widgets', label: 'Widgets', icon: '🧩' },
+  { id: 'spaces', label: 'Spaces', icon: '📁' },
+  { id: 'categories', label: 'Collections', icon: '🗂️' },
+  { id: 'accessibility', label: 'Accessibility', icon: '♿' },
+  { id: 'data', label: 'Backup & Data', icon: '💾' }
 ];
 
 const ACCENTS = [
@@ -321,13 +321,15 @@ function renderDrawerContent() {
     const tabBtn = el('button', {
       className: `drawer-tab-btn${activeTab === tab.id ? ' active' : ''}`,
       type: 'button',
-      text: tab.label,
       onclick: () => {
         activeTab = tab.id;
         searchQuery = '';
         renderDrawerContent();
       }
-    });
+    }, [
+      el('span', { className: 'drawer-tab-icon', text: tab.icon || '⚙️' }),
+      el('span', { className: 'drawer-tab-label', text: tab.label })
+    ]);
     nav.appendChild(tabBtn);
   }
 
@@ -393,10 +395,13 @@ function renderDrawerContent() {
     }
   }
 
+  const modalBody = el('div', { className: 'settings-modal-body' }, [
+    el('aside', { className: 'settings-sidebar' }, [searchWrapper, nav]),
+    content
+  ]);
+
   drawerElement.appendChild(header);
-  drawerElement.appendChild(searchWrapper);
-  drawerElement.appendChild(nav);
-  drawerElement.appendChild(content);
+  drawerElement.appendChild(modalBody);
 }
 
 // --- Section Renderers ---

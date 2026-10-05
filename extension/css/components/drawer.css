@@ -1,23 +1,27 @@
+/* Settings Popup Panel (Glass v2 Centered Modal) */
 dialog.settings-drawer {
   position: fixed;
-  inset: 0 0 0 auto;
-  margin: 0;
-  margin-left: auto;
+  inset: 0;
+  margin: auto;
   padding: 0;
-  width: 400px;
+  width: 760px;
   max-width: calc(100vw - 32px);
-  height: 100vh;
-  max-height: 100vh;
-  background: var(--bg-surface);
-  border: none;
-  border-left: 1px solid var(--border-default);
-  box-shadow: var(--shadow-lg);
+  height: 580px;
+  max-height: calc(100vh - 48px);
+  background: var(--glass-bg, rgba(20, 24, 30, 0.88));
+  backdrop-filter: var(--glass-blur, blur(24px));
+  -webkit-backdrop-filter: var(--glass-blur, blur(24px));
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.12));
+  border-radius: var(--radius-xl, 16px);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5), 0 4px 16px rgba(0, 0, 0, 0.3);
   color: var(--text-primary);
-  z-index: 501;
+  z-index: 1000;
   display: flex;
   flex-direction: column;
-  transform: translateX(100%);
-  transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1);
+  opacity: 0;
+  transform: scale(0.96);
+  transition: opacity 180ms ease, transform 180ms cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
 }
 
 dialog.settings-drawer:not([open]) {
@@ -26,19 +30,23 @@ dialog.settings-drawer:not([open]) {
 
 dialog.settings-drawer[open],
 dialog.settings-drawer.open {
-  transform: translateX(0);
+  opacity: 1;
+  transform: scale(1);
 }
 
 @starting-style {
   dialog.settings-drawer[open] {
-    transform: translateX(100%);
+    opacity: 0;
+    transform: scale(0.96);
   }
 }
 
 dialog.settings-drawer::backdrop {
-  background: rgba(0, 0, 0, 0.15);
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   opacity: 1;
-  transition: opacity 220ms ease;
+  transition: opacity 180ms ease;
 }
 
 @starting-style {
@@ -47,13 +55,15 @@ dialog.settings-drawer::backdrop {
   }
 }
 
-/* Drawer Header */
+/* Modal Header */
 .drawer-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-3) var(--space-4);
+  padding: var(--space-4) var(--space-5);
   border-bottom: 1px solid var(--border-subtle);
+  background: rgba(255, 255, 255, 0.02);
+  flex-shrink: 0;
 }
 
 .drawer-header-left {
@@ -68,31 +78,51 @@ dialog.settings-drawer::backdrop {
 }
 
 .drawer-title {
-  font-size: var(--text-md);
-  font-weight: var(--weight-semibold);
+  font-size: var(--text-base, 15px);
+  font-weight: var(--weight-semibold, 600);
   color: var(--text-primary);
+  margin: 0;
+}
+
+/* Two-column Modal Body */
+.settings-modal-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Left Sidebar */
+.settings-sidebar {
+  width: 210px;
+  flex-shrink: 0;
+  background: rgba(0, 0, 0, 0.08);
+  border-right: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
 }
 
 .drawer-search-wrapper {
-  padding: var(--space-2) var(--space-4);
+  padding: var(--space-3);
   border-bottom: 1px solid var(--border-subtle);
-  background: var(--bg-surface);
+  background: transparent;
 }
 
 .drawer-search-input {
   width: 100%;
-  padding: 6px 10px;
+  padding: 8px 12px;
   font-size: var(--text-xs);
   border: 1px solid var(--border-default);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md, 8px);
   background: var(--bg-surface-subtle);
   color: var(--text-primary);
   outline: none;
-  transition: border-color var(--transition-fast);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .drawer-search-input:focus {
-  border-color: var(--accent-primary);
+  border-color: var(--accent-base);
+  box-shadow: 0 0 0 2px var(--accent-tint, rgba(59, 130, 246, 0.2));
 }
 
 .section-reset-btn {
@@ -117,8 +147,8 @@ dialog.settings-drawer::backdrop {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 10px;
-  border-radius: var(--radius-xs);
+  padding: 8px 12px;
+  border-radius: var(--radius-md, 8px);
   background: var(--bg-surface-subtle);
   border: 1px solid var(--border-subtle);
 }
@@ -155,28 +185,31 @@ dialog.settings-drawer::backdrop {
   background: var(--bg-surface-hover);
 }
 
-/* Drawer Section Tabs Navigation */
+/* Drawer Section Tabs Navigation (Vertical in Sidebar) */
 .drawer-nav {
   display: flex;
-  gap: var(--space-1);
-  padding: var(--space-2) var(--space-4);
-  border-bottom: 1px solid var(--border-subtle);
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-
-.drawer-nav::-webkit-scrollbar {
-  display: none;
+  flex-direction: column;
+  gap: 3px;
+  padding: var(--space-2);
+  overflow-y: auto;
+  flex: 1;
 }
 
 .drawer-tab-btn {
-  padding: 5px 10px;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 8px 12px;
   font-size: var(--text-xs);
   font-weight: var(--weight-medium);
   color: var(--text-secondary);
-  border-radius: var(--radius-xs);
-  white-space: nowrap;
+  border-radius: var(--radius-md, 8px);
+  text-align: left;
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
   transition: all var(--transition-fast);
+  width: 100%;
 }
 
 .drawer-tab-btn:hover {
@@ -185,18 +218,31 @@ dialog.settings-drawer::backdrop {
 }
 
 .drawer-tab-btn.active {
-  color: var(--accent-text);
-  background: var(--accent-base);
+  color: #ffffff;
+  background: var(--accent-base, #3b82f6);
+  font-weight: var(--weight-semibold);
+  box-shadow: var(--shadow-sm);
+}
+
+.drawer-tab-icon {
+  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.drawer-tab-label {
+  flex: 1;
 }
 
 /* Drawer Scrollable Content */
 .drawer-content {
   flex: 1;
   overflow-y: auto;
-  padding: var(--space-5);
+  padding: var(--space-6);
   display: flex;
   flex-direction: column;
   gap: var(--space-5);
+  background: transparent;
 }
 
 .settings-section {
@@ -213,11 +259,15 @@ dialog.settings-drawer::backdrop {
   color: var(--text-muted);
 }
 
-/* Setting Row Item */
+/* Setting Card Item */
 .setting-item {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--space-3);
+  padding: 14px 16px;
+  background: var(--bg-surface-subtle);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md, 10px);
 }
 
 .setting-item-header {
@@ -294,10 +344,10 @@ dialog.settings-drawer::backdrop {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 8px var(--space-2);
+  padding: 10px var(--space-3);
   border: 1px solid var(--border-default);
-  border-radius: var(--radius-sm);
-  background: var(--bg-surface-subtle);
+  border-radius: var(--radius-md, 8px);
+  background: var(--bg-surface);
   cursor: pointer;
   font-size: var(--text-xs);
   font-weight: var(--weight-medium);
@@ -308,36 +358,41 @@ dialog.settings-drawer::backdrop {
 .radio-card:hover {
   border-color: var(--border-focus);
   color: var(--text-primary);
+  background: var(--bg-surface-hover);
 }
 
 .radio-card.active {
   border-color: var(--accent-base);
-  background: var(--accent-tint);
+  background: var(--accent-tint, rgba(59, 130, 246, 0.12));
   color: var(--text-primary);
   font-weight: var(--weight-semibold);
+  box-shadow: 0 0 0 1px var(--accent-base);
 }
 
 /* Accent Color Picker Circles */
 .accent-picker {
   display: flex;
-  gap: var(--space-2);
+  gap: var(--space-3);
+  align-items: center;
 }
 
 .accent-circle-btn {
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   border: 2px solid transparent;
   cursor: pointer;
-  transition: transform var(--transition-fast), border-color var(--transition-fast);
+  transition: transform var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .accent-circle-btn:hover {
-  transform: scale(1.1);
+  transform: scale(1.15);
 }
 
 .accent-circle-btn.selected {
-  border-color: var(--text-primary);
+  border-color: #ffffff;
+  box-shadow: 0 0 0 2px var(--accent-base);
+  transform: scale(1.1);
 }
 
 /* Category Management List inside Drawer */
