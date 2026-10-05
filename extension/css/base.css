@@ -1576,7 +1576,9 @@ body[data-page="two-stage"] .collections-hub:not([data-hub-view="tabs"]) .catego
 
 #collapse-all-btn,
 #expand-all-btn,
-#scroll-to-hero {
+#scroll-to-hero,
+#save-tabs-toolbar-btn,
+#hub-view-toggle-btn {
   display: none !important;
 }
 
