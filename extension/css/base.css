@@ -650,6 +650,11 @@ body[data-page="two-stage"] .collections-hub {
   contain-intrinsic-size: 1000px;
 }
 
+/* Two-Stage mode: Floating App Dock replaces in-page pinned strip */
+body[data-page="two-stage"] .pinned-strip {
+  display: none !important;
+}
+
 /* Scroll down prompt on Hero Panel */
 .scroll-prompt {
   position: absolute;
@@ -770,8 +775,7 @@ body[data-focus-mode="true"] .scroll-prompt {
 }
 
 .hero-panel[data-hero-layout="studio"] .search-container,
-.hero-panel[data-hero-layout="studio"] .hero-weather-slot,
- {
+.hero-panel[data-hero-layout="studio"] .hero-weather-slot {
   margin: 0;
   width: 100%;
   max-width: 440px;

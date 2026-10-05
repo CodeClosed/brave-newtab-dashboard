@@ -220,6 +220,19 @@ export function renderPinnedStrip(container) {
   if (!container) return;
   clearChildren(container);
 
+  const state = store.getState();
+  const isTwoStage = state?.settings?.page === 'two-stage' || 
+    (typeof document !== 'undefined' && document.body?.getAttribute('data-page') === 'two-stage');
+  const dockPosition = state?.settings?.dock?.position;
+  const isDockActive = dockPosition && dockPosition !== 'off';
+
+  // In Two-Stage mode or when floating dock is active, the dock already displays pinned items
+  if (isTwoStage || isDockActive) {
+    container.hidden = true;
+    container.style.display = 'none';
+    return;
+  }
+
   const pinnedItems = getPinnedBookmarks();
   if (pinnedItems.length === 0) {
     container.hidden = true;
@@ -232,8 +245,7 @@ export function renderPinnedStrip(container) {
 
   const list = el('div', { className: 'pinned-strip-list' });
 
-  const state = store.getState();
-  const openIn = state.settings?.behavior?.openIn || 'same';
+  const openIn = state?.settings?.behavior?.openIn || 'same';
 
   pinnedItems.forEach(({ bookmark }) => {
     const favicon = createFaviconElement(bookmark.url, bookmark.name);
