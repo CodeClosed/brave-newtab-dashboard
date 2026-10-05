@@ -12,6 +12,7 @@ import { openMoveCategoryToSpaceDialog } from '../features/spaces.js';
 import { openAddManyDialog, getSelectedBookmarkIds } from '../features/bulk-ops.js';
 import { renderBookmarkIcon } from '../features/custom-icons.js';
 import { resolveCategoryDisplayMode } from '../features/display.js';
+import { openCollectionAsGroup, saveCurrentTabs, formatSavedBadgeDate } from '../features/tab-groups.js';
 
 let activeMenu = null;
 let activeMenuTrigger = null;
@@ -376,7 +377,33 @@ function openCategoryMenu(triggerBtn, category, categoryIndex, totalCategories) 
       }
     });
     menu.appendChild(openAllItem);
+
+    // Open as native Tab Group
+    const openGroupItem = el('button', {
+      className: 'menu-item',
+      type: 'button',
+      role: 'menuitem',
+      text: '⚡ Open as tab group',
+      onclick: () => {
+        closeActiveMenu();
+        openCollectionAsGroup(category);
+      }
+    });
+    menu.appendChild(openGroupItem);
   }
+
+  // Save tabs here
+  const saveTabsHereItem = el('button', {
+    className: 'menu-item',
+    type: 'button',
+    role: 'menuitem',
+    text: '💾 Save tabs here',
+    onclick: () => {
+      closeActiveMenu();
+      saveCurrentTabs({ targetCategoryId: category.id });
+    }
+  });
+  menu.appendChild(saveTabsHereItem);
 
   // 4.3 Display mode per-collection override
   const displayModes = [
@@ -531,13 +558,25 @@ export function renderCategoryCard(category, categoryIndex, totalCategories) {
     });
   }
 
-  const titleGroup = el('div', { className: 'category-title-group' },
+  const titleChildren = [
     catDragHandle,
     el('span', { className: 'category-icon', text: category.icon || '📁' }),
-    catNameEl,
-    colorDot,
-    el('span', { className: 'category-count', text: `(${bookmarkCount})` })
-  );
+    catNameEl
+  ];
+  if (colorDot) titleChildren.push(colorDot);
+  titleChildren.push(el('span', { className: 'category-count', text: `(${bookmarkCount})` }));
+
+  if (category.source === 'tabs') {
+    const dateStr = formatSavedBadgeDate(category.savedAt);
+    const badgeText = dateStr ? `Saved from tabs · ${dateStr}` : 'Saved from tabs';
+    titleChildren.push(el('span', {
+      className: 'saved-from-tabs-badge',
+      title: category.savedAt ? `Saved from browser tabs on ${new Date(category.savedAt).toLocaleString()}` : 'Saved from browser tabs',
+      text: badgeText
+    }));
+  }
+
+  const titleGroup = el('div', { className: 'category-title-group' }, ...titleChildren);
 
   // Quick Add Bookmark Button
   const quickAddBtn = el('button', {

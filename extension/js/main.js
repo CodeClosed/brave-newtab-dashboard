@@ -26,6 +26,7 @@ import { applyHeroLayout, initHero } from './features/hero.js';
 import { renderDailyQuote } from './features/quote.js';
 import { renderDock, initDock } from './features/dock.js';
 import { filterHubCollections, renderTabbedHub, initHubToolbar } from './features/hub.js';
+import { saveCurrentTabs } from './features/tab-groups.js';
 
 /**
  * Updates DOM root attributes and dynamic UI based on current settings.
@@ -229,7 +230,7 @@ async function initApp() {
   const saveTabsBtn = document.getElementById('save-tabs-toolbar-btn');
   if (saveTabsBtn) {
     saveTabsBtn.addEventListener('click', () => {
-      showToast('Tab groups integration: ready in Phase 13');
+      saveCurrentTabs();
     });
   }
 

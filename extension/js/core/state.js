@@ -151,16 +151,19 @@ class StateStore {
    * @param {{ name: string, icon?: string, spaceId?: string }} params
    * @returns {import('./schema.js').Category}
    */
-  addCategory({ name, icon = '📁', spaceId }) {
+  addCategory({ name, icon = '📁', spaceId, color = null, source = null, savedAt = null, bookmarks = [] }) {
     const targetSpaceId = spaceId || this._data.activeSpaceId || this._data.spaces?.[0]?.id;
     const newCategory = {
       id: generateId(),
       spaceId: targetSpaceId,
-      name: name.trim() || 'New Collection',
+      name: (name && typeof name === 'string' && name.trim()) || 'New Collection',
       icon: icon || '📁',
+      color: color || null,
+      source: source || null,
+      savedAt: savedAt || null,
       order: this._data.categories.length,
       collapsed: false,
-      bookmarks: []
+      bookmarks: Array.isArray(bookmarks) ? bookmarks : []
     };
 
     this._data.categories.push(newCategory);
@@ -422,6 +425,19 @@ class StateStore {
 
     if (patch.name !== undefined) cat.name = patch.name.trim();
     if (patch.icon !== undefined) cat.icon = patch.icon;
+    if (patch.color !== undefined) cat.color = patch.color;
+    if (patch.displayMode !== undefined) cat.displayMode = patch.displayMode;
+    if (patch.bookmarks !== undefined) cat.bookmarks = patch.bookmarks;
+    if (patch.savedAt !== undefined) cat.savedAt = patch.savedAt;
+
+    if (patch.source !== undefined) {
+      cat.source = patch.source;
+    } else if (patch.name !== undefined || patch.icon !== undefined || patch.color !== undefined) {
+      // 13.4 Clear "Saved from tabs" badge when collection is edited
+      if (cat.source === 'tabs') {
+        cat.source = null;
+      }
+    }
 
     queueSaveDashboardData(this._data);
     this._notify();

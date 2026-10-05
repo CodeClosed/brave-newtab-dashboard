@@ -546,6 +546,28 @@ body[data-page="classic"] .category-card.collapsed .card-footer {
   line-height: 1;
 }
 
+/* Phase 13: Saved from tabs badge */
+.saved-from-tabs-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  padding: 1px 6px;
+  border-radius: var(--radius-pill);
+  background: rgba(26, 115, 232, 0.12);
+  color: var(--accent-primary, #1a73e8);
+  border: 1px solid rgba(26, 115, 232, 0.25);
+  white-space: nowrap;
+}
+
+:root.dark .saved-from-tabs-badge,
+:root[data-theme="dark"] .saved-from-tabs-badge {
+  background: rgba(138, 180, 248, 0.15);
+  color: #8ab4f8;
+  border-color: rgba(138, 180, 248, 0.3);
+}
+
 /* Dashboard Action Bar (e.g. + New Collection) */
 .dashboard-toolbar {
   display: flex;
