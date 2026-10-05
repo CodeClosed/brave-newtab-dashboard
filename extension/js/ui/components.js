@@ -6,7 +6,7 @@ import { store } from '../core/state.js';
 import { openCategoryDialog, openBookmarkDialog, openConfirmDialog } from './dialogs.js';
 import { showToast } from './toasts.js';
 import { attachCategoryDnD, attachBookmarkDnD, attachCategoryListDrop, announceReorder } from '../features/dnd.js';
-import { startInlineRename, handleInlineAddBookmark } from '../features/edit-mode.js';
+import { startInlineRename } from '../features/edit-mode.js';
 import { isBookmarkPinned, togglePinBookmark, openAllCollectionLinks } from '../features/pinned.js';
 import { openMoveCategoryToSpaceDialog } from '../features/spaces.js';
 import { openAddManyDialog, getSelectedBookmarkIds } from '../features/bulk-ops.js';
@@ -663,34 +663,6 @@ export function renderCategoryCard(category, categoryIndex, totalCategories) {
       list.appendChild(renderBookmarkItem(bm, category.id, bIdx, sorted.length));
     });
   }
-
-  // Trailing "paste URL" inline add row
-  const inlineAddInput = el('input', {
-    className: 'inline-add-input',
-    type: 'text',
-    placeholder: 'Paste URL and press Enter...',
-    'aria-label': `Add bookmark by URL to ${category.name}`
-  });
-  inlineAddInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      const rawVal = inlineAddInput.value ? inlineAddInput.value.trim() : '';
-      if (rawVal) {
-        const res = handleInlineAddBookmark(category.id, rawVal, store);
-        if (res.success) {
-          showToast(`Added "${res.name}"`);
-          inlineAddInput.value = '';
-        } else {
-          showToast(res.error || 'Invalid URL');
-        }
-      }
-    } else if (e.key === 'Escape') {
-      inlineAddInput.value = '';
-      inlineAddInput.blur();
-    }
-  });
-  const inlineAddRow = el('li', { className: 'inline-add-row' }, inlineAddInput);
-  list.appendChild(inlineAddRow);
 
   // Attach drop listener to empty space on category list
   attachCategoryListDrop(list, category.id);

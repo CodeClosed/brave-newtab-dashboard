@@ -500,6 +500,7 @@
 .bookmarks-list {
   max-height: 440px;
   overflow-y: auto;
+  overflow-x: hidden;
   overscroll-behavior: contain;
 }
 
