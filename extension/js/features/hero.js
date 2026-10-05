@@ -55,6 +55,7 @@ export async function initHero(store) {
   if (layoutToggleBtn && store) {
     layoutToggleBtn.addEventListener('click', () => {
       toggleHeroLayout(store);
+      applyHeroLayout(store.get()?.settings?.hero, heroPanel);
     });
   }
 
@@ -69,8 +70,17 @@ export async function initHero(store) {
 
   if (cornerJumpBtn) {
     cornerJumpBtn.addEventListener('click', () => {
-      const gEvent = new KeyboardEvent('keydown', { key: 'g', bubbles: true });
-      window.dispatchEvent(gEvent);
+      const hub = document.getElementById('collections-hub');
+      if (hub && typeof hub.scrollIntoView === 'function') {
+        const isReduced = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+        hub.scrollIntoView({ behavior: isReduced ? 'auto' : 'smooth' });
+      }
+      try {
+        const gEvent = new KeyboardEvent('keydown', { key: 'g', bubbles: true });
+        window.dispatchEvent(gEvent);
+      } catch (err) {
+        // fallback
+      }
     });
   }
 }

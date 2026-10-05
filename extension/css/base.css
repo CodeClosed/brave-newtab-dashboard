@@ -842,7 +842,7 @@ body[data-page="two-stage"] .search-results-list {
   z-index: 1000;
 }
 
-/* 10.4 Four Corner Anchors */
+/* 10.4 Four Corner Anchors & Unified Quick Actions Capsule */
 .corner {
   position: fixed;
   z-index: 100;
@@ -851,10 +851,47 @@ body[data-page="two-stage"] .search-results-list {
   gap: var(--space-2);
 }
 
+.corner:empty {
+  display: none;
+  pointer-events: none;
+}
+
 .corner-tl { top: var(--space-4); left: var(--space-4); }
 .corner-tr { top: var(--space-4); right: var(--space-4); }
 .corner-bl { bottom: var(--space-4); left: var(--space-4); }
 .corner-br { bottom: var(--space-4); right: var(--space-4); }
+
+.top-nav {
+  gap: 4px;
+  padding: 4px 6px;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-sm);
+}
+
+.top-nav .corner-btn {
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: 1px solid transparent;
+  box-shadow: none;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-full);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.top-nav .corner-btn:hover {
+  background: var(--bg-surface-hover);
+  border-color: var(--border-subtle);
+  color: var(--text-primary);
+  transform: scale(1.05);
+}
 
 .corner-btn {
   background: var(--glass-bg);
@@ -866,7 +903,7 @@ body[data-page="two-stage"] .search-results-list {
   width: 38px;
   height: 38px;
   color: var(--text-secondary);
-  transition: transform var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+  transition: transform var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast), background-color var(--transition-fast);
 }
 
 .corner-btn:hover {

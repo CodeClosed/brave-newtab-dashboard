@@ -256,10 +256,32 @@ export function toggleWallpaperTuner(anchorBtn, store) {
   document.body.appendChild(popover);
   activeTunerPopover = popover;
 
-  const rect = anchorBtn.getBoundingClientRect();
+  const rect = typeof anchorBtn.getBoundingClientRect === 'function'
+    ? anchorBtn.getBoundingClientRect()
+    : { left: 16, top: 16, right: 48, bottom: 48 };
+
+  const winWidth = typeof window !== 'undefined' && window.innerWidth ? window.innerWidth : 1440;
+  const winHeight = typeof window !== 'undefined' && window.innerHeight ? window.innerHeight : 900;
+
   popover.style.position = 'fixed';
-  popover.style.left = `${Math.max(16, rect.left)}px`;
-  popover.style.bottom = `${Math.max(16, (window.innerHeight - rect.top) + 8)}px`;
+
+  // Horizontal: align to right edge if anchor is in the right half of the screen
+  if (rect.right > winWidth / 2) {
+    popover.style.left = 'auto';
+    popover.style.right = `${Math.max(16, winWidth - rect.right)}px`;
+  } else {
+    popover.style.left = `${Math.max(16, rect.left)}px`;
+    popover.style.right = 'auto';
+  }
+
+  // Vertical: open downwards if anchor is in top half, upwards if in bottom half
+  if (rect.top < winHeight / 2) {
+    popover.style.top = `${rect.bottom + 8}px`;
+    popover.style.bottom = 'auto';
+  } else {
+    popover.style.top = 'auto';
+    popover.style.bottom = `${Math.max(16, (winHeight - rect.top) + 8)}px`;
+  }
 
   // Close on outside click
   const handleOutsideClick = (e) => {
