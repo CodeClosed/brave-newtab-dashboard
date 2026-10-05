@@ -655,8 +655,9 @@ body[data-page="two-stage"] .pinned-strip {
   display: none !important;
 }
 
-/* Scroll down prompt on Hero Panel */
+/* Scroll down prompt on Hero Panel (hidden to declutter hero since top capsule has jump action) */
 .scroll-prompt {
+  display: none !important;
   position: absolute;
   bottom: var(--space-8);
   display: inline-flex;
