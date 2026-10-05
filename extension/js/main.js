@@ -19,6 +19,7 @@ import { applyDisplaySettings } from './features/display.js';
 import { startThemeScheduleTicker } from './features/schedule.js';
 import { resolveRotatedWallpaperId } from './features/wallpaper.js';
 import { initAutoHide } from './features/auto-hide.js';
+import { applyAccessibilitySettings } from './features/accessibility.js';
 
 /**
  * Updates DOM root attributes and dynamic UI based on current settings.
@@ -26,6 +27,9 @@ import { initAutoHide } from './features/auto-hide.js';
  */
 function applySettings(settings) {
   const root = document.documentElement;
+
+  // 7.1 Accessibility settings (motion preference & large touch targets)
+  applyAccessibilitySettings(settings, root);
 
   // 4.4 Theme, Palette & Accent
   applyThemeAndAccent(settings, root);

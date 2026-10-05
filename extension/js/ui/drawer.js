@@ -24,6 +24,7 @@ let searchQuery = '';
 const TABS = [
   { id: 'appearance', label: 'Appearance' },
   { id: 'layout', label: 'Layout' },
+  { id: 'accessibility', label: 'Accessibility' },
   { id: 'spaces', label: 'Spaces' },
   { id: 'clock', label: 'Clock' },
   { id: 'search', label: 'Search' },
@@ -74,6 +75,7 @@ const SETTINGS_CATALOG = [
   { id: 'background', section: 'appearance', label: 'Background & Wallpaper', keywords: 'wallpaper background solid gradient image' },
   { id: 'layout', section: 'layout', label: 'Card Layout', keywords: 'grid compact layout card style' },
   { id: 'cards', section: 'layout', label: 'Card Columns & Width', keywords: 'columns gap width translucent cards filled' },
+  { id: 'accessibility', section: 'accessibility', label: 'Accessibility & Reduced Motion', keywords: 'accessibility motion reduce animation transitions large targets touch contrast wcag aaa' },
   { id: 'clock', section: 'clock', label: 'Clock & Date Display', keywords: 'time clock greeting date format 12h 24h 24-hour seconds timezone' },
   { id: 'searchEngine', section: 'search', label: 'Search Engine', keywords: 'search engine google brave duckduckgo bing' },
   { id: 'searchShortcuts', section: 'search', label: 'Search Filter & Shortcuts', keywords: 'shortcuts filter bookmarks calculator math' },
@@ -140,6 +142,13 @@ export function resetSettingsSection(sectionId) {
       userName: defaults.userName,
       countdown: JSON.parse(JSON.stringify(defaults.countdown)),
       clock: JSON.parse(JSON.stringify(defaults.clock))
+    };
+  } else if (sectionId === 'accessibility') {
+    label = 'Accessibility';
+    patch = {
+      motion: defaults.motion,
+      largeTargets: defaults.largeTargets,
+      palette: defaults.palette
     };
   } else if (sectionId === 'search') {
     label = 'Search';
@@ -357,6 +366,8 @@ function renderDrawerContent() {
       content.appendChild(renderAppearanceSection(settings));
     } else if (activeTab === 'layout') {
       content.appendChild(renderLayoutSection(settings));
+    } else if (activeTab === 'accessibility') {
+      content.appendChild(renderAccessibilitySection(settings));
     } else if (activeTab === 'spaces') {
       content.appendChild(renderSpacesSection(state));
     } else if (activeTab === 'clock') {
@@ -1629,6 +1640,73 @@ function renderClockSection(settings) {
     type: 'button',
     text: 'Reset Clock to Defaults',
     onclick: () => resetSettingsSection('clock')
+  }));
+
+  return section;
+}
+
+function renderAccessibilitySection(settings) {
+  const section = el('div', { className: 'settings-section' });
+
+  // Motion Preference (System vs Reduce)
+  const currentMotion = settings.motion === 'reduce' ? 'reduce' : 'system';
+  const motionGroup = el('div', { className: 'setting-item' },
+    el('div', { className: 'setting-item-header' },
+      el('span', { className: 'setting-label', text: 'Motion & Animations' })
+    ),
+    el('div', { className: 'radio-group-cards', style: { gridTemplateColumns: 'repeat(2, 1fr)' } },
+      renderRadioCard('System Default', currentMotion === 'system', () => {
+        store.updateSettings({ motion: 'system' });
+        renderDrawerContent();
+      }),
+      renderRadioCard('Reduce Motion', currentMotion === 'reduce', () => {
+        store.updateSettings({ motion: 'reduce' });
+        renderDrawerContent();
+      })
+    ),
+    el('div', { className: 'setting-hint', text: 'Reduce motion minimizes transitions and animations across the dashboard.' })
+  );
+  section.appendChild(motionGroup);
+
+  // Large Touch Targets (min 44x44px)
+  const isLargeTargets = Boolean(settings.largeTargets === true);
+  const largeTargetsRow = renderToggleRow(
+    'Large Touch Targets',
+    'Expands interactive buttons and bookmarks to a minimum of 44×44px for easier clicking/tapping',
+    isLargeTargets,
+    (checked) => {
+      store.updateSettings({ largeTargets: checked });
+      renderDrawerContent();
+    }
+  );
+  section.appendChild(largeTargetsRow);
+
+  // High Contrast Palette (Standard vs WCAG AAA Contrast)
+  const isHighContrast = settings.palette === 'contrast';
+  const contrastGroup = el('div', { className: 'setting-item' },
+    el('div', { className: 'setting-item-header' },
+      el('span', { className: 'setting-label', text: 'Contrast Mode' })
+    ),
+    el('div', { className: 'radio-group-cards', style: { gridTemplateColumns: 'repeat(2, 1fr)' } },
+      renderRadioCard('Standard Palette', !isHighContrast, () => {
+        store.updateSettings({ palette: 'default' });
+        renderDrawerContent();
+      }),
+      renderRadioCard('WCAG AAA Contrast', isHighContrast, () => {
+        store.updateSettings({ palette: 'contrast' });
+        renderDrawerContent();
+      })
+    ),
+    el('div', { className: 'setting-hint', text: 'Uses pure black and white surfaces with high contrast borders.' })
+  );
+  section.appendChild(contrastGroup);
+
+  // Reset Accessibility
+  section.appendChild(el('button', {
+    className: 'btn-secondary section-reset-btn',
+    type: 'button',
+    text: 'Reset Accessibility to Defaults',
+    onclick: () => resetSettingsSection('accessibility')
   }));
 
   return section;

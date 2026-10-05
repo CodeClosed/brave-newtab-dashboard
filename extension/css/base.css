@@ -556,7 +556,7 @@ body.auto-hide-enabled.auto-hide-idle:not(.focus-mode) .nav-icon-btn:focus-visib
   pointer-events: auto !important;
 }
 
-/* Reduced Motion Override */
+/* Reduced Motion Override (OS or Settings) */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
@@ -565,3 +565,37 @@ body.auto-hide-enabled.auto-hide-idle:not(.focus-mode) .nav-icon-btn:focus-visib
     scroll-behavior: auto !important;
   }
 }
+
+:root[data-motion="reduce"] *,
+:root[data-motion="reduce"] *::before,
+:root[data-motion="reduce"] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* 7.1 Large Targets (44px minimum touch/click targets for improved motor accessibility) */
+:root[data-large-targets="true"] .nav-icon-btn,
+:root[data-large-targets="true"] .btn-quiet,
+:root[data-large-targets="true"] .btn-secondary,
+:root[data-large-targets="true"] .btn-primary,
+:root[data-large-targets="true"] .space-switcher-btn,
+:root[data-large-targets="true"] .category-menu-trigger,
+:root[data-large-targets="true"] .category-collapse-btn {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 8px 14px;
+}
+
+:root[data-large-targets="true"] .bookmark-item {
+  min-height: 44px;
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+:root[data-large-targets="true"] .search-input {
+  min-height: 48px;
+  font-size: 16px;
+}
+
