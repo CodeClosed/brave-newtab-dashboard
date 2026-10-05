@@ -801,6 +801,7 @@ body[data-focus-mode="true"] .scroll-prompt {
 }
 
 .quote-display {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -808,6 +809,31 @@ body[data-focus-mode="true"] .scroll-prompt {
   color: var(--text-secondary);
   font-size: var(--text-sm);
   line-height: 1.45;
+}
+
+.quote-refresh-btn {
+  position: absolute;
+  top: 0;
+  right: -28px;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  font-size: 13px;
+  border-radius: var(--radius-sm);
+  opacity: 0;
+  transition: opacity var(--transition-fast), color var(--transition-fast);
+}
+
+.quote-display:hover .quote-refresh-btn,
+.quote-refresh-btn:focus-visible {
+  opacity: 0.75;
+}
+
+.quote-refresh-btn:hover {
+  opacity: 1;
+  color: var(--text-primary);
 }
 
 .quote-text {
@@ -909,6 +935,122 @@ body.auto-hide-enabled.auto-hide-idle:not(.focus-mode) .corner:focus-within {
 .hero-tasks-slot {
   width: 100%;
   max-width: 480px;
+}
+
+/* 14.1 Weather Capsule Widget (Glass v2) */
+.hero-weather-slot {
+  width: 100%;
+  max-width: 380px;
+}
+
+.weather-capsule {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 16px;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl, 16px);
+  box-shadow: var(--glass-shadow);
+  color: var(--text-primary);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.weather-capsule:hover {
+  border-color: var(--glass-highlight);
+}
+
+.weather-capsule-col-left {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.weather-condition-title {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium, 500);
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.weather-humidity-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.weather-humidity-track {
+  width: 50px;
+  height: 4px;
+  background: rgba(125, 125, 125, 0.2);
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+}
+
+.weather-humidity-fill {
+  height: 100%;
+  background: var(--accent-primary, #1a73e8);
+  border-radius: var(--radius-pill);
+}
+
+.weather-humidity-text {
+  font-size: 11px;
+}
+
+.weather-meta-row {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.weather-offline-badge {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.weather-capsule-col-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.weather-condition-icon {
+  font-size: 24px;
+  line-height: 1;
+}
+
+.weather-temperature {
+  font-size: var(--text-xl, 20px);
+  font-weight: var(--weight-bold, 700);
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.weather-refresh-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 3px 5px;
+  font-size: 13px;
+  border-radius: var(--radius-sm);
+  opacity: 0.6;
+  transition: opacity var(--transition-fast), color var(--transition-fast);
+}
+
+.weather-refresh-btn:hover {
+  opacity: 1;
+  color: var(--text-primary);
 }
 
 /* ==========================================================================

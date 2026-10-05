@@ -84,4 +84,5 @@ test('S1: manifest.json defines explicit extension_pages CSP', () => {
   assert.ok(csp.includes("default-src 'self'"), 'CSP must restrict default-src to self');
   assert.ok(csp.includes("frame-src 'none'"), 'CSP must restrict frame-src to none');
   assert.ok(csp.includes("object-src 'self'"), 'CSP must restrict object-src');
+  assert.ok(csp.includes("connect-src 'self' https://api.open-meteo.com"), 'CSP must allow Open-Meteo connect-src');
 });

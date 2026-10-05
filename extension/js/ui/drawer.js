@@ -163,7 +163,9 @@ export function resetSettingsSection(sectionId) {
   } else if (sectionId === 'widgets') {
     label = 'Widgets';
     patch = {
-      widgets: JSON.parse(JSON.stringify(defaults.widgets))
+      widgets: JSON.parse(JSON.stringify(defaults.widgets)),
+      weather: JSON.parse(JSON.stringify(defaults.weather)),
+      quote: JSON.parse(JSON.stringify(defaults.quote))
     };
   }
 
@@ -1879,6 +1881,81 @@ function renderSearchSection(settings) {
 function renderWidgetsSection(settings) {
   const section = el('div', { className: 'settings-section' });
   const widgets = settings.widgets || { notes: false, todo: false };
+  const weather = settings.weather || { enabled: false, city: '', lat: null, lon: null, unit: 'c' };
+  const quote = settings.quote || { enabled: true };
+
+  // 14.1 & 14.2 Weather Widget (Opt-in)
+  const weatherToggleRow = renderToggleRow(
+    'Weather Capsule',
+    'Fetches live local weather from Open-Meteo with 30-minute offline caching. Zero tracking, zero API key.',
+    Boolean(weather.enabled),
+    (checked) => {
+      store.updateSettings({
+        weather: { ...weather, enabled: checked }
+      });
+      renderDrawerContent();
+    }
+  );
+  section.appendChild(weatherToggleRow);
+
+  if (weather.enabled) {
+    // City name input
+    const cityInput = /** @type {HTMLInputElement} */ (el('input', {
+      type: 'text',
+      className: 'form-input',
+      placeholder: 'e.g. London or Tokyo (optional)',
+      value: weather.city || ''
+    }));
+    cityInput.addEventListener('change', () => {
+      const val = cityInput.value.trim();
+      store.updateSettings({
+        weather: { ...weather, city: val, lat: null, lon: null }
+      });
+    });
+
+    const cityGroup = el('div', { className: 'setting-item', style: { marginBottom: '8px' } },
+      el('div', { className: 'setting-item-header' },
+        el('span', { className: 'setting-label', text: 'Location / City Name' }),
+        el('span', { className: 'setting-desc', text: 'Geocoded via Open-Meteo or leave blank' })
+      ),
+      cityInput
+    );
+    section.appendChild(cityGroup);
+
+    // Unit select
+    const unitSelect = /** @type {HTMLSelectElement} */ (el('select', { className: 'form-select' },
+      el('option', { value: 'c', text: 'Celsius (°C)' }),
+      el('option', { value: 'f', text: 'Fahrenheit (°F)' })
+    ));
+    unitSelect.value = weather.unit === 'f' ? 'f' : 'c';
+    unitSelect.addEventListener('change', () => {
+      store.updateSettings({
+        weather: { ...weather, unit: unitSelect.value }
+      });
+    });
+
+    const unitGroup = el('div', { className: 'setting-item', style: { marginBottom: '12px' } },
+      el('div', { className: 'setting-item-header' },
+        el('span', { className: 'setting-label', text: 'Temperature Unit' })
+      ),
+      unitSelect
+    );
+    section.appendChild(unitGroup);
+  }
+
+  // 14.3 Daily Quote
+  const quoteToggleRow = renderToggleRow(
+    'Daily Quote',
+    'Displays an offline thought-provoking quote rotating daily on the main panel',
+    Boolean(quote.enabled),
+    (checked) => {
+      store.updateSettings({
+        quote: { ...quote, enabled: checked }
+      });
+      renderDrawerContent();
+    }
+  );
+  section.appendChild(quoteToggleRow);
 
   // Notes Widget
   const notesToggleRow = renderToggleRow(

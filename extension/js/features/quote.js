@@ -27,6 +27,21 @@ export function getQuoteForDay(quotes, date = new Date()) {
   return quotes[index] || null;
 }
 
+/**
+ * Picks a random quote from the list, avoiding immediate duplicate if possible.
+ * @param {Array<{ quote: string, author: string }>} quotes
+ * @param {string} [currentQuote='']
+ * @returns {{ quote: string, author: string } | null}
+ */
+export function pickRandomQuote(quotes, currentQuote = '') {
+  if (!Array.isArray(quotes) || quotes.length === 0) return null;
+  if (quotes.length === 1) return quotes[0];
+  const candidates = quotes.filter(q => q.quote !== currentQuote);
+  const pool = candidates.length > 0 ? candidates : quotes;
+  const idx = Math.floor(Math.random() * pool.length);
+  return pool[idx] || null;
+}
+
 let cachedQuotes = null;
 
 /**
@@ -98,4 +113,29 @@ export function renderDailyQuote(quoteConf, containerEl, quotesList = null) {
 
   textEl.textContent = `“${item.quote}”`;
   authorEl.textContent = `— ${item.author}`;
+
+  let refreshBtn = containerEl.querySelector ? containerEl.querySelector('.quote-refresh-btn') : null;
+  if (!refreshBtn && typeof document !== 'undefined' && typeof document.createElement === 'function') {
+    refreshBtn = document.createElement('button');
+    refreshBtn.type = 'button';
+    refreshBtn.className = 'quote-refresh-btn';
+    if (typeof refreshBtn.setAttribute === 'function') {
+      refreshBtn.setAttribute('aria-label', 'Show another quote');
+    }
+    refreshBtn.title = 'Show another quote';
+    refreshBtn.textContent = '↺';
+    if (typeof refreshBtn.addEventListener === 'function') {
+      refreshBtn.addEventListener('click', () => {
+        const currentText = textEl?.textContent ? textEl.textContent.replace(/^[“"]|[”"]$/g, '') : '';
+        const nextQuote = pickRandomQuote(list, currentText);
+        if (nextQuote && textEl && authorEl) {
+          textEl.textContent = `“${nextQuote.quote}”`;
+          authorEl.textContent = `— ${nextQuote.author}`;
+        }
+      });
+    }
+    if (typeof containerEl.appendChild === 'function') {
+      containerEl.appendChild(refreshBtn);
+    }
+  }
 }

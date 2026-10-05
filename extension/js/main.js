@@ -27,6 +27,7 @@ import { renderDailyQuote } from './features/quote.js';
 import { renderDock, initDock } from './features/dock.js';
 import { filterHubCollections, renderTabbedHub, initHubToolbar } from './features/hub.js';
 import { saveCurrentTabs } from './features/tab-groups.js';
+import { fetchWeatherData, renderWeatherWidget } from './features/weather.js';
 
 /**
  * Updates DOM root attributes and dynamic UI based on current settings.
@@ -71,6 +72,30 @@ function applySettings(settings) {
   // 10.1 Hero Layout & 10.2 Daily Quote
   applyHeroLayout(settings.hero);
   renderDailyQuote(settings.quote, document.getElementById('quote-display'));
+
+  // 14.1 Weather Capsule
+  loadAndRenderWeather(settings.weather);
+}
+
+/**
+ * Loads weather data respecting opt-in and renders into hero slot.
+ * @param {import('./core/schema.js').DashboardData['settings']['weather']} weatherSettings
+ * @param {boolean} [bypassCache=false]
+ */
+async function loadAndRenderWeather(weatherSettings, bypassCache = false) {
+  const weatherSlot = document.getElementById('hero-weather-slot');
+  if (!weatherSlot) return;
+
+  if (!weatherSettings?.enabled) {
+    weatherSlot.hidden = true;
+    weatherSlot.innerHTML = '';
+    return;
+  }
+
+  const data = await fetchWeatherData(weatherSettings, { bypassCache });
+  renderWeatherWidget(data, weatherSlot, () => {
+    loadAndRenderWeather(weatherSettings, true);
+  });
 }
 
 /**

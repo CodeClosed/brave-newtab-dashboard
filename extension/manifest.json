@@ -8,7 +8,7 @@
     "newtab": "newtab.html"
   },
   "content_security_policy": {
-    "extension_pages": "default-src 'self'; script-src 'self'; object-src 'self'; img-src 'self' blob: data:; connect-src 'self'; frame-src 'none'; style-src 'self' 'unsafe-inline';"
+    "extension_pages": "default-src 'self'; script-src 'self'; object-src 'self'; img-src 'self' blob: data:; connect-src 'self' https://api.open-meteo.com https://geocoding-api.open-meteo.com; frame-src 'none'; style-src 'self' 'unsafe-inline';"
   },
   "permissions": [
     "storage",
