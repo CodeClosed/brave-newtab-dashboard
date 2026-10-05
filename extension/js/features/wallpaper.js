@@ -674,4 +674,45 @@ export function setDayNightWallpaper(type, wallpaperId, storeInstance) {
   });
 }
 
+/**
+ * Resolves the next wallpaper ID when rotation is enabled (tab, hourly, daily).
+ * Computed at load only without background timers.
+ *
+ * @param {any} bgConfig
+ * @param {string | null} [lastActiveId]
+ * @param {number} [currentTime=Date.now()]
+ * @returns {string | null}
+ */
+export function resolveRotatedWallpaperId(bgConfig, lastActiveId = null, currentTime = Date.now()) {
+  if (!bgConfig) return null;
+  const rotation = bgConfig.rotation || 'off';
+  const wallpapers = Array.isArray(bgConfig.wallpapers) ? bgConfig.wallpapers : [];
+
+  if (rotation === 'off' || wallpapers.length <= 1) {
+    return bgConfig.activeId || (wallpapers[0]?.id ?? null);
+  }
+
+  if (rotation === 'tab') {
+    const currentId = lastActiveId || bgConfig.activeId;
+    const curIdx = wallpapers.findIndex(w => w.id === currentId);
+    const nextIdx = (curIdx >= 0) ? (curIdx + 1) % wallpapers.length : 0;
+    return wallpapers[nextIdx].id;
+  }
+
+  if (rotation === 'hourly') {
+    const hourBucket = Math.floor(currentTime / (1000 * 60 * 60));
+    const idx = ((hourBucket % wallpapers.length) + wallpapers.length) % wallpapers.length;
+    return wallpapers[idx].id;
+  }
+
+  if (rotation === 'daily') {
+    const dayBucket = Math.floor(currentTime / (1000 * 60 * 60 * 24));
+    const idx = ((dayBucket % wallpapers.length) + wallpapers.length) % wallpapers.length;
+    return wallpapers[idx].id;
+  }
+
+  return bgConfig.activeId || null;
+}
+
+
 

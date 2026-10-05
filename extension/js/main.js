@@ -17,6 +17,7 @@ import { applyCardSettings } from './features/cards.js';
 import { applyLayoutSettings } from './features/layout.js';
 import { applyDisplaySettings } from './features/display.js';
 import { startThemeScheduleTicker } from './features/schedule.js';
+import { resolveRotatedWallpaperId } from './features/wallpaper.js';
 
 /**
  * Updates DOM root attributes and dynamic UI based on current settings.
@@ -52,6 +53,19 @@ function applySettings(settings) {
  */
 async function initApp() {
   const data = await store.init();
+
+  // 5.5 Wallpaper rotation check at load time
+  const bg = data.settings?.background;
+  if (bg && bg.type === 'image' && bg.rotation && bg.rotation !== 'off') {
+    const nextWpId = resolveRotatedWallpaperId(bg, bg.activeId);
+    if (nextWpId && nextWpId !== bg.activeId) {
+      bg.activeId = nextWpId;
+      store.updateSettings({
+        background: { ...bg, activeId: nextWpId }
+      });
+    }
+  }
+
   const gridContainer = document.getElementById('categories-grid');
 
   if (!gridContainer) {

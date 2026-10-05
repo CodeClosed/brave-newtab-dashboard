@@ -834,9 +834,29 @@ function renderAppearanceSection(settings) {
     bgDetailGroup.appendChild(sliderRow);
     bgDetailGroup.appendChild(blurRow);
 
+    // Rotation mode (Off, Every Tab, Hourly, Daily)
+    const rotationModes = [
+      { id: 'off', label: 'Off' },
+      { id: 'tab', label: 'Every Tab' },
+      { id: 'hourly', label: 'Hourly' },
+      { id: 'daily', label: 'Daily' }
+    ];
+    const currentRotation = bgConfig.rotation || 'off';
+    const rotContainer = el('div', { style: { display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '10px' } });
+    rotContainer.appendChild(el('span', { className: 'setting-desc', text: 'Wallpaper Rotation' }));
+    const rotPills = el('div', { className: 'radio-group-cards', style: { gridTemplateColumns: 'repeat(4, 1fr)' } });
+    for (const m of rotationModes) {
+      rotPills.appendChild(renderRadioCard(m.label, currentRotation === m.id, () => {
+        store.updateSettings({ background: { ...bgConfig, rotation: m.id } });
+        renderDrawerContent();
+      }));
+    }
+    rotContainer.appendChild(rotPills);
+    bgDetailGroup.appendChild(rotContainer);
+
     const clearImgBtn = el('button', {
       className: 'btn-secondary btn-danger btn-sm',
-      style: { marginTop: '8px' },
+      style: { marginTop: '12px' },
       type: 'button',
       text: 'Clear Wallpaper Image',
       onclick: () => {
@@ -846,7 +866,6 @@ function renderAppearanceSection(settings) {
       }
     });
 
-    bgDetailGroup.appendChild(sliderRow);
     bgDetailGroup.appendChild(clearImgBtn);
   }
 
