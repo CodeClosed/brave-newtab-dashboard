@@ -5,7 +5,7 @@ import { openCategoryDialog } from './ui/dialogs.js';
 import { showToast } from './ui/toasts.js';
 import { applySearchEngine, initSearchShortcuts } from './features/search.js';
 import { renderClockAndGreeting, startClockTicker } from './features/clock.js';
-import { applyBackground, applyThemeAndAccent } from './features/theme.js';
+import { applyBackground, applyThemeAndAccent, applyTypography } from './features/theme.js';
 import { initEditMode } from './features/edit-mode.js';
 import { initDropAndPaste } from './features/drag-paste.js';
 import { renderPinnedStrip } from './features/pinned.js';
@@ -28,6 +28,9 @@ function applySettings(settings) {
 
   // 4.4 Theme, Palette & Accent
   applyThemeAndAccent(settings, root);
+
+  // 6.2 Typography
+  applyTypography(settings, root);
 
   // Layout mode
   root.setAttribute('data-layout', settings.layout || 'grid');

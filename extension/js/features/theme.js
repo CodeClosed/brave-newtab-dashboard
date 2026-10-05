@@ -499,3 +499,29 @@ export function formatGradientCss(config) {
   return `linear-gradient(${safe.angle}deg, ${safe.from} 0%, ${safe.to} 100%)`;
 }
 
+/**
+ * Applies typography font family and text scale to root element.
+ * @param {import('../core/schema.js').DashboardData['settings']} settings
+ * @param {HTMLElement | { style: { setProperty: Function }, setAttribute: Function }} [rootElement]
+ */
+export function applyTypography(settings, rootElement) {
+  const root = rootElement || (typeof document !== 'undefined' ? document.documentElement : null);
+  if (!root) return;
+
+  const font = settings?.font || {};
+  let family = font.family || 'system';
+  if (family === 'sans') family = 'system';
+  const validFamilies = ['system', 'serif', 'mono'];
+  if (!validFamilies.includes(family)) family = 'system';
+
+  let scale = typeof font.scale === 'number' && !isNaN(font.scale) ? font.scale : 1.0;
+  scale = Math.min(1.3, Math.max(0.9, scale));
+  scale = Math.round(scale * 100) / 100;
+
+  root.setAttribute?.('data-font', family);
+  if (root.style?.setProperty) {
+    root.style.setProperty('--font-scale', String(scale));
+  }
+}
+
+

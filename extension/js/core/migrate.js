@@ -170,10 +170,14 @@ export function repairSettings(settings) {
 
   // font
   const f = (s.font && typeof s.font === 'object') ? s.font : {};
-  const validFontFamilies = ['system', 'sans', 'serif', 'mono'];
+  let fam = f.family;
+  if (fam === 'sans') fam = 'system';
+  const validFontFamilies = ['system', 'serif', 'mono'];
+  let scale = typeof f.scale === 'number' && !isNaN(f.scale) ? f.scale : defaults.font.scale;
+  scale = Math.min(1.3, Math.max(0.9, scale));
   s.font = {
-    family: validFontFamilies.includes(f.family) ? f.family : defaults.font.family,
-    scale: (typeof f.scale === 'number' && f.scale >= 0.8 && f.scale <= 1.4) ? f.scale : defaults.font.scale
+    family: validFontFamilies.includes(fam) ? fam : defaults.font.family,
+    scale: Math.round(scale * 100) / 100
   };
 
   // countdown

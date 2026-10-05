@@ -116,6 +116,7 @@ export function resetSettingsSection(sectionId) {
       palette: defaults.palette,
       accent: defaults.accent,
       accentCustom: defaults.accentCustom,
+      font: JSON.parse(JSON.stringify(defaults.font)),
       themeSchedule: JSON.parse(JSON.stringify(defaults.themeSchedule)),
       background: JSON.parse(JSON.stringify(defaults.background))
     };
@@ -1023,6 +1024,57 @@ function renderAppearanceSection(settings) {
   if (bgConfig.type !== 'none') {
     section.appendChild(bgDetailGroup);
   }
+
+  // 6.2 Typography: Font Family & Text Scale
+  const fontConf = settings.font || { family: 'system', scale: 1.0 };
+  const currentFamily = fontConf.family === 'sans' ? 'system' : (fontConf.family || 'system');
+  const fontFamilyGroup = el('div', { className: 'setting-item' },
+    el('div', { className: 'setting-item-header' },
+      el('span', { className: 'setting-label', text: 'Font Family' }),
+      el('span', { className: 'setting-desc', text: 'System-native fonts only, no remote webfonts' })
+    ),
+    el('div', { className: 'radio-group-cards', style: { gridTemplateColumns: 'repeat(3, 1fr)' } },
+      renderRadioCard('System Sans', currentFamily === 'system', () => {
+        store.updateSettings({ font: { ...fontConf, family: 'system' } });
+        renderDrawerContent();
+      }),
+      renderRadioCard('Serif', currentFamily === 'serif', () => {
+        store.updateSettings({ font: { ...fontConf, family: 'serif' } });
+        renderDrawerContent();
+      }),
+      renderRadioCard('Monospace', currentFamily === 'mono', () => {
+        store.updateSettings({ font: { ...fontConf, family: 'mono' } });
+        renderDrawerContent();
+      })
+    )
+  );
+
+  const currentScale = typeof fontConf.scale === 'number' ? fontConf.scale : 1.0;
+  const scalePercentSpan = el('span', { text: `${Math.round(currentScale * 100)}%`, style: { fontSize: '12px' } });
+  const scaleSlider = /** @type {HTMLInputElement} */ (el('input', {
+    type: 'range',
+    min: '0.9',
+    max: '1.3',
+    step: '0.05',
+    value: String(currentScale),
+    style: { width: '100%' }
+  }));
+  scaleSlider.addEventListener('input', () => {
+    const val = Math.round(parseFloat(scaleSlider.value) * 100) / 100;
+    scalePercentSpan.textContent = `${Math.round(val * 100)}%`;
+    store.updateSettings({ font: { ...fontConf, scale: val } });
+  });
+
+  const fontScaleGroup = el('div', { className: 'setting-item' },
+    el('div', { style: { display: 'flex', justifyContent: 'space-between', marginBottom: '4px' } },
+      el('span', { className: 'setting-label', text: 'Text Size Scale' }),
+      scalePercentSpan
+    ),
+    scaleSlider
+  );
+
+  section.appendChild(fontFamilyGroup);
+  section.appendChild(fontScaleGroup);
 
   section.appendChild(el('button', {
     className: 'btn-secondary section-reset-btn',
