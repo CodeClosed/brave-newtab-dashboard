@@ -2,28 +2,62 @@
 
 > A clean, local-first customizable New Tab dashboard for Brave and Chrome — organize bookmarks into beautiful collections instead of cluttered bookmark grids.
 
-A local-first, customizable New Tab extension for Chromium browsers that transforms the traditional bookmark grid into a clean, categorized personal dashboard. Users can organize websites into customizable collections, rearrange them through drag-and-drop, personalize their layout, theme, clock, search engine and background, and export or restore their dashboard data. Built with Manifest V3 and designed around speed, privacy, accessibility and a quiet, polished desktop experience.
+A local-first, customizable New Tab extension for Chromium browsers that transforms the traditional bookmark grid into a calm, soft, responsive personal dashboard. Users can organize websites into categorized collections and multiple Spaces, edit inline or via bulk operations, personalize layout and typography, customize wallpapers and themes, and keep their data safe with automated snapshots. Built with Manifest V3 and designed around speed, zero telemetry, full keyboard accessibility, and a quiet desktop utility aesthetic.
 
 ---
 
 ## Features
 
-- **Categorized Collections:** Group websites into clean, high-density cards (e.g. *Development*, *Professional*, *Reading*, *College*). Add, rename, collapse, or delete collections with customized icons and emojis.
-- **Instant Boot & Zero Theme Flash (FOWT):** Synchronous blocking `<head>` script reading mirrored local state eliminates white screen flashing when opening tabs in dark mode.
-- **Fluid Reordering:** Rearrange collections and bookmarks via native HTML5 drag-and-drop or accessible keyboard controls (`↑`/`↓`) with screen-reader announcements.
-- **Privacy-Preserving Favicons:** Fetches website icons using Chromium's internal `chrome.runtime.getURL('/_favicon/')` API without pinging third-party servers. Because Chromium returns a generic globe/document icon for uncached sites rather than failing, the dashboard fingerprints the default icon bytes at boot, renders an accessible deterministic letter tile first, and swaps in confirmed site-specific favicons without flashing or blocking paint.
-- **Subtle Personalization:**
-  - **Themes:** System (`prefers-color-scheme`), Light, Dark.
-  - **Accents:** Slate, Blue, Emerald, Amber, Rose.
-  - **Layouts:** Standard Grid vs. Compact.
-  - **Backgrounds:** None, Subdued Solid presets, Gradient presets, or Custom Image Wallpapers stored as Blobs in IndexedDB (with adjustable dimming overlay).
-  - **Clock & Greeting:** 12-Hour (AM/PM) / 24-Hour digital clock, localized date, and greeting toggles.
-  - **Search:** Instant navigation to Google, Brave Search, DuckDuckGo, or Bing. Press `/` to focus.
-- **Safe Data Management:**
-  - One-click JSON backup export.
-  - Hardened import with schema validation, ID collision deduplication, dangerous URL stripping (`javascript:`, `data:`), and pre-import preview.
-  - One-click Undo for all deletions, restores, and resets.
-  - Optional on-demand browser bookmarks import (requests permission only when clicked).
+### 1. Organization & Spaces
+- **Multiple Spaces:** Partition dashboards across contexts (e.g. *Personal*, *Work*, *Study*) with an inline header switcher and keyboard shortcuts (`[` and `]` to cycle). Collections can be moved between spaces.
+- **Categorized Collections:** Group websites into cards with custom icons and emojis. Add, rename, collapse, or delete collections with undo.
+- **Pinned Strip:** Pin favorite bookmarks to a quick-access top strip.
+- **Sort & Collapse:** Instant A–Z sorting per collection, plus toolbar "Collapse all" and "Expand all".
+- **Bulk Operations:** Multi-select bookmarks in Edit Mode (with Shift+Click range selection) to batch move, pin, or delete. "Add many" accepts multiline URL lists with live preview.
+- **Custom Icons & Import:** Assign emojis, upload lightweight custom icons (downscaled to 64px, <12KB), or refresh favicons. Import from browser bookmarks (HTML Netscape format or API) and CSV.
+- **First-Run Templates:** Choose from curated presets (*Student*, *Developer*, *Creator*, or *Start empty*) on fresh installs with a short, skippable tour.
+
+### 2. Daily-Driver Speed & Search
+- **Unified Search Combobox:** Type `/` to search the web or filter bookmarks across spaces, ranked by relevance (exact > prefix > word-prefix > substring > domain).
+- **Search Engine Shortcuts:** Register custom search engine shortcuts (e.g., `yt cats` expands to YouTube).
+- **Instant Calculator:** Hand-written math parser (`+ - * / ^ ( ) %`) calculates expressions directly inside the search bar without `eval`.
+- **Edit Mode & Inline Editing:** Toggle with `e`. Press `F2` or double-click to rename collections and bookmarks in place. Inline "paste URL" row adds bookmarks instantly.
+- **Drag-and-Drop & Paste:** Native drag reordering across cards and spaces, plus link drop and paste handlers.
+
+### 3. Look & Feel
+- **Card Styles & Layout:** Filled, frosted, outline, or minimal card styles; translucent surfaces; equal height toggle; configurable columns (auto, 1–6), card width, gap, and alignment.
+- **Display Modes:** Per-collection overrides for List, Grid, or compact Icons-only display modes with rounded, square, or circular tile shapes.
+- **Themes & Palettes:** System, Light, Dark themes with 5 color palettes (*Default*, *AMOLED*, *Paper*, *WCAG AAA High Contrast*).
+- **Accent Colors & Contrast Guard:** Slate, Blue, Emerald, Amber, Rose, plus custom hex colors validated against WCAG AA contrast rules with automatic accessible shade suggestions.
+- **Theme Presets & Schedule:** One-click presets (*Warm paper*, *Forest*, *Midnight*, *High contrast*) with undo, plus automatic day/night theme scheduling via clock hours or solar sunrise/sunset.
+
+### 4. Backgrounds & Wallpapers
+- **IndexedDB Wallpaper Library:** Store up to 10 wallpapers locally with client-side canvas downscaling (max 2560px), compression (<1.5MB), and library storage quotas.
+- **Focal Point & Auto-Readability:** Click-to-set focal point (`background-position`), blur and dim sliders, and automatic luminance calculation ensuring text contrast.
+- **Day & Night Pairs:** Assign distinct wallpapers for light and dark modes with automatic switching.
+- **Wallpaper Rotation:** Cycle through library wallpapers on new tab, hourly, or daily without page flicker.
+- **Solid Colors & Gradients:** Subdued color presets, custom hex pickers, and linear gradient builder safely guarded against injection.
+
+### 5. Clock, Typography & Personal Touches
+- **Clock Styles:** Large, small, or left-aligned clock displays; optional seconds; date format formats; secondary world timezone.
+- **Typography:** System fonts only (sans, serif, mono) with adjustable font scale (0.9 to 1.3).
+- **Greeting & Countdown:** Personalized greeting (`Good evening, Name`) and countdown badge to target dates.
+- **Focus & Auto-Hide Modes:** Press `f` to enter distraction-free Focus Mode. Optional auto-hide dims dashboard after idle and reveals upon mouse/keyboard activity.
+
+### 6. Accessibility & Localization
+- **Accessibility Center:** Dedicated Accessibility settings drawer tab with motion preference overrides (System vs. Reduce Motion with 0.01ms animations) and Large Touch Targets (enforcing 44×44px minimum targets).
+- **Full Keyboard Navigation:** Complete keyboard walkthrough (`/` search, `e` edit mode, `f` focus mode, `[` / `]` space cycling, arrows, Enter, Escape).
+- **Localization Ready:** User-facing strings structured with `_locales/en/messages.json` and safe runtime fallbacks.
+
+### 7. Optional Widgets
+- **Notes Widget:** Plain-text scratchpad isolated per space with debounced automatic saving.
+- **To-do Widget:** Lightweight task checklist per space with add, check, delete, and clear-completed actions.
+- *Both widgets are off by default and toggleable in Settings → Widgets.*
+
+### 8. Data Safety & Snapshots
+- **Automated Snapshots:** Up to 10 snapshots stored in IndexedDB before imports, migrations, resets, or daily edits.
+- **One-Click Restore:** Restores full state with safety preview and undo.
+- **Import / Export:** Robust JSON export and schema-validated import with collision resolution.
 
 ---
 
@@ -46,84 +80,26 @@ A local-first, customizable New Tab extension for Chromium browsers that transfo
 3. Click **Load unpacked** and select the `extension` folder.
 4. Press `Ctrl + T` to open your new tab dashboard.
 
-*Note: Chromium only permits one extension to override the New Tab page at any time. If another new tab extension is enabled, disable it in your extensions manager.*
-
----
-
-## Manual Verification Checklist (Brave Browser)
-
-- [ ] Load unpacked extension from `brave://extensions`.
-- [ ] Press `Ctrl + T`: Dashboard appears immediately with zero white flash.
-- [ ] Click `+ New Collection` to create a custom category with name and emoji.
-- [ ] Click `+ Add` to add a new bookmark. Verify URL auto-prepends `https://`.
-- [ ] Drag a bookmark across collections and verify persistence after tab reload.
-- [ ] Open Settings (`⚙` icon in top right):
-  - Toggle Theme (Light / Dark / System).
-  - Change Accent Color.
-  - Toggle Clock, Date, and Greeting.
-  - Select Brave Search as default engine.
-- [ ] Export Backup JSON under Data tab.
-- [ ] Test Reset to Defaults, then click **[Undo]** on the toast notification.
-
 ---
 
 ## Technical Architecture & Privacy
 
-- **Manifest V3:** Complies strictly with modern Chromium extension security requirements. Zero inline scripts, zero remote code, zero external CDNs, and system fonts only.
+- **Manifest V3:** Complies strictly with Chromium extension security guidelines. Zero inline scripts, zero remote code execution, zero external CDNs, zero `eval`, zero `innerHTML`.
 - **Permissions Audit:**
   - `storage`: Required for local dashboard preferences and collections via `chrome.storage.local`.
-  - `favicon`: Required for internal cached favicon resolution.
+  - `favicon`: Required for internal cached favicon resolution via `chrome.runtime.getURL('/_favicon/')`.
   - `bookmarks` *(optional)*: Only requested dynamically on-demand if the user clicks "Import Browser Bookmarks".
-- **Zero Telemetry:** No analytics, no tracking pixels, no cloud servers. All bookmarks and settings remain 100% on your device.
-- **Performance Budget:** Zero network requests during initial paint; renders 150+ bookmarks in under 20ms.
-
----
-
-## Project Structure
-
-```text
-├── extension/                    <- Load Unpacked Root
-│   ├── manifest.json             <- Manifest V3
-│   ├── newtab.html               <- Main New Tab document
-│   ├── icons/                    <- Extension icons (16, 48, 128px)
-│   ├── css/
-│   │   ├── tokens.css            <- CSS variables (colors, fonts, radii)
-│   │   ├── base.css              <- Layout shell & typography
-│   │   └── components/
-│   │       ├── cards.css         <- Category cards & bookmark rows
-│   │       ├── dialogs.css       <- Native <dialog> modals
-│   │       ├── drawer.css        <- Settings side drawer
-│   │       └── toasts.css        <- Undo notifications
-│   └── js/
-│       ├── boot.js               <- Synchronous blocking theme script
-│       ├── main.js               <- Entry point
-│       ├── core/                 <- State, storage, schema, migrations, idb
-│       ├── features/             <- Search, clock, DnD, background, data-io
-│       ├── ui/                   <- Components, dialogs, drawer, favicons, toasts
-│       └── utils/                <- DOM and URL helpers
-├── docs/                         <- Specifications & Architecture
-│   ├── IMPLEMENTATION_PLAN.md
-│   ├── PRODUCT_SPEC.md
-│   ├── TECHNICAL_ARCHITECTURE.md
-│   └── DESIGN_SYSTEM.md
-└── tests/                        <- Automated node:test test suite
-    ├── benchmark.test.js
-    ├── background.test.js
-    ├── crud.test.js
-    ├── import-export.test.js
-    ├── migrate.test.js
-    ├── reorder.test.js
-    ├── schema.test.js
-    ├── settings.test.js
-    └── url.test.js
-```
+- **Zero Telemetry:** No tracking, no analytics, no network pings. All data remains strictly local on your device.
+- **Performance Budget:** First paint < 20ms; 150 bookmarks and 12 collections benchmark runs in ~4ms (budget: 50ms). Zero runtime dependencies.
 
 ---
 
 ## Running Automated Tests
 
-Run the full unit test and performance benchmark suite using Node.js:
+Run the full automated test suite using Node.js:
 
 ```powershell
-node --test tests/*.test.js
+npm test
 ```
+
+Currently contains **242+ unit and integration tests** verifying all schemas, migrations, security validations, UI components, search ranking, calculator, wallpaper processing, and accessibility features.
