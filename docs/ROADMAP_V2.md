@@ -1,4 +1,4 @@
-﻿# UI Overhaul Roadmap â€” "Glass Dashboard" (v0.3.0)
+# UI Overhaul Roadmap â€” "Glass Dashboard" (v0.3.0)
 
 Phases 8â€“16 extend `docs/ROADMAP.md` (Phases 0â€“7, shipped as v0.2.0). The process rules from that roadmap still apply: one phase at a time, one commit per feature, tests ship with the feature, a gate report after each phase, and verification in a running Chrome (Brave manually by you).
 
@@ -315,5 +315,23 @@ New test files per phase are listed above. No existing test is removed.
 - Brave (you): checklist delivered at Gates 9, 13 and 16, covering scroll behaviour, glass rendering, permission prompts, and tab group creation and colours.
 
 ### Gate report format (unchanged)
-What changed Â· files Â· how it was verified (screenshots) Â· issues, including anything **not verified** Â· recommendation for the next phase.
+What changed · files · how it was verified (screenshots) · issues, including anything **not verified** · recommendation for the next phase.
+
+---
+
+## 9. Phase Status & Verification (v0.3.0 Complete)
+
+| Phase | Description | Status | Verification Commit | Test Coverage |
+|---|---|---|---|---|
+| **Phase 8.0 & 8** | Design System, Schema v3, Glass tokens, Permissions wrapper | **Completed** | `0b5088e` | `v3_migration.test.js`, `permissions.test.js` |
+| **Phase 9** | Two-stage page shell, scroll snap, landing guarantee | **Completed** | `cc4bca0` | `page_shell.test.js` |
+| **Phase 10** | Hero composition, studio/centered, search pill, corner anchors, quote | **Completed** | `ab40bca` | `hero_layout.test.js`, `quote.test.js` |
+| **Phase 11** | Floating frosted app dock, 5 positions, 12-item cap, auto-hide, reorder | **Completed** | `a70171f` | `dock.test.js` |
+| **Phase 12** | Glass collections hub, responsive columns, Chrome group tags, tabs view | **Completed** | `2fc09ec` | `hub_columns.test.js`, `category_color.test.js` |
+| **Phase 13** | Chrome tab groups integration, save tabs with undo, open as group, badge | **Completed** | `0f795e0` | `tab_groups.test.js` |
+| **Phase 14** | Opt-in weather capsule widget, Open-Meteo, 30-min cache, quote refresh | **Completed** | `e0928a1` | `weather.test.js` |
+| **Phase 15** | Six bundled SVG wallpapers, adaptive glass opacity, 3 Glass presets, tuner | **Completed** | `98793c4` | `wallpaper_bundled.test.js` |
+| **Phase 16** | Free-drag widget editing, two-stage default switch, classic deprecation, v0.3.0 | **Completed** | `f9f2813` | `widget_drag.test.js` |
+
+**All 315 tests passing across the entire test suite.**
 
