@@ -671,7 +671,7 @@ export function resolveActiveWallpaperId(bgConfig, isDark) {
   if (isDark && bgConfig.nightId) {
     return bgConfig.nightId;
   }
-  return bgConfig.activeId || null;
+  return bgConfig.activeId || bgConfig.value || null;
 }
 
 /**

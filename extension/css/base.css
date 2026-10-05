@@ -740,10 +740,10 @@ body[data-focus-mode="true"] .scroll-prompt {
 
 .hero-panel[data-hero-layout="studio"] .hero-content {
   display: grid;
-  grid-template-columns: 1.1fr 0.9fr;
+  grid-template-columns: 1.05fr 0.95fr;
   align-items: center;
   gap: var(--space-8);
-  max-width: 1100px;
+  max-width: 1120px;
   width: 100%;
   margin: 0 auto;
 }
@@ -769,10 +769,12 @@ body[data-focus-mode="true"] .scroll-prompt {
   width: 100%;
 }
 
-.hero-panel[data-hero-layout="studio"] .search-container {
+.hero-panel[data-hero-layout="studio"] .search-container,
+.hero-panel[data-hero-layout="studio"] .hero-weather-slot,
+.hero-panel[data-hero-layout="studio"] .quote-display {
   margin: 0;
   width: 100%;
-  max-width: 480px;
+  max-width: 440px;
 }
 
 @media (max-width: 860px) {
@@ -794,27 +796,37 @@ body[data-focus-mode="true"] .scroll-prompt {
 
 /* 10.2 Hero Clock Size & Quote */
 .clock-display.clock-hero {
-  font-size: var(--hero-clock-size, clamp(56px, 7vw, 96px));
+  font-size: var(--hero-clock-size, clamp(64px, 7.5vw, 108px));
   font-weight: var(--weight-semibold, 600);
   letter-spacing: -0.03em;
   line-height: 1;
+  text-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
 }
 
 .quote-display {
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
+  width: 100%;
   max-width: 440px;
+  padding: 12px 18px;
+  border-radius: var(--radius-xl, 16px);
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
   color: var(--text-secondary);
   font-size: var(--text-sm);
   line-height: 1.45;
+  box-sizing: border-box;
 }
 
 .quote-refresh-btn {
   position: absolute;
-  top: 0;
-  right: -28px;
+  top: 10px;
+  right: 12px;
   background: transparent;
   border: none;
   color: var(--text-muted);
@@ -822,13 +834,13 @@ body[data-focus-mode="true"] .scroll-prompt {
   padding: 4px;
   font-size: 13px;
   border-radius: var(--radius-sm);
-  opacity: 0;
+  opacity: 0.6;
   transition: opacity var(--transition-fast), color var(--transition-fast);
 }
 
 .quote-display:hover .quote-refresh-btn,
 .quote-refresh-btn:focus-visible {
-  opacity: 0.75;
+  opacity: 1;
 }
 
 .quote-refresh-btn:hover {
@@ -838,7 +850,7 @@ body[data-focus-mode="true"] .scroll-prompt {
 
 .quote-text {
   font-style: italic;
-  opacity: 0.9;
+  opacity: 0.95;
 }
 
 .quote-author {

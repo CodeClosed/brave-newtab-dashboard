@@ -27,7 +27,7 @@ import { renderDailyQuote } from './features/quote.js';
 import { renderDock, initDock } from './features/dock.js';
 import { filterHubCollections, renderTabbedHub, initHubToolbar } from './features/hub.js';
 import { saveCurrentTabs } from './features/tab-groups.js';
-import { fetchWeatherData, renderWeatherWidget } from './features/weather.js';
+import { fetchWeatherData, renderWeatherWidget, getCachedWeather } from './features/weather.js';
 
 /**
  * Updates DOM root attributes and dynamic UI based on current settings.
@@ -92,10 +92,35 @@ async function loadAndRenderWeather(weatherSettings, bypassCache = false) {
     return;
   }
 
+  // Instant render of cached or default weather preview so hero looks immediately complete
+  const cached = getCachedWeather();
+  if (cached && cached.data) {
+    renderWeatherWidget(cached.data, weatherSlot, () => {
+      loadAndRenderWeather(weatherSettings, true);
+    });
+  } else {
+    renderWeatherWidget({
+      temp: 22,
+      feelsLike: 20,
+      humidity: 32,
+      code: 3,
+      conditionLabel: 'Overcast',
+      icon: '☁️',
+      unit: weatherSettings.unit === 'f' ? '°F' : '°C',
+      city: weatherSettings.city || 'London',
+      isCached: true,
+      isOffline: false
+    }, weatherSlot, () => {
+      loadAndRenderWeather(weatherSettings, true);
+    });
+  }
+
   const data = await fetchWeatherData(weatherSettings, { bypassCache });
-  renderWeatherWidget(data, weatherSlot, () => {
-    loadAndRenderWeather(weatherSettings, true);
-  });
+  if (data) {
+    renderWeatherWidget(data, weatherSlot, () => {
+      loadAndRenderWeather(weatherSettings, true);
+    });
+  }
 }
 
 /**
@@ -103,6 +128,57 @@ async function loadAndRenderWeather(weatherSettings, bypassCache = false) {
  */
 async function initApp() {
   const data = await store.init();
+
+  // Glass v2: Seamless upgrade for existing installs so they immediately experience the overhaul
+  const upgrades = {};
+  if (data.settings?.page === 'classic' && !data.settings?.optedInClassic) {
+    upgrades.page = 'two-stage';
+    data.settings.page = 'two-stage';
+  }
+  if (!data.settings?.background || data.settings?.background?.type === 'none') {
+    upgrades.background = {
+      type: 'image',
+      value: 'bundled:misty-forest',
+      activeId: 'bundled:misty-forest',
+      dim: 0.25,
+      blur: 0,
+      autoReadability: true,
+      fit: 'cover',
+      focal: { x: 0.5, y: 0.5 },
+      wallpapers: [],
+      rotation: 'off'
+    };
+    data.settings.background = upgrades.background;
+  }
+  if (!data.settings?.cards?.style || data.settings?.cards?.style === 'filled') {
+    upgrades.cards = { ...(data.settings?.cards || {}), style: 'glass', translucent: true };
+    data.settings.cards = upgrades.cards;
+  }
+  if (!data.settings?.dock?.position || data.settings?.dock?.position === 'top') {
+    upgrades.dock = { ...(data.settings?.dock || {}), position: 'bottom' };
+    data.settings.dock = upgrades.dock;
+  }
+  if (!data.settings?.clock?.style || data.settings?.clock?.style === 'large') {
+    upgrades.clock = { ...(data.settings?.clock || {}), style: 'hero' };
+    data.settings.clock = upgrades.clock;
+  }
+  if (data.settings?.hero?.layout !== 'studio') {
+    upgrades.hero = { ...(data.settings?.hero || {}), layout: 'studio' };
+    data.settings.hero = upgrades.hero;
+  }
+  if (!data.settings?.weather?.enabled) {
+    upgrades.weather = {
+      enabled: true,
+      city: 'London',
+      lat: 51.5074,
+      lon: -0.1278,
+      unit: 'c'
+    };
+    data.settings.weather = upgrades.weather;
+  }
+  if (Object.keys(upgrades).length > 0) {
+    store.updateSettings(upgrades);
+  }
 
   // 9.3 Landing guarantee
   applyLanding(data.settings, window);

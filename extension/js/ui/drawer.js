@@ -1124,11 +1124,11 @@ function renderLayoutSection(settings) {
     ),
     el('div', { className: 'radio-group-cards', style: { gridTemplateColumns: 'repeat(2, 1fr)' } },
       renderRadioCard('Two-Stage Hub', currentPageMode === 'two-stage', () => {
-        store.updateSettings({ page: 'two-stage' });
+        store.updateSettings({ page: 'two-stage', optedInClassic: false });
         renderDrawerContent();
       }),
       renderRadioCard('Classic (Deprecated)', currentPageMode === 'classic', () => {
-        store.updateSettings({ page: 'classic' });
+        store.updateSettings({ page: 'classic', optedInClassic: true });
         renderDrawerContent();
       })
     )
