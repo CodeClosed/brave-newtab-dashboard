@@ -14,6 +14,29 @@ let jumpState = {
 };
 
 let lastActiveElementBeforeDialog = null;
+let focusModeActive = false;
+
+/**
+ * Checks whether focus mode is currently active.
+ * @returns {boolean}
+ */
+export function isFocusModeActive() {
+  return focusModeActive;
+}
+
+/**
+ * Toggles focus mode on or off. Focus mode is purely runtime state (not persisted).
+ * @param {boolean} [force]
+ * @returns {boolean}
+ */
+export function toggleFocusMode(force) {
+  if (typeof document === 'undefined') return false;
+  focusModeActive = force !== undefined ? Boolean(force) : !focusModeActive;
+  if (document.body) {
+    document.body.classList.toggle('focus-mode', focusModeActive);
+  }
+  return focusModeActive;
+}
 
 /**
  * Returns current jump state (for testing and UI state reflection).
@@ -118,6 +141,7 @@ export function openShortcutsHelpDialog() {
     { key: '/', desc: 'Focus search bar' },
     { key: 'g + [1-9]', desc: 'Jump to collection, then [1-9] to open link' },
     { key: 'e', desc: 'Toggle edit mode (reorder & inline editing)' },
+    { key: 'f', desc: 'Toggle focus mode (clock & search only)' },
     { key: '[ / ]', desc: 'Cycle spaces' },
     { key: '?', desc: 'Show keyboard shortcuts' },
     { key: 'Esc', desc: 'Close dialog, menu, or cancel jump mode' }
@@ -253,6 +277,18 @@ export function initKeyboardNavigation(options = {}) {
     if (e.key === '?') {
       e.preventDefault();
       openShortcutsHelpDialog();
+      return;
+    }
+
+    if (e.key === 'f') {
+      e.preventDefault();
+      toggleFocusMode();
+      return;
+    }
+
+    if (e.key === 'Escape' && focusModeActive) {
+      e.preventDefault();
+      toggleFocusMode(false);
       return;
     }
   });

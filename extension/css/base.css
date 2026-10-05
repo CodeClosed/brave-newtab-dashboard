@@ -515,6 +515,22 @@ input, select, textarea {
   border-right: 1px solid var(--border-subtle);
 }
 
+/* 6.4 Focus Mode */
+body.focus-mode .top-nav,
+body.focus-mode .dashboard-main,
+body.focus-mode #space-switcher,
+body.focus-mode .date-greeting-row,
+body.focus-mode .clock-second-tz,
+body.focus-mode .countdown-display,
+body.focus-mode .bulk-ops-toolbar {
+  display: none !important;
+}
+
+body.focus-mode #app {
+  min-height: 80vh;
+  justify-content: center;
+}
+
 /* Reduced Motion Override */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
