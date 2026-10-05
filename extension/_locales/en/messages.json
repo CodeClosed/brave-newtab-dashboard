@@ -1,0 +1,94 @@
+{
+  "appName": {
+    "message": "New Tab Dashboard",
+    "description": "The name of the extension"
+  },
+  "appDesc": {
+    "message": "A clean, local-first customizable New Tab dashboard for Brave and Chrome.",
+    "description": "The description of the extension"
+  },
+  "searchPlaceholder": {
+    "message": "Search the web or bookmarks (or type math)...",
+    "description": "Placeholder for main unified search input"
+  },
+  "settingsTitle": {
+    "message": "Settings",
+    "description": "Title of settings drawer"
+  },
+  "btnDone": {
+    "message": "Done",
+    "description": "Done button text"
+  },
+  "btnCancel": {
+    "message": "Cancel",
+    "description": "Cancel button text"
+  },
+  "btnSave": {
+    "message": "Save",
+    "description": "Save button text"
+  },
+  "btnDelete": {
+    "message": "Delete",
+    "description": "Delete button text"
+  },
+  "btnEdit": {
+    "message": "Edit",
+    "description": "Edit button text"
+  },
+  "btnAdd": {
+    "message": "Add",
+    "description": "Add button text"
+  },
+  "btnUndo": {
+    "message": "Undo",
+    "description": "Undo button text"
+  },
+  "tabAppearance": {
+    "message": "Appearance",
+    "description": "Appearance tab label"
+  },
+  "tabLayout": {
+    "message": "Layout",
+    "description": "Layout tab label"
+  },
+  "tabAccessibility": {
+    "message": "Accessibility",
+    "description": "Accessibility tab label"
+  },
+  "tabSpaces": {
+    "message": "Spaces",
+    "description": "Spaces tab label"
+  },
+  "tabClock": {
+    "message": "Clock",
+    "description": "Clock tab label"
+  },
+  "tabSearch": {
+    "message": "Search",
+    "description": "Search tab label"
+  },
+  "tabData": {
+    "message": "Data",
+    "description": "Data tab label"
+  },
+  "tabWidgets": {
+    "message": "Widgets",
+    "description": "Widgets tab label"
+  },
+  "notesTitle": {
+    "message": "Notes",
+    "description": "Notes widget title"
+  },
+  "notesPlaceholder": {
+    "message": "Write notes for this space...",
+    "description": "Notes textarea placeholder"
+  },
+  "todoTitle": {
+    "message": "To-do",
+    "description": "To-do widget title"
+  },
+  "todoPlaceholder": {
+    "message": "Add a task...",
+    "description": "To-do input placeholder"
+  }
+}
