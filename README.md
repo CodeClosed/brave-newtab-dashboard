@@ -8,56 +8,69 @@ A local-first, customizable New Tab extension for Chromium browsers that transfo
 
 ## Features
 
-### 1. Organization & Spaces
+### 1. Two-Stage Glass Architecture (v0.3.0)
+- **Uncluttered Hero Stage:** Clean opening view featuring wallpaper, clock typography, personalized greeting, offline daily quote, pill search bar, and optional weather capsule.
+- **Frosted Glass Hub:** Scroll down or press `g` to reveal collections rendered as translucent frosted glass windows (`backdrop-filter: blur()`).
+- **Responsive Hub Columns:** Automatic responsive column layout (1 to 5 columns based on viewport) with collapse animations.
+- **Tabbed Stack View:** One-click toggle between traditional multi-column layout and a single tabbed glass window with category pills.
+- **Free-Drag Widget Repositioning:** Press `e` to enter Edit Mode, grab widget handles or use arrow keys to position widgets anywhere on the main panel with center-percentage math and snap guides.
+
+### 2. Floating Frosted Dock (v0.3.0)
+- **Multi-Position Quick Launch:** Configurable dock position (`top`, `bottom`, `left`, `right`, or `off`) with up to 12 pinned links.
+- **Drag-and-Drop Pinning & Reorder:** Drag bookmarks directly onto the dock to pin or reorder them, with keyboard Alt+Arrow parity.
+- **Intelligent Auto-Hide:** Fades when idle and smoothly reveals on viewport edge hover or keyboard focus.
+
+### 3. Native Browser Tab Groups (v0.3.0)
+- **Save Current Tabs:** One-click "Save current tabs" captures open browser tabs into categorized collections, preserving tab group titles and colors with instant Undo and tab-close options.
+- **Open as Tab Group:** Launch entire collections directly into Chrome/Brave native tab groups.
+- **Session Badges:** Visual "Saved from tabs" indicator on imported collections that automatically clears upon custom editing.
+
+### 4. Organization & Spaces
 - **Multiple Spaces:** Partition dashboards across contexts (e.g. *Personal*, *Work*, *Study*) with an inline header switcher and keyboard shortcuts (`[` and `]` to cycle). Collections can be moved between spaces.
 - **Categorized Collections:** Group websites into cards with custom icons and emojis. Add, rename, collapse, or delete collections with undo.
-- **Pinned Strip:** Pin favorite bookmarks to a quick-access top strip.
 - **Sort & Collapse:** Instant A–Z sorting per collection, plus toolbar "Collapse all" and "Expand all".
 - **Bulk Operations:** Multi-select bookmarks in Edit Mode (with Shift+Click range selection) to batch move, pin, or delete. "Add many" accepts multiline URL lists with live preview.
 - **Custom Icons & Import:** Assign emojis, upload lightweight custom icons (downscaled to 64px, <12KB), or refresh favicons. Import from browser bookmarks (HTML Netscape format or API) and CSV.
 - **First-Run Templates:** Choose from curated presets (*Student*, *Developer*, *Creator*, or *Start empty*) on fresh installs with a short, skippable tour.
 
-### 2. Daily-Driver Speed & Search
+### 5. Daily-Driver Speed & Search
 - **Unified Search Combobox:** Type `/` to search the web or filter bookmarks across spaces, ranked by relevance (exact > prefix > word-prefix > substring > domain).
 - **Search Engine Shortcuts:** Register custom search engine shortcuts (e.g., `yt cats` expands to YouTube).
 - **Instant Calculator:** Hand-written math parser (`+ - * / ^ ( ) %`) calculates expressions directly inside the search bar without `eval`.
 - **Edit Mode & Inline Editing:** Toggle with `e`. Press `F2` or double-click to rename collections and bookmarks in place. Inline "paste URL" row adds bookmarks instantly.
 - **Drag-and-Drop & Paste:** Native drag reordering across cards and spaces, plus link drop and paste handlers.
 
-### 3. Look & Feel
-- **Card Styles & Layout:** Filled, frosted, outline, or minimal card styles; translucent surfaces; equal height toggle; configurable columns (auto, 1–6), card width, gap, and alignment.
+### 6. Look & Feel
+- **Card Styles & Layout:** Glass (v2), filled, frosted, outline, or minimal card styles; translucent surfaces; equal height toggle; configurable columns (auto, 1–6), card width, gap, and alignment.
 - **Display Modes:** Per-collection overrides for List, Grid, or compact Icons-only display modes with rounded, square, or circular tile shapes.
-- **Themes & Palettes:** System, Light, Dark themes with 5 color palettes (*Default*, *AMOLED*, *Paper*, *WCAG AAA High Contrast*).
+- **Themes & Palettes:** System, Light, Dark themes with 5 color palettes (*Default*, *AMOLED*, *Paper*, *WCAG AAA High Contrast*) and 3 Glass Presets (*Ember*, *Dusk*, *Forest*).
 - **Accent Colors & Contrast Guard:** Slate, Blue, Emerald, Amber, Rose, plus custom hex colors validated against WCAG AA contrast rules with automatic accessible shade suggestions.
-- **Theme Presets & Schedule:** One-click presets (*Warm paper*, *Forest*, *Midnight*, *High contrast*) with undo, plus automatic day/night theme scheduling via clock hours or solar sunrise/sunset.
+- **Theme Presets & Schedule:** One-click presets with undo, plus automatic day/night theme scheduling via clock hours or solar sunrise/sunset.
 
-### 4. Backgrounds & Wallpapers
+### 7. Backgrounds & Wallpapers
+- **Bundled SVG Wallpapers:** Six original bundled SVG wallpapers (warm fluid wave, violet dusk, misty forest, midnight blue, sand, graphite).
+- **Adaptive Glass Opacity:** Automatically tunes glass surface opacity based on wallpaper luminance to maintain WCAG contrast.
+- **Wallpaper Tuner:** Bottom-left corner popover with live thumbnail selection, blur, dim, and opacity sliders.
 - **IndexedDB Wallpaper Library:** Store up to 10 wallpapers locally with client-side canvas downscaling (max 2560px), compression (<1.5MB), and library storage quotas.
 - **Focal Point & Auto-Readability:** Click-to-set focal point (`background-position`), blur and dim sliders, and automatic luminance calculation ensuring text contrast.
-- **Day & Night Pairs:** Assign distinct wallpapers for light and dark modes with automatic switching.
-- **Wallpaper Rotation:** Cycle through library wallpapers on new tab, hourly, or daily without page flicker.
-- **Solid Colors & Gradients:** Subdued color presets, custom hex pickers, and linear gradient builder safely guarded against injection.
+- **Day & Night Pairs & Rotation:** Assign distinct wallpapers for light/dark modes or cycle on new tab, hourly, or daily.
 
-### 5. Clock, Typography & Personal Touches
-- **Clock Styles:** Large, small, or left-aligned clock displays; optional seconds; date format formats; secondary world timezone.
+### 8. Clock, Typography & Personal Touches
+- **Clock Styles:** Hero typography, large, small, or left-aligned clock displays; optional seconds; date format formats; secondary world timezone.
 - **Typography:** System fonts only (sans, serif, mono) with adjustable font scale (0.9 to 1.3).
 - **Greeting & Countdown:** Personalized greeting (`Good evening, Name`) and countdown badge to target dates.
 - **Focus & Auto-Hide Modes:** Press `f` to enter distraction-free Focus Mode. Optional auto-hide dims dashboard after idle and reveals upon mouse/keyboard activity.
 
-### 6. Accessibility & Localization
-- **Accessibility Center:** Dedicated Accessibility settings drawer tab with motion preference overrides (System vs. Reduce Motion with 0.01ms animations) and Large Touch Targets (enforcing 44×44px minimum targets).
-- **Full Keyboard Navigation:** Complete keyboard walkthrough (`/` search, `e` edit mode, `f` focus mode, `[` / `]` space cycling, arrows, Enter, Escape).
-- **Localization Ready:** User-facing strings structured with `_locales/en/messages.json` and safe runtime fallbacks.
-
-### 7. Optional Widgets
+### 9. Optional Widgets
+- **Weather Capsule:** Opt-in weather widget powered by Open-Meteo with 30-minute local caching, WMO weather code mapping, and offline fallback.
+- **Daily Quotes:** 120 curated public-domain daily quotes with on-demand refresh button.
 - **Notes Widget:** Plain-text scratchpad isolated per space with debounced automatic saving.
 - **To-do Widget:** Lightweight task checklist per space with add, check, delete, and clear-completed actions.
-- *Both widgets are off by default and toggleable in Settings → Widgets.*
 
-### 8. Data Safety & Snapshots
+### 10. Data Safety & Snapshots
 - **Automated Snapshots:** Up to 10 snapshots stored in IndexedDB before imports, migrations, resets, or daily edits.
 - **One-Click Restore:** Restores full state with safety preview and undo.
-- **Import / Export:** Robust JSON export and schema-validated import with collision resolution.
+- **Import / Export:** Robust JSON export and schema-validated import with collision resolution (v1 → v2 → v3).
 
 ---
 
@@ -88,9 +101,11 @@ A local-first, customizable New Tab extension for Chromium browsers that transfo
 - **Permissions Audit:**
   - `storage`: Required for local dashboard preferences and collections via `chrome.storage.local`.
   - `favicon`: Required for internal cached favicon resolution via `chrome.runtime.getURL('/_favicon/')`.
-  - `bookmarks` *(optional)*: Only requested dynamically on-demand if the user clicks "Import Browser Bookmarks".
-- **Zero Telemetry:** No tracking, no analytics, no network pings. All data remains strictly local on your device.
-- **Performance Budget:** First paint < 20ms; 150 bookmarks and 12 collections benchmark runs in ~4ms (budget: 50ms). Zero runtime dependencies.
+  - `bookmarks` *(optional)*: Only requested dynamically on-demand if the user imports browser bookmarks.
+  - `tabs` *(optional)*: Only requested dynamically on-demand when saving current tabs or opening tab groups.
+  - `tabGroups` *(optional)*: Only requested dynamically on-demand to create/update native browser tab groups.
+- **Zero Telemetry:** No tracking, no analytics, no third-party profiling. All bookmark and personal data remains strictly local on your device.
+- **Performance Budget:** First paint < 20ms; responsive CSS layout with `content-visibility: auto` on collections hub.
 
 ---
 
@@ -102,4 +117,4 @@ Run the full automated test suite using Node.js:
 npm test
 ```
 
-Currently contains **242+ unit and integration tests** verifying all schemas, migrations, security validations, UI components, search ranking, calculator, wallpaper processing, and accessibility features.
+Currently contains **315 unit and integration tests** verifying all schemas, migrations, security validations, UI components, search ranking, calculator, wallpaper processing, dock, tab groups, weather, widget dragging, and accessibility features.
