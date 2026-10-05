@@ -139,7 +139,57 @@ export function openCategoryDialog({ mode, category, onSave }) {
     )
   );
 
-  const body = el('div', { className: 'modal-body' }, nameGroup, iconGroup);
+  // 12.3 Chrome Group Color Picker
+  const COLOR_OPTIONS = [
+    { id: null, label: 'None', hex: 'transparent' },
+    { id: 'grey', label: 'Grey', hex: '#5f6368' },
+    { id: 'blue', label: 'Blue', hex: '#1a73e8' },
+    { id: 'red', label: 'Red', hex: '#d93025' },
+    { id: 'yellow', label: 'Yellow', hex: '#f9ab00' },
+    { id: 'green', label: 'Green', hex: '#1e8e3e' },
+    { id: 'pink', label: 'Pink', hex: '#e52592' },
+    { id: 'purple', label: 'Purple', hex: '#9334e6' },
+    { id: 'cyan', label: 'Cyan', hex: '#12b5cb' },
+    { id: 'orange', label: 'Orange', hex: '#e8710a' }
+  ];
+
+  let selectedColor = category?.color || null;
+  const colorContainer = el('div', { className: 'color-selector', style: { display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', marginTop: '4px' } });
+
+  COLOR_OPTIONS.forEach((col) => {
+    const isSelected = selectedColor === col.id;
+    const swatch = el('button', {
+      className: `color-swatch-btn${isSelected ? ' selected' : ''}`,
+      type: 'button',
+      title: col.label,
+      'aria-label': `Color ${col.label}`,
+      dataset: { color: col.id || 'none' },
+      style: {
+        width: '24px',
+        height: '24px',
+        borderRadius: '50%',
+        border: col.id ? '2px solid rgba(255,255,255,0.2)' : '1px dashed var(--border-default)',
+        backgroundColor: col.hex,
+        cursor: 'pointer',
+        boxShadow: isSelected ? '0 0 0 2px var(--accent, #6366f1)' : 'none'
+      },
+      onclick: () => {
+        selectedColor = col.id;
+        colorContainer.querySelectorAll('.color-swatch-btn').forEach((btn) => {
+          /** @type {HTMLElement} */ (btn).style.boxShadow = 'none';
+        });
+        swatch.style.boxShadow = '0 0 0 2px var(--accent, #6366f1)';
+      }
+    });
+    colorContainer.appendChild(swatch);
+  });
+
+  const colorGroup = el('div', { className: 'form-group' },
+    el('label', { className: 'form-label', text: 'Tab Group Color' }),
+    colorContainer
+  );
+
+  const body = el('div', { className: 'modal-body' }, nameGroup, iconGroup, colorGroup);
 
   const cancelBtn = el('button', {
     className: 'btn-secondary',
@@ -168,7 +218,7 @@ export function openCategoryDialog({ mode, category, onSave }) {
     }
     nameError.classList.remove('visible');
     dialog.close();
-    onSave({ name: val, icon: selectedEmoji });
+    onSave({ name: val, icon: selectedEmoji, color: selectedColor });
   });
 
   dialog.appendChild(form);

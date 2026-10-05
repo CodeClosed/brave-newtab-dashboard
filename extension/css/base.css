@@ -1139,5 +1139,224 @@ body.focus-mode .app-dock {
   box-shadow: 0 3px 0 0 var(--accent, #6366f1);
 }
 
+/* ==========================================================================
+   Phase 12: Glass Collections Hub, Responsive Columns & Tabbed Stack View
+   ========================================================================== */
+
+/* Two-Stage Glass Collection Windows */
+body[data-page="two-stage"] .collections-hub {
+  padding: 32px 40px 80px;
+  max-width: 1720px;
+  margin: 0 auto;
+}
+
+body[data-page="two-stage"] .category-card {
+  background: var(--glass-bg, rgba(255, 255, 255, 0.62));
+  backdrop-filter: blur(var(--glass-blur, 16px)) saturate(150%);
+  -webkit-backdrop-filter: blur(var(--glass-blur, 16px)) saturate(150%);
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.2));
+  border-radius: var(--radius-lg, 16px);
+  box-shadow: var(--glass-shadow, 0 8px 32px rgba(0, 0, 0, 0.12));
+  overflow: hidden;
+  transition: transform var(--transition-normal, 180ms) ease,
+              box-shadow var(--transition-normal, 180ms) ease;
+}
+
+:root[data-bg="solid"] body[data-page="two-stage"] .category-card,
+:root[data-bg="none"] body[data-page="two-stage"] .category-card {
+  background: var(--bg-surface);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: var(--shadow-sm);
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  body[data-page="two-stage"] .category-card {
+    background: var(--bg-surface);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
+/* 12.2 Responsive Columns (Auto) */
+body[data-page="two-stage"] .collections-hub:not([data-hub-view="tabs"]) .categories-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--card-gap, 16px);
+  align-items: start;
+}
+
+@media (max-width: 1599px) {
+  body[data-page="two-stage"] .collections-hub:not([data-hub-view="tabs"]) .categories-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1439px) {
+  body[data-page="two-stage"] .collections-hub:not([data-hub-view="tabs"]) .categories-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1279px) {
+  body[data-page="two-stage"] .collections-hub:not([data-hub-view="tabs"]) .categories-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  body[data-page="two-stage"] .collections-hub:not([data-hub-view="tabs"]) .categories-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* If user set explicit column overrides (4.2 setting), respect them */
+:root[data-columns="1"] body[data-page="two-stage"] .collections-hub:not([data-hub-view="tabs"]) .categories-grid {
+  grid-template-columns: 1fr;
+}
+:root[data-columns="2"] body[data-page="two-stage"] .collections-hub:not([data-hub-view="tabs"]) .categories-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+:root[data-columns="3"] body[data-page="two-stage"] .collections-hub:not([data-hub-view="tabs"]) .categories-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+:root[data-columns="4"] body[data-page="two-stage"] .collections-hub:not([data-hub-view="tabs"]) .categories-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+:root[data-columns="5"] body[data-page="two-stage"] .collections-hub:not([data-hub-view="tabs"]) .categories-grid {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+/* 12.4 Hub Toolbar Styles */
+.hub-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 24px;
+  padding: 8px 16px;
+  border-radius: var(--radius-full, 9999px);
+  background: var(--glass-bg, rgba(255, 255, 255, 0.45));
+  backdrop-filter: blur(var(--glass-blur, 16px));
+  -webkit-backdrop-filter: blur(var(--glass-blur, 16px));
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.15));
+}
+
+.hub-filter-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 180px;
+  max-width: 320px;
+}
+
+.hub-filter-icon {
+  position: absolute;
+  left: 10px;
+  color: var(--text-secondary);
+  pointer-events: none;
+}
+
+.hub-filter-input {
+  width: 100%;
+  padding: 6px 12px 6px 30px;
+  font-size: var(--text-xs, 12px);
+  border-radius: var(--radius-full, 9999px);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  outline: none;
+  transition: border-color var(--transition-fast);
+}
+
+.hub-filter-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-subtle, rgba(99, 102, 241, 0.15));
+}
+
+.hub-view-toggle .view-mode-label {
+  font-weight: 500;
+}
+
+/* 12.5 Tabbed Stack View */
+.hub-tabbed-window {
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+  border-radius: var(--radius-lg, 16px);
+  background: var(--glass-bg, rgba(255, 255, 255, 0.62));
+  backdrop-filter: blur(var(--glass-blur, 16px)) saturate(150%);
+  -webkit-backdrop-filter: blur(var(--glass-blur, 16px)) saturate(150%);
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.2));
+  box-shadow: var(--glass-shadow, 0 8px 32px rgba(0, 0, 0, 0.12));
+  overflow: hidden;
+}
+
+:root[data-bg="solid"] .hub-tabbed-window,
+:root[data-bg="none"] .hub-tabbed-window {
+  background: var(--bg-surface);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.hub-tabs-nav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--glass-border, rgba(255, 255, 255, 0.15));
+  scrollbar-width: thin;
+}
+
+.hub-tabs-nav::-webkit-scrollbar {
+  height: 4px;
+}
+
+.hub-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: var(--radius-full, 9999px);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: var(--text-sm, 13px);
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all var(--transition-fast, 150ms) ease;
+}
+
+.hub-tab-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover, rgba(255, 255, 255, 0.15));
+}
+
+.hub-tab-btn.active {
+  color: var(--text-primary);
+  background: var(--bg-surface, #ffffff);
+  border-color: var(--border-default, rgba(255, 255, 255, 0.2));
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.1));
+}
+
+.hub-tab-panel {
+  padding: 12px 16px;
+}
+
+.hub-tab-panel .category-card {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.hub-tab-panel .category-card .category-header {
+  display: none;
+}
+
 
 

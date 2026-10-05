@@ -480,10 +480,70 @@
   background-color: var(--bg-surface-hover);
 }
 
-/* Collapsed State */
-.category-card.collapsed .bookmarks-list,
-.category-card.collapsed .card-footer {
+/* 12.1 Grid-Rows Collapsible Animation & Inner Scrolling */
+.card-collapsible-wrapper {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows var(--transition-normal, 200ms) ease;
+}
+
+.category-card.collapsed .card-collapsible-wrapper {
+  grid-template-rows: 0fr;
+}
+
+.card-collapsible-inner {
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Internal card scrolling for long collections (Phase 12.2) */
+.bookmarks-list {
+  max-height: 440px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* Collapsed State fallback for classic mode */
+body[data-page="classic"] .category-card.collapsed .bookmarks-list,
+body[data-page="classic"] .category-card.collapsed .card-footer {
   display: none;
+}
+
+/* 12.3 Chrome Tab Group Colors & Dots */
+.category-color-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+  vertical-align: middle;
+  margin: 0 4px;
+}
+
+.category-color-dot.color-grey   { background-color: #5f6368; }
+.category-color-dot.color-blue   { background-color: #1a73e8; }
+.category-color-dot.color-red    { background-color: #d93025; }
+.category-color-dot.color-yellow { background-color: #f9ab00; }
+.category-color-dot.color-green  { background-color: #1e8e3e; }
+.category-color-dot.color-pink   { background-color: #e52592; }
+.category-color-dot.color-purple { background-color: #9334e6; }
+.category-color-dot.color-cyan   { background-color: #12b5cb; }
+.category-color-dot.color-orange { background-color: #e8710a; }
+
+/* Header tints when category has group color */
+.category-card[data-color="grey"]   .category-header { background: rgba(95, 99, 104, 0.08); }
+.category-card[data-color="blue"]   .category-header { background: rgba(26, 115, 232, 0.08); }
+.category-card[data-color="red"]    .category-header { background: rgba(217, 48, 37, 0.08); }
+.category-card[data-color="yellow"] .category-header { background: rgba(249, 171, 0, 0.08); }
+.category-card[data-color="green"]  .category-header { background: rgba(30, 142, 62, 0.08); }
+.category-card[data-color="pink"]   .category-header { background: rgba(229, 37, 146, 0.08); }
+.category-card[data-color="purple"] .category-header { background: rgba(147, 52, 230, 0.08); }
+.category-card[data-color="cyan"]   .category-header { background: rgba(18, 181, 203, 0.08); }
+.category-card[data-color="orange"] .category-header { background: rgba(232, 113, 10, 0.08); }
+
+.icon-action-btn.quick-add-btn {
+  font-size: 15px;
+  line-height: 1;
 }
 
 /* Dashboard Action Bar (e.g. + New Collection) */

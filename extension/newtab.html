@@ -139,15 +139,29 @@
           </svg>
           <span>Top</span>
         </button>
+        <div class="hub-filter-wrapper">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hub-filter-icon" aria-hidden="true">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input id="hub-filter-input" class="hub-filter-input" type="search" placeholder="Filter collections..." aria-label="Filter collections and bookmarks" autocomplete="off" />
+        </div>
         <button id="add-category-toolbar-btn" class="btn-quiet" type="button">
           <span>+</span>
           <span>New Collection</span>
+        </button>
+        <button id="save-tabs-toolbar-btn" class="btn-quiet" type="button" title="Save current browser tabs into a collection">
+          <span>⚡</span>
+          <span>Save Tabs</span>
         </button>
         <button id="collapse-all-btn" class="btn-quiet" type="button" title="Collapse all collections">
           <span>Collapse all</span>
         </button>
         <button id="expand-all-btn" class="btn-quiet" type="button" title="Expand all collections">
           <span>Expand all</span>
+        </button>
+        <button id="hub-view-toggle-btn" class="btn-quiet hub-view-toggle" type="button" aria-label="Toggle collections view" title="Switch between Columns and Tabs view">
+          <span class="view-mode-label">Columns</span>
         </button>
       </div>
       <nav id="pinned-strip" class="pinned-strip" aria-label="Pinned bookmarks" hidden></nav>

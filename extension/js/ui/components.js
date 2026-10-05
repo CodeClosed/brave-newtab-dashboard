@@ -521,12 +521,43 @@ export function renderCategoryCard(category, categoryIndex, totalCategories) {
     });
   });
 
+  let colorDot = null;
+  if (category.color) {
+    colorDot = el('span', {
+      className: `category-color-dot color-${category.color}`,
+      'aria-hidden': 'true',
+      title: `Color: ${category.color}`,
+      dataset: { color: category.color }
+    });
+  }
+
   const titleGroup = el('div', { className: 'category-title-group' },
     catDragHandle,
     el('span', { className: 'category-icon', text: category.icon || '📁' }),
     catNameEl,
+    colorDot,
     el('span', { className: 'category-count', text: `(${bookmarkCount})` })
   );
+
+  // Quick Add Bookmark Button
+  const quickAddBtn = el('button', {
+    className: 'icon-action-btn quick-add-btn',
+    type: 'button',
+    'aria-label': `Add bookmark to ${category.name}`,
+    title: 'Add bookmark',
+    text: '+',
+    onclick: (e) => {
+      e.stopPropagation();
+      openBookmarkDialog({
+        mode: 'add',
+        categoryId: category.id,
+        onSave: (data) => {
+          store.addBookmark(category.id, data);
+          showToast(`Added "${data.name}" to ${category.name}`);
+        }
+      });
+    }
+  });
 
   // Card Menu Trigger
   const menuBtn = el('button', {
@@ -561,7 +592,7 @@ export function renderCategoryCard(category, categoryIndex, totalCategories) {
 
   const header = el('header', { className: 'category-header', title: 'Drag to reorder collection' },
     titleGroup,
-    el('div', { className: 'category-actions' }, menuBtn, collapseBtn)
+    el('div', { className: 'category-actions' }, quickAddBtn, menuBtn, collapseBtn)
   );
 
   header.addEventListener('keydown', (e) => {
@@ -644,10 +675,16 @@ export function renderCategoryCard(category, categoryIndex, totalCategories) {
 
   const footer = el('footer', { className: 'card-footer' }, addBookmarkBtn);
 
+  const bodyInner = el('div', { className: 'card-collapsible-inner' }, list, footer);
+  const bodyWrapper = el('div', { className: 'card-collapsible-wrapper' }, bodyInner);
+
   const card = el('article', {
     className: `category-card${isCollapsed ? ' collapsed' : ''}`,
-    dataset: { id: category.id }
-  }, header, list, footer);
+    dataset: {
+      id: category.id,
+      color: category.color || undefined
+    }
+  }, header, bodyWrapper);
 
   // Attach category drag and drop
   attachCategoryDnD(card, category, categoryIndex);

@@ -21,11 +21,11 @@ import { resolveRotatedWallpaperId } from './features/wallpaper.js';
 import { initAutoHide } from './features/auto-hide.js';
 import { applyAccessibilitySettings } from './features/accessibility.js';
 import { renderNotesWidget } from './features/notes.js';
-import { renderTodoWidget } from './features/todo.js';
-import { applyPageMode, applyLanding, initPageShell } from './features/page-shell.js';
+import { applyPageMode, applyLanding, initPageShell, scrollToHero } from './features/page-shell.js';
 import { applyHeroLayout, initHero } from './features/hero.js';
 import { renderDailyQuote } from './features/quote.js';
 import { renderDock, initDock } from './features/dock.js';
+import { filterHubCollections, renderTabbedHub, initHubToolbar } from './features/hub.js';
 
 /**
  * Updates DOM root attributes and dynamic UI based on current settings.
@@ -129,6 +129,35 @@ async function initApp() {
     return (s.categories || []).filter(c => !c.spaceId || c.spaceId === activeSpaceId);
   }
 
+  let currentHubFilter = '';
+
+  /**
+   * Renders collections hub with filtering and columns vs tabs layout.
+   * @param {import('./core/schema.js').DashboardData} s
+   */
+  function renderHubCollections(s) {
+    const rawCategories = getVisibleCategories(s);
+    const visibleCategories = filterHubCollections(rawCategories, currentHubFilter);
+    const hubView = s.settings?.hub?.view || 'columns';
+
+    const hubEl = document.getElementById('collections-hub');
+    if (hubEl) {
+      hubEl.dataset.hubView = hubView;
+    }
+
+    const viewToggleBtn = document.getElementById('hub-view-toggle-btn');
+    if (viewToggleBtn) {
+      const label = viewToggleBtn.querySelector('.view-mode-label');
+      if (label) label.textContent = hubView === 'tabs' ? 'Tabs' : 'Columns';
+    }
+
+    if (hubView === 'tabs') {
+      renderTabbedHub(visibleCategories, gridContainer, { spaceId: s.activeSpaceId });
+    } else {
+      renderCategoriesGrid(visibleCategories, gridContainer);
+    }
+  }
+
   // Initial render
   applySettings(data.settings);
   renderClockAndGreeting(data.settings);
@@ -141,7 +170,7 @@ async function initApp() {
   updateWidgetsVisibility(data.settings);
   renderNotesWidget(notesWidgetContainer, data, (note) => store.updateSpaceNote(data.activeSpaceId, note, true));
   renderTodoWidget(todoWidgetContainer, data);
-  renderCategoriesGrid(getVisibleCategories(data), gridContainer);
+  renderHubCollections(data);
 
   if (typeof window !== 'undefined' && /** @type {any} */ (window).__ntd_data_unreadable_warning) {
     showToast("Your saved data couldn't be read. A backup copy was kept.");
@@ -182,6 +211,28 @@ async function initApp() {
     });
   }
 
+  // 12.4 Initialize Hub Toolbar (filter, view toggle, top jump)
+  initHubToolbar({
+    store,
+    scrollToHero,
+    onFilterChange: (query) => {
+      currentHubFilter = query;
+      const s = store.getState ? store.getState() : store.get();
+      renderHubCollections(s);
+    },
+    onViewToggle: () => {
+      const s = store.getState ? store.getState() : store.get();
+      renderHubCollections(s);
+    }
+  });
+
+  const saveTabsBtn = document.getElementById('save-tabs-toolbar-btn');
+  if (saveTabsBtn) {
+    saveTabsBtn.addEventListener('click', () => {
+      showToast('Tab groups integration: ready in Phase 13');
+    });
+  }
+
   // Bind Settings Cog Trigger
   const settingsBtn = document.getElementById('settings-trigger-btn');
   if (settingsBtn) {
@@ -212,7 +263,7 @@ async function initApp() {
     updateWidgetsVisibility(state.settings);
     renderNotesWidget(notesWidgetContainer, state, (note) => store.updateSpaceNote(state.activeSpaceId, note, true));
     renderTodoWidget(todoWidgetContainer, state);
-    renderCategoriesGrid(getVisibleCategories(state), gridContainer);
+    renderHubCollections(state);
   });
 }
 

@@ -133,7 +133,8 @@ export function resetSettingsSection(sectionId) {
       layout: defaults.layout,
       cards: JSON.parse(JSON.stringify(defaults.cards)),
       display: JSON.parse(JSON.stringify(defaults.display)),
-      dock: JSON.parse(JSON.stringify(defaults.dock))
+      dock: JSON.parse(JSON.stringify(defaults.dock)),
+      hub: JSON.parse(JSON.stringify(defaults.hub))
     };
   } else if (sectionId === 'clock') {
     label = 'Clock';
@@ -1455,7 +1456,27 @@ function renderLayoutSection(settings) {
     maxItemsSlider
   );
 
+  // 12.5 Hub View Settings
+  const hubSettings = settings.hub || { view: 'columns' };
+  const currentHubView = hubSettings.view === 'tabs' ? 'tabs' : 'columns';
+  const hubViewGroup = el('div', { className: 'setting-item' },
+    el('div', { className: 'setting-item-header' },
+      el('span', { className: 'setting-label', text: 'Collections Hub Layout' })
+    ),
+    el('div', { className: 'radio-group-cards', style: { gridTemplateColumns: 'repeat(2, 1fr)' } },
+      renderRadioCard('Columns', currentHubView === 'columns', () => {
+        store.updateSettings({ hub: { ...(settings.hub || {}), view: 'columns' } });
+        renderDrawerContent();
+      }),
+      renderRadioCard('Tabbed Stack', currentHubView === 'tabs', () => {
+        store.updateSettings({ hub: { ...(settings.hub || {}), view: 'tabs' } });
+        renderDrawerContent();
+      })
+    )
+  );
+
   section.appendChild(layoutGroup);
+  section.appendChild(hubViewGroup);
   section.appendChild(dockPosGroup);
   section.appendChild(dockAutoHideRow);
   section.appendChild(maxItemsGroup);
