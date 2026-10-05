@@ -156,7 +156,7 @@ export function repairSettings(settings) {
   let clkStyle = clk.style;
   if (clkStyle === 'left-aligned') clkStyle = 'left';
   if (clkStyle === 'minimal') clkStyle = 'small';
-  const validClockStyles = ['large', 'small', 'left', 'analog', 'off'];
+  const validClockStyles = ['large', 'small', 'left', 'analog', 'off', 'hero'];
   const validDateFormats = ['weekday-short', 'weekday-full', 'full', 'short', 'iso', 'day-first', 'off'];
 
   const isTzValid = (tz) => {

@@ -164,7 +164,11 @@ export function renderClockAndGreeting(settings) {
 
   const now = new Date();
   const clockConf = settings?.clock || {};
-  const clockStyle = clockConf.style === 'small' ? 'small' : (clockConf.style === 'left' || clockConf.style === 'left-aligned' ? 'left' : 'large');
+  const clockStyle = clockConf.style === 'small'
+    ? 'small'
+    : (clockConf.style === 'left' || clockConf.style === 'left-aligned'
+      ? 'left'
+      : (clockConf.style === 'hero' ? 'hero' : 'large'));
   const showSeconds = Boolean(clockConf.showSeconds);
   const is24h = settings?.timeFormat === '24h';
 
@@ -172,6 +176,7 @@ export function renderClockAndGreeting(settings) {
     headerEl.classList.toggle('clock-style-large', clockStyle === 'large');
     headerEl.classList.toggle('clock-style-small', clockStyle === 'small');
     headerEl.classList.toggle('clock-style-left', clockStyle === 'left');
+    headerEl.classList.toggle('clock-style-hero', clockStyle === 'hero');
   }
 
   // Clock
