@@ -1,7 +1,7 @@
 // @ts-check
 import { getBackgroundImage, getWallpaperRecord } from '../core/idb.js';
 import { resolveScheduledTheme } from './schedule.js';
-import { calculateAutoReadabilityDim } from './wallpaper.js';
+import { calculateAutoReadabilityDim, resolveActiveWallpaperId } from './wallpaper.js';
 
 let activeImageUrl = null;
 let lastBgKey = null;
@@ -101,14 +101,19 @@ export async function applyBackground(bgConfig, force = false) {
   const overlay = document.getElementById('bg-overlay');
   if (!overlay) return;
 
+  const root = typeof document !== 'undefined' ? document.documentElement : null;
+  const isDark = root ? (root.getAttribute('data-theme') === 'dark' || (root.classList && root.classList.contains('dark'))) : false;
+  const targetWallpaperId = resolveActiveWallpaperId(bgConfig, isDark);
+
   const currentBgKey = JSON.stringify({
     type: bgConfig?.type,
     value: bgConfig?.value,
     dim: bgConfig?.dim,
-    activeId: bgConfig?.activeId,
+    activeId: targetWallpaperId,
     blur: bgConfig?.blur,
     fit: bgConfig?.fit,
-    focal: bgConfig?.focal
+    focal: bgConfig?.focal,
+    isDark
   });
   if (!force && lastBgKey !== null && currentBgKey === lastBgKey) {
     return;
@@ -131,11 +136,9 @@ export async function applyBackground(bgConfig, force = false) {
 
   let dim = typeof bgConfig.dim === 'number' ? bgConfig.dim : 0.35;
   if (bgConfig?.autoReadability && bgConfig.type === 'image') {
-    const root = typeof document !== 'undefined' ? document.documentElement : null;
-    const isDark = root ? (root.getAttribute('data-theme') === 'dark' || (root.classList && root.classList.contains('dark'))) : false;
     let lum = null;
-    if (bgConfig.activeId && Array.isArray(bgConfig.wallpapers)) {
-      const activeWp = bgConfig.wallpapers.find(w => w.id === bgConfig.activeId);
+    if (targetWallpaperId && Array.isArray(bgConfig.wallpapers)) {
+      const activeWp = bgConfig.wallpapers.find(w => w.id === targetWallpaperId);
       if (activeWp && activeWp.luminanceData) {
         lum = activeWp.luminanceData;
       }
@@ -167,8 +170,8 @@ export async function applyBackground(bgConfig, force = false) {
     overlay.style.filter = 'none';
   } else if (bgConfig.type === 'image') {
     let blob = null;
-    if (bgConfig.activeId) {
-      const rec = await getWallpaperRecord(bgConfig.activeId);
+    if (targetWallpaperId) {
+      const rec = await getWallpaperRecord(targetWallpaperId);
       if (rec && rec.blob) {
         blob = rec.blob;
       }
@@ -191,7 +194,7 @@ export async function applyBackground(bgConfig, force = false) {
       overlay.style.opacity = String(1 - dim);
       overlay.style.backgroundColor = '#000000';
 
-      const activeWp = Array.isArray(bgConfig.wallpapers) ? bgConfig.wallpapers.find(w => w.id === bgConfig.activeId) : null;
+      const activeWp = Array.isArray(bgConfig.wallpapers) ? bgConfig.wallpapers.find(w => w.id === targetWallpaperId) : null;
       const focal = (activeWp && activeWp.focal) || bgConfig.focal;
       if (focal && typeof focal.x === 'number' && typeof focal.y === 'number') {
         overlay.style.backgroundPosition = `${Math.round(focal.x * 100)}% ${Math.round(focal.y * 100)}%`;

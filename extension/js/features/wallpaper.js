@@ -581,6 +581,41 @@ export async function renderWallpaperLibrary(container, storeInstance, options =
       });
       card.appendChild(delBtn);
 
+      // Day & Night assignment buttons
+      const isDay = bgConfig.dayId === item.id;
+      const isNight = bgConfig.nightId === item.id;
+
+      const dayBtn = el('button', {
+        className: `wallpaper-day-btn${isDay ? ' active' : ''}`,
+        type: 'button',
+        title: isDay ? 'Unset Day Wallpaper' : 'Set as Day Wallpaper',
+        'aria-label': `Day wallpaper for ${item.name || 'image'}`,
+        text: '☀️ Day'
+      });
+      dayBtn.addEventListener('click', async (e) => {
+        if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+        setDayNightWallpaper('day', item.id, storeInstance);
+        if (options.onRefresh) options.onRefresh();
+        await renderWallpaperLibrary(container, storeInstance, options);
+      });
+
+      const nightBtn = el('button', {
+        className: `wallpaper-night-btn${isNight ? ' active' : ''}`,
+        type: 'button',
+        title: isNight ? 'Unset Night Wallpaper' : 'Set as Night Wallpaper',
+        'aria-label': `Night wallpaper for ${item.name || 'image'}`,
+        text: '🌙 Night'
+      });
+      nightBtn.addEventListener('click', async (e) => {
+        if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+        setDayNightWallpaper('night', item.id, storeInstance);
+        if (options.onRefresh) options.onRefresh();
+        await renderWallpaperLibrary(container, storeInstance, options);
+      });
+
+      const dayNightRow = el('div', { className: 'wallpaper-daynight-row' }, [dayBtn, nightBtn]);
+      card.appendChild(dayNightRow);
+
       // Select handler
       card.addEventListener('click', async (e) => {
         setActiveWallpaper(item.id, storeInstance);
@@ -595,4 +630,48 @@ export async function renderWallpaperLibrary(container, storeInstance, options =
 
   container.appendChild(grid);
 }
+
+/**
+ * Resolves the active wallpaper ID, checking dayId/nightId preferences against the current theme.
+ * @param {any} bgConfig
+ * @param {boolean} isDark
+ * @returns {string | null}
+ */
+export function resolveActiveWallpaperId(bgConfig, isDark) {
+  if (!bgConfig) return null;
+  if (!isDark && bgConfig.dayId) {
+    return bgConfig.dayId;
+  }
+  if (isDark && bgConfig.nightId) {
+    return bgConfig.nightId;
+  }
+  return bgConfig.activeId || null;
+}
+
+/**
+ * Assigns or toggles a day/night wallpaper preference.
+ * @param {'day' | 'night'} type
+ * @param {string} wallpaperId
+ * @param {any} storeInstance
+ */
+export function setDayNightWallpaper(type, wallpaperId, storeInstance) {
+  const current = storeInstance.get().settings.background || {};
+  let dayId = current.dayId || null;
+  let nightId = current.nightId || null;
+
+  if (type === 'day') {
+    dayId = (dayId === wallpaperId ? null : wallpaperId);
+  } else if (type === 'night') {
+    nightId = (nightId === wallpaperId ? null : wallpaperId);
+  }
+
+  storeInstance.updateSettings({
+    background: {
+      ...current,
+      dayId,
+      nightId
+    }
+  });
+}
+
 
