@@ -1053,6 +1053,135 @@ body.auto-hide-enabled.auto-hide-idle:not(.focus-mode) .corner:focus-within {
   color: var(--text-primary);
 }
 
+/* 15.3 Wallpaper Tuner Popover (Glass v2) */
+.wallpaper-tuner-popover {
+  width: 320px;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg, 12px);
+  box-shadow: var(--glass-shadow);
+  padding: 14px;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  color: var(--text-primary);
+}
+
+.wallpaper-tuner-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.wallpaper-tuner-title {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold, 600);
+  color: var(--text-primary);
+}
+
+.wallpaper-tuner-close-btn {
+  background: transparent;
+  border: none;
+  font-size: 14px;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+}
+
+.wallpaper-tuner-close-btn:hover {
+  color: var(--text-primary);
+}
+
+.wallpaper-tuner-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.wallpaper-tuner-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.wallpaper-tuner-label {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium, 500);
+  color: var(--text-secondary);
+}
+
+.wallpaper-tuner-thumbs-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.wallpaper-thumb-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  background: rgba(0, 0, 0, 0.15);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm, 6px);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.wallpaper-thumb-card:hover {
+  border-color: var(--border-default);
+}
+
+.wallpaper-thumb-card.is-active {
+  border-color: var(--accent-primary, #3b82f6);
+  box-shadow: 0 0 0 1px var(--accent-primary, #3b82f6);
+}
+
+.wallpaper-thumb-img {
+  width: 100%;
+  height: 44px;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+.wallpaper-thumb-title {
+  font-size: 10px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.wallpaper-tuner-slider-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.wallpaper-tuner-val {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.wallpaper-tuner-slider {
+  width: 100%;
+  height: 4px;
+  accent-color: var(--accent-primary, #3b82f6);
+}
+
+.wallpaper-tuner-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 4px;
+  border-top: 1px solid var(--border-subtle);
+}
+
 /* ==========================================================================
    Phase 11: Omnidirectional Floating App Dock (Glass v2)
    ========================================================================== */

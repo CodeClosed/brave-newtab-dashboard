@@ -60,9 +60,10 @@ export async function initHero(store) {
 
   // 10.4 Corner buttons
   if (wallpaperTunerBtn) {
-    wallpaperTunerBtn.addEventListener('click', async () => {
-      const { openDrawer } = await import('../ui/drawer.js');
-      openDrawer('wallpapers');
+    wallpaperTunerBtn.addEventListener('click', async (e) => {
+      if (typeof e?.stopPropagation === 'function') e.stopPropagation();
+      const { toggleWallpaperTuner } = await import('./wallpaper-tuner.js');
+      toggleWallpaperTuner(wallpaperTunerBtn, store);
     });
   }
 

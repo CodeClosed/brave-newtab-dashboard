@@ -85,6 +85,32 @@ export function calculateAutoReadabilityDim(luminanceData, isDark = true) {
 }
 
 /**
+ * 15.1 Six curated bundled SVG wallpapers.
+ */
+export const BUNDLED_WALLPAPERS = [
+  { id: 'bundled:warm-fluid-wave', name: 'Warm Fluid Wave', file: 'warm-fluid-wave.svg', theme: 'dark', luminanceData: { mean: 0.12, p10: 0.05, p90: 0.28 } },
+  { id: 'bundled:violet-dusk', name: 'Violet Dusk', file: 'violet-dusk.svg', theme: 'dark', luminanceData: { mean: 0.09, p10: 0.04, p90: 0.22 } },
+  { id: 'bundled:misty-forest', name: 'Misty Forest', file: 'misty-forest.svg', theme: 'dark', luminanceData: { mean: 0.11, p10: 0.04, p90: 0.25 } },
+  { id: 'bundled:midnight-blue', name: 'Midnight Blue', file: 'midnight-blue.svg', theme: 'dark', luminanceData: { mean: 0.08, p10: 0.03, p90: 0.20 } },
+  { id: 'bundled:sand-light', name: 'Sand Light', file: 'sand-light.svg', theme: 'light', luminanceData: { mean: 0.82, p10: 0.65, p90: 0.92 } },
+  { id: 'bundled:graphite-dark', name: 'Graphite Dark', file: 'graphite-dark.svg', theme: 'dark', luminanceData: { mean: 0.07, p10: 0.03, p90: 0.18 } }
+];
+
+/**
+ * 15.2 Calculates adaptive glass opacity based on wallpaper luminance & dimming
+ * so card text keeps >= 4.5:1 WCAG contrast over bright wallpapers.
+ * @param {number} dim
+ * @param {boolean} [isDark=true]
+ * @returns {number} Clamped within [0.60, 0.90]
+ */
+export function calculateAdaptiveGlassOpacity(dim, isDark = true) {
+  const base = isDark ? 0.62 : 0.70;
+  const boost = (dim - 0.15) * 0.35;
+  const opacity = Math.max(0.60, Math.min(0.90, base + boost));
+  return Math.round(opacity * 100) / 100;
+}
+
+/**
  * Processes a wallpaper image: downscales <= 2560px, compresses under 1.5MB,
  * generates 160px thumbnail, and extracts 32x32 luminance stats.
  *

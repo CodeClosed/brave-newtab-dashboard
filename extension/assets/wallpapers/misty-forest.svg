@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" width="100%" height="100%">
+  <defs>
+    <linearGradient id="forest-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#021c16"/>
+      <stop offset="60%" stop-color="#064e3b"/>
+      <stop offset="100%" stop-color="#022019"/>
+    </linearGradient>
+    <radialGradient id="sun-mist" cx="70%" cy="25%" r="60%">
+      <stop offset="0%" stop-color="#34d399" stop-opacity="0.3"/>
+      <stop offset="40%" stop-color="#059669" stop-opacity="0.15"/>
+      <stop offset="85%" stop-color="#021c16" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="ridge1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#065f46" stop-opacity="0.7"/>
+      <stop offset="100%" stop-color="#022c22" stop-opacity="0.9"/>
+    </linearGradient>
+    <linearGradient id="ridge2" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#047857" stop-opacity="0.6"/>
+      <stop offset="60%" stop-color="#10b981" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#064e3b" stop-opacity="0.8"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Deep Pine Canvas -->
+  <rect width="1920" height="1080" fill="url(#forest-bg)"/>
+
+  <!-- Morning Sun Mist Canopy Glow -->
+  <circle cx="1340" cy="270" r="700" fill="url(#sun-mist)"/>
+
+  <!-- Mountain Forest Ridges -->
+  <path d="M-50,600 C300,500 650,750 1100,580 C1550,420 1780,640 2050,540 L2050,1200 L-50,1200 Z" fill="url(#ridge1)"/>
+  <path d="M-100,740 C350,620 750,880 1250,680 C1650,520 1850,760 2050,680 L2050,1200 L-100,1200 Z" fill="url(#ridge2)"/>
+</svg>

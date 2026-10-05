@@ -117,6 +117,105 @@ export const THEME_PRESETS = [
 ];
 
 /**
+ * 15.4 Three Glass Theme Presets bundling wallpaper, accent, hero layout and dock.
+ */
+export const GLASS_PRESETS = [
+  {
+    id: 'glass-ember',
+    name: 'Ember Wave',
+    description: 'Vibrant fluid waves, warm amber accents, studio hero, and frosted top dock.',
+    settings: {
+      theme: 'dark',
+      palette: 'default',
+      accent: 'amber',
+      accentCustom: null,
+      cards: {
+        style: 'glass',
+        translucent: true,
+        columns: 'auto',
+        width: 340,
+        gap: 16,
+        align: 'center',
+        equalHeight: true,
+        verticalCenter: false
+      },
+      background: {
+        type: 'image',
+        activeId: 'bundled:warm-fluid-wave',
+        value: null,
+        dim: 0.35,
+        blur: 0,
+        autoReadability: true
+      },
+      hero: { layout: 'studio' },
+      dock: { position: 'top' }
+    }
+  },
+  {
+    id: 'glass-dusk',
+    name: 'Violet Dusk',
+    description: 'Twilight purple atmosphere, rose accents, studio hero, and frosted bottom dock.',
+    settings: {
+      theme: 'dark',
+      palette: 'default',
+      accent: 'rose',
+      accentCustom: null,
+      cards: {
+        style: 'glass',
+        translucent: true,
+        columns: 'auto',
+        width: 340,
+        gap: 16,
+        align: 'center',
+        equalHeight: true,
+        verticalCenter: false
+      },
+      background: {
+        type: 'image',
+        activeId: 'bundled:violet-dusk',
+        value: null,
+        dim: 0.35,
+        blur: 0,
+        autoReadability: true
+      },
+      hero: { layout: 'studio' },
+      dock: { position: 'bottom' }
+    }
+  },
+  {
+    id: 'glass-forest',
+    name: 'Misty Forest',
+    description: 'Atmospheric emerald pine, emerald accents, centered hero, and frosted left dock.',
+    settings: {
+      theme: 'dark',
+      palette: 'default',
+      accent: 'emerald',
+      accentCustom: null,
+      cards: {
+        style: 'glass',
+        translucent: true,
+        columns: 'auto',
+        width: 340,
+        gap: 16,
+        align: 'center',
+        equalHeight: true,
+        verticalCenter: false
+      },
+      background: {
+        type: 'image',
+        activeId: 'bundled:misty-forest',
+        value: null,
+        dim: 0.35,
+        blur: 0,
+        autoReadability: true
+      },
+      hero: { layout: 'centered' },
+      dock: { position: 'left' }
+    }
+  }
+];
+
+/**
  * Validates a preset structure to ensure it conforms to safety rules.
  * @param {any} preset
  * @returns {{ valid: boolean, error?: string }}
@@ -167,7 +266,8 @@ export function validatePreset(preset) {
  * @returns {{ success: boolean, preset?: any, undo?: Function }}
  */
 export function applyThemePreset(presetId, storeInstance) {
-  const preset = THEME_PRESETS.find(p => p.id === presetId || p.name.toLowerCase() === presetId.toLowerCase());
+  const allPresets = [...THEME_PRESETS, ...GLASS_PRESETS];
+  const preset = allPresets.find(p => p.id === presetId || p.name.toLowerCase() === presetId.toLowerCase());
   if (!preset) {
     return { success: false };
   }
@@ -179,10 +279,12 @@ export function applyThemePreset(presetId, storeInstance) {
     accent: current.accent,
     accentCustom: current.accentCustom,
     cards: JSON.parse(JSON.stringify(current.cards || {})),
-    background: JSON.parse(JSON.stringify(current.background || { type: 'none' }))
+    background: JSON.parse(JSON.stringify(current.background || { type: 'none' })),
+    hero: JSON.parse(JSON.stringify(current.hero || {})),
+    dock: JSON.parse(JSON.stringify(current.dock || {}))
   };
 
-  storeInstance.updateSettings({
+  const patch = {
     theme: preset.settings.theme,
     palette: preset.settings.palette,
     accent: preset.settings.accent,
@@ -195,7 +297,15 @@ export function applyThemePreset(presetId, storeInstance) {
       ...(current.background || {}),
       ...preset.settings.background
     }
-  });
+  };
+  if (preset.settings.hero) {
+    patch.hero = { ...(current.hero || {}), ...preset.settings.hero };
+  }
+  if (preset.settings.dock) {
+    patch.dock = { ...(current.dock || {}), ...preset.settings.dock };
+  }
+
+  storeInstance.updateSettings(patch);
 
   const undo = () => {
     storeInstance.updateSettings(previousSettings);
@@ -210,7 +320,8 @@ export function applyThemePreset(presetId, storeInstance) {
  * @returns {string}
  */
 export function exportPresetToJson(presetId) {
-  const preset = THEME_PRESETS.find(p => p.id === presetId);
+  const allPresets = [...THEME_PRESETS, ...GLASS_PRESETS];
+  const preset = allPresets.find(p => p.id === presetId);
   if (!preset) return '';
   return JSON.stringify({
     type: 'ntd:theme_preset',

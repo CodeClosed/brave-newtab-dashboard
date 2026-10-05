@@ -1,7 +1,7 @@
 // @ts-check
 import { getBackgroundImage, getWallpaperRecord } from '../core/idb.js';
 import { resolveScheduledTheme } from './schedule.js';
-import { calculateAutoReadabilityDim, resolveActiveWallpaperId } from './wallpaper.js';
+import { calculateAutoReadabilityDim, calculateAdaptiveGlassOpacity, resolveActiveWallpaperId, BUNDLED_WALLPAPERS } from './wallpaper.js';
 
 let activeImageUrl = null;
 let lastBgKey = null;
@@ -140,13 +140,20 @@ export async function applyBackground(bgConfig, force = false) {
   let dim = typeof bgConfig.dim === 'number' ? bgConfig.dim : 0.35;
   if (bgConfig?.autoReadability && bgConfig.type === 'image') {
     let lum = null;
-    if (targetWallpaperId && Array.isArray(bgConfig.wallpapers)) {
+    if (targetWallpaperId && typeof targetWallpaperId === 'string' && targetWallpaperId.startsWith('bundled:')) {
+      const found = BUNDLED_WALLPAPERS.find(b => b.id === targetWallpaperId);
+      if (found) lum = found.luminanceData;
+    } else if (targetWallpaperId && Array.isArray(bgConfig.wallpapers)) {
       const activeWp = bgConfig.wallpapers.find(w => w.id === targetWallpaperId);
       if (activeWp && activeWp.luminanceData) {
         lum = activeWp.luminanceData;
       }
     }
     dim = calculateAutoReadabilityDim(lum, isDark);
+    const adaptiveGlass = calculateAdaptiveGlassOpacity(dim, isDark);
+    if (root && root.style && typeof root.style.setProperty === 'function') {
+      root.style.setProperty('--glass-opacity', String(adaptiveGlass));
+    }
   }
 
   // Security: never write arbitrary url() to style
@@ -183,13 +190,19 @@ export async function applyBackground(bgConfig, force = false) {
     overlay.style.filter = 'none';
   } else if (bgConfig.type === 'image') {
     let blob = null;
-    if (targetWallpaperId) {
+    let bundledUrl = null;
+    if (targetWallpaperId && typeof targetWallpaperId === 'string' && targetWallpaperId.startsWith('bundled:')) {
+      const bundleName = targetWallpaperId.replace('bundled:', '');
+      bundledUrl = (typeof chrome !== 'undefined' && chrome.runtime?.getURL)
+        ? chrome.runtime.getURL(`assets/wallpapers/${bundleName}.svg`)
+        : `assets/wallpapers/${bundleName}.svg`;
+    } else if (targetWallpaperId) {
       const rec = await getWallpaperRecord(targetWallpaperId);
       if (rec && rec.blob) {
         blob = rec.blob;
       }
     }
-    if (!blob) {
+    if (!blob && !bundledUrl) {
       blob = await getBackgroundImage();
     }
 
@@ -198,15 +211,20 @@ export async function applyBackground(bgConfig, force = false) {
       return;
     }
 
-    if (blob) {
+    if (blob || bundledUrl) {
       if (activeImageUrl) {
         URL.revokeObjectURL(activeImageUrl);
+        activeImageUrl = null;
       }
       if (root && typeof root.setAttribute === 'function') {
         root.setAttribute('data-bg', 'image');
       }
-      activeImageUrl = URL.createObjectURL(blob);
-      overlay.style.backgroundImage = `url("${activeImageUrl}")`;
+      if (blob) {
+        activeImageUrl = URL.createObjectURL(blob);
+        overlay.style.backgroundImage = `url("${activeImageUrl}")`;
+      } else if (bundledUrl) {
+        overlay.style.backgroundImage = `url("${bundledUrl}")`;
+      }
       overlay.style.opacity = String(1 - dim);
       overlay.style.backgroundColor = '#000000';
 

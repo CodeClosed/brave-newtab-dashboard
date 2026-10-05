@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" width="100%" height="100%">
+  <defs>
+    <linearGradient id="carbon-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#090a0d"/>
+      <stop offset="50%" stop-color="#12151b"/>
+      <stop offset="100%" stop-color="#0a0c10"/>
+    </linearGradient>
+    <radialGradient id="slate-glow" cx="45%" cy="35%" r="60%">
+      <stop offset="0%" stop-color="#334155" stop-opacity="0.3"/>
+      <stop offset="50%" stop-color="#1e293b" stop-opacity="0.15"/>
+      <stop offset="90%" stop-color="#090a0d" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="plate1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e222a" stop-opacity="0.7"/>
+      <stop offset="100%" stop-color="#111419" stop-opacity="0.85"/>
+    </linearGradient>
+    <linearGradient id="plate2" x1="100%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" stop-color="#282f3a" stop-opacity="0.4"/>
+      <stop offset="60%" stop-color="#1a1f26" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#0f1115" stop-opacity="0.7"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1920" height="1080" fill="url(#carbon-bg)"/>
+  <circle cx="860" cy="380" r="750" fill="url(#slate-glow)"/>
+  <path d="M-100,640 C350,520 750,780 1200,620 C1650,460 1850,700 2050,600 L2050,1200 L-100,1200 Z" fill="url(#plate1)"/>
+  <path d="M-50,780 C400,660 850,920 1300,740 C1700,580 1880,820 2050,720 L2050,1200 L-50,1200 Z" fill="url(#plate2)"/>
+</svg>
