@@ -5,16 +5,14 @@ import { createDefaultDashboardData } from '../extension/js/core/schema.js';
 
 test('3.3 Sort and collapse: sortCategoryBookmarks sorts A-Z with undo', async () => {
   const initialData = createDefaultDashboardData();
-  await store.replaceData(initialData, true);
-
-  const cat = store.get().categories[0];
-  // Put arbitrary names to sort
-  cat.bookmarks = [
+  initialData.categories[0].bookmarks = [
     { id: 'b1', name: 'Zebra', url: 'https://zebra.com', order: 0 },
     { id: 'b2', name: 'Apple', url: 'https://apple.com', order: 1 },
     { id: 'b3', name: 'Mango', url: 'https://mango.com', order: 2 }
   ];
+  await store.replaceData(initialData, true);
 
+  const cat = store.get().categories[0];
   const undo = store.sortCategoryBookmarks(cat.id);
 
   const sortedCat = store.get().categories.find(c => c.id === cat.id);

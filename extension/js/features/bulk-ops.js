@@ -77,29 +77,35 @@ export function getRangeSelectionIndices(start, end) {
 export function bulkDeleteBookmarks(bookmarkIds, targetStore) {
   const idSet = new Set(bookmarkIds);
   createSnapshot('Before bulk delete bookmarks', targetStore.get()).catch(() => {});
-  const snapshot = JSON.parse(JSON.stringify(targetStore.get()));
+  const snapshot = targetStore.getCopy ? targetStore.getCopy() : JSON.parse(JSON.stringify(targetStore.get()));
 
-  const data = targetStore.get();
-  for (const cat of data.categories || []) {
-    if (Array.isArray(cat.bookmarks)) {
-      cat.bookmarks = cat.bookmarks.filter(b => !idSet.has(b.id));
-      cat.bookmarks.forEach((b, idx) => { b.order = idx; });
-    }
-  }
-
-  if (Array.isArray(data.spaces)) {
-    data.spaces.forEach(sp => {
-      if (Array.isArray(sp.pinned)) {
-        sp.pinned = sp.pinned.filter(id => !idSet.has(id));
-      }
-    });
-  }
-
-  if (typeof targetStore.queueSaveDashboardData === 'function') {
-    targetStore.queueSaveDashboardData(data);
+  if (typeof targetStore.bulkDeleteBookmarks === 'function') {
+    targetStore.bulkDeleteBookmarks(bookmarkIds);
   } else {
-    queueSaveDashboardData(data);
-    targetStore._notify?.();
+    const data = JSON.parse(JSON.stringify(targetStore.get()));
+    for (const cat of data.categories || []) {
+      if (Array.isArray(cat.bookmarks)) {
+        cat.bookmarks = cat.bookmarks.filter(b => !idSet.has(b.id));
+        cat.bookmarks.forEach((b, idx) => { b.order = idx; });
+      }
+    }
+
+    if (Array.isArray(data.spaces)) {
+      data.spaces.forEach(sp => {
+        if (Array.isArray(sp.pinned)) {
+          sp.pinned = sp.pinned.filter(id => !idSet.has(id));
+        }
+      });
+    }
+
+    if (typeof targetStore.replaceData === 'function') {
+      targetStore.replaceData(data);
+    } else if (typeof targetStore.queueSaveDashboardData === 'function') {
+      targetStore.queueSaveDashboardData(data);
+    } else {
+      queueSaveDashboardData(data);
+      targetStore._notify?.();
+    }
   }
 
   return () => {
@@ -117,41 +123,51 @@ export function bulkDeleteBookmarks(bookmarkIds, targetStore) {
 export function bulkMoveBookmarks(bookmarkIds, targetCategoryId, targetStore) {
   const idSet = new Set(bookmarkIds);
   createSnapshot('Before bulk move bookmarks', targetStore.get()).catch(() => {});
-  const snapshot = JSON.parse(JSON.stringify(targetStore.get()));
+  const snapshot = targetStore.getCopy ? targetStore.getCopy() : JSON.parse(JSON.stringify(targetStore.get()));
 
-  const data = targetStore.get();
-  const targetCat = data.categories?.find(c => c.id === targetCategoryId);
-  if (!targetCat) return () => {};
-
-  /** @type {any[]} */
-  const movedBookmarks = [];
-
-  for (const cat of data.categories || []) {
-    if (cat.id === targetCategoryId) continue;
-    if (Array.isArray(cat.bookmarks)) {
-      const remaining = [];
-      for (const bm of cat.bookmarks) {
-        if (idSet.has(bm.id)) {
-          movedBookmarks.push(bm);
-        } else {
-          remaining.push(bm);
-        }
-      }
-      cat.bookmarks = remaining;
-      cat.bookmarks.forEach((b, idx) => { b.order = idx; });
-    }
-  }
-
-  for (const bm of movedBookmarks) {
-    bm.order = targetCat.bookmarks.length;
-    targetCat.bookmarks.push(bm);
-  }
-
-  if (typeof targetStore.queueSaveDashboardData === 'function') {
-    targetStore.queueSaveDashboardData(data);
+  if (typeof targetStore.bulkMoveBookmarks === 'function') {
+    targetStore.bulkMoveBookmarks(bookmarkIds, targetCategoryId);
   } else {
-    queueSaveDashboardData(data);
-    targetStore._notify?.();
+    const data = JSON.parse(JSON.stringify(targetStore.get()));
+    const targetCat = data.categories?.find(c => c.id === targetCategoryId);
+    if (!targetCat) return () => {};
+
+    /** @type {any[]} */
+    const movedBookmarks = [];
+
+    for (const cat of data.categories || []) {
+      if (cat.id === targetCategoryId) continue;
+      if (Array.isArray(cat.bookmarks)) {
+        const remaining = [];
+        for (const bm of cat.bookmarks) {
+          if (idSet.has(bm.id)) {
+            movedBookmarks.push(bm);
+          } else {
+            remaining.push(bm);
+          }
+        }
+        cat.bookmarks = remaining;
+        cat.bookmarks.forEach((b, idx) => { b.order = idx; });
+      }
+    }
+
+    if (!Array.isArray(targetCat.bookmarks)) {
+      targetCat.bookmarks = [];
+    }
+
+    for (const bm of movedBookmarks) {
+      bm.order = targetCat.bookmarks.length;
+      targetCat.bookmarks.push(bm);
+    }
+
+    if (typeof targetStore.replaceData === 'function') {
+      targetStore.replaceData(data);
+    } else if (typeof targetStore.queueSaveDashboardData === 'function') {
+      targetStore.queueSaveDashboardData(data);
+    } else {
+      queueSaveDashboardData(data);
+      targetStore._notify?.();
+    }
   }
 
   return () => {
@@ -166,8 +182,20 @@ export function bulkMoveBookmarks(bookmarkIds, targetCategoryId, targetStore) {
  * @returns {{ pinnedCount: number, capped: boolean, undo: () => void }}
  */
 export function bulkPinBookmarks(bookmarkIds, targetStore) {
-  const snapshot = JSON.parse(JSON.stringify(targetStore.get()));
-  const data = targetStore.get();
+  const snapshot = targetStore.getCopy ? targetStore.getCopy() : JSON.parse(JSON.stringify(targetStore.get()));
+
+  if (typeof targetStore.bulkPinBookmarks === 'function') {
+    const res = targetStore.bulkPinBookmarks(bookmarkIds);
+    return {
+      pinnedCount: res.pinnedCount,
+      capped: res.capped,
+      undo: () => {
+        targetStore.replaceData(snapshot);
+      }
+    };
+  }
+
+  const data = JSON.parse(JSON.stringify(targetStore.get()));
   const space = data.spaces?.find(s => s.id === data.activeSpaceId) || data.spaces?.[0];
   if (!space) return { pinnedCount: 0, capped: false, undo: () => {} };
 
@@ -189,11 +217,15 @@ export function bulkPinBookmarks(bookmarkIds, targetStore) {
     }
   }
 
-  if (typeof targetStore.queueSaveDashboardData === 'function') {
-    targetStore.queueSaveDashboardData(data);
-  } else {
-    queueSaveDashboardData(data);
-    targetStore._notify?.();
+  if (count > 0) {
+    if (typeof targetStore.replaceData === 'function') {
+      targetStore.replaceData(data);
+    } else if (typeof targetStore.queueSaveDashboardData === 'function') {
+      targetStore.queueSaveDashboardData(data);
+    } else {
+      queueSaveDashboardData(data);
+      targetStore._notify?.();
+    }
   }
 
   return {

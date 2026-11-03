@@ -48,6 +48,9 @@ export function getPinnedBookmarks() {
  * @returns {{ success: boolean, pinned: boolean, reason?: string }}
  */
 export function togglePinBookmark(bookmarkId) {
+  if (typeof store.togglePinBookmark === 'function') {
+    return store.togglePinBookmark(bookmarkId);
+  }
   const state = store.getState();
   let space = state.spaces?.find((s) => s.id === state.activeSpaceId);
   if (!space && state.spaces?.length) {
@@ -92,6 +95,9 @@ export function togglePinBookmark(bookmarkId) {
  * @returns {{ success: boolean, pinned: boolean, reason?: string, alreadyPinned?: boolean }}
  */
 export function pinBookmark(bookmarkId, targetIndex = -1) {
+  if (typeof store.pinBookmark === 'function') {
+    return store.pinBookmark(bookmarkId, targetIndex);
+  }
   const state = store.getState();
   let space = state.spaces?.find((s) => s.id === state.activeSpaceId);
   if (!space && state.spaces?.length) {
@@ -139,6 +145,9 @@ export function pinBookmark(bookmarkId, targetIndex = -1) {
  * @returns {boolean}
  */
 export function reorderPinnedBookmark(fromIndex, toIndex) {
+  if (typeof store.reorderPinnedBookmark === 'function') {
+    return store.reorderPinnedBookmark(fromIndex, toIndex);
+  }
   const state = store.getState();
   let space = state.spaces?.find((s) => s.id === state.activeSpaceId) || state.spaces?.[0];
   if (!space || !Array.isArray(space.pinned)) return false;

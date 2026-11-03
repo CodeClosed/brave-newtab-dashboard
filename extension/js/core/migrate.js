@@ -30,13 +30,14 @@ export function repairSpaces(rawSpaces, rawActiveSpaceId) {
         ? s.todos
             .filter(t => t && typeof t === 'object' && typeof t.text === 'string' && t.text.trim().length > 0)
             .map(t => ({
+              ...t,
               id: (typeof t.id === 'string' && t.id.trim()) ? t.id.trim() : generateId(),
               text: t.text.trim().slice(0, 200),
               done: Boolean(t.done)
             }))
         : [];
 
-      spaces.push({ id, name, icon, order, pinned, note, todos });
+      spaces.push({ ...s, id, name, icon, order, pinned, note, todos });
     });
   }
 
@@ -108,6 +109,7 @@ export function repairSettings(settings) {
   // themeSchedule
   const ts = (s.themeSchedule && typeof s.themeSchedule === 'object') ? s.themeSchedule : {};
   s.themeSchedule = {
+    ...ts,
     enabled: Boolean(ts.enabled),
     mode: ['hours', 'solar'].includes(ts.mode) ? ts.mode : (defaults.themeSchedule?.mode || 'hours'),
     lightFrom: typeof ts.lightFrom === 'string' ? ts.lightFrom : defaults.themeSchedule.lightFrom,
@@ -129,6 +131,7 @@ export function repairSettings(settings) {
   }
 
   s.cards = {
+    ...c,
     style: validCardStyles.includes(cardStyle) ? cardStyle : defaults.cards.style,
     translucent: Boolean(c.translucent),
     columns: (colVal === 'auto' || [1, 2, 3, 4, 5, 6].includes(colVal)) ? colVal : defaults.cards.columns,
@@ -145,6 +148,7 @@ export function repairSettings(settings) {
   const validShapes = ['rounded', 'circle', 'square'];
   const validDensities = ['compact', 'comfortable', 'spacious'];
   s.display = {
+    ...d,
     defaultMode: validModes.includes(d.defaultMode) ? d.defaultMode : defaults.display.defaultMode,
     iconSize: (typeof d.iconSize === 'number' && d.iconSize >= 14 && d.iconSize <= 48) ? d.iconSize : defaults.display.iconSize,
     tileShape: validShapes.includes(d.tileShape) ? d.tileShape : defaults.display.tileShape,
@@ -179,6 +183,7 @@ export function repairSettings(settings) {
   };
 
   s.clock = {
+    ...clk,
     style: validClockStyles.includes(clkStyle) ? clkStyle : defaults.clock.style,
     showSeconds: typeof clk.showSeconds === 'boolean' ? clk.showSeconds : defaults.clock.showSeconds,
     secondTimezone: (typeof clk.secondTimezone === 'string' && isTzValid(clk.secondTimezone)) ? clk.secondTimezone : null,
@@ -193,6 +198,7 @@ export function repairSettings(settings) {
   let scale = typeof f.scale === 'number' && !isNaN(f.scale) ? f.scale : defaults.font.scale;
   scale = Math.min(1.3, Math.max(0.9, scale));
   s.font = {
+    ...f,
     family: validFontFamilies.includes(fam) ? fam : defaults.font.family,
     scale: Math.round(scale * 100) / 100
   };
@@ -201,6 +207,7 @@ export function repairSettings(settings) {
   const cd = (s.countdown && typeof s.countdown === 'object') ? s.countdown : {};
   const isDateValid = typeof cd.date === 'string' && cd.date.trim().length > 0 && !isNaN(new Date(cd.date).getTime());
   s.countdown = {
+    ...cd,
     label: typeof cd.label === 'string' ? cd.label.slice(0, 80) : '',
     date: isDateValid ? cd.date : null
   };
@@ -212,6 +219,7 @@ export function repairSettings(settings) {
   const validShortcuts = Array.isArray(bSearch.shortcuts)
     ? bSearch.shortcuts.filter(sc => sc && typeof sc.key === 'string' && typeof sc.url === 'string')
         .map(sc => ({
+          ...sc,
           key: sc.key.slice(0, 12),
           name: (typeof sc.name === 'string' ? sc.name.slice(0, 80) : sc.key.slice(0, 12)),
           url: sc.url
@@ -219,9 +227,11 @@ export function repairSettings(settings) {
     : defaults.behavior.search.shortcuts;
 
   s.behavior = {
+    ...b,
     openIn: validOpenIn.includes(b.openIn) ? b.openIn : defaults.behavior.openIn,
     autoHide: Boolean(b.autoHide),
     search: {
+      ...bSearch,
       filterBookmarks: typeof bSearch.filterBookmarks === 'boolean' ? bSearch.filterBookmarks : defaults.behavior.search.filterBookmarks,
       calculator: typeof bSearch.calculator === 'boolean' ? bSearch.calculator : defaults.behavior.search.calculator,
       shortcuts: validShortcuts
@@ -231,6 +241,7 @@ export function repairSettings(settings) {
   // widgets
   const w = (s.widgets && typeof s.widgets === 'object') ? s.widgets : {};
   s.widgets = {
+    ...w,
     notes: Boolean(w.notes),
     todo: Boolean(w.todo),
     timer: w.timer !== undefined ? Boolean(w.timer) : true,
@@ -253,6 +264,7 @@ export function repairSettings(settings) {
     const y = (typeof rawW.y === 'number' && rawW.y >= 0 && rawW.y <= 100) ? Math.round(rawW.y * 10) / 10 : null;
     const w = (typeof rawW.w === 'number' && rawW.w >= 160 && rawW.w <= 900) ? Math.round(rawW.w) : null;
     return {
+      ...rawW,
       x,
       y,
       w,
@@ -261,14 +273,17 @@ export function repairSettings(settings) {
   };
 
   s.hero = {
+    ...h,
     layout: validHeroLayouts.includes(h.layout) ? h.layout : defaults.hero.layout,
     zones: {
+      ...hz,
       clock: validZoneSlots.includes(hz.clock) ? hz.clock : defaults.hero.zones.clock,
       weather: validZoneSlots.includes(hz.weather) ? hz.weather : defaults.hero.zones.weather,
       search: validZoneSlots.includes(hz.search) ? hz.search : defaults.hero.zones.search,
       tasks: validZoneSlots.includes(hz.tasks) ? hz.tasks : defaults.hero.zones.tasks
     },
     widgets: {
+      ...hw,
       clock: repairWidgetSlot(hw.clock, false),
       weather: repairWidgetSlot(hw.weather, false),
       search: repairWidgetSlot(hw.search, false),
@@ -284,6 +299,7 @@ export function repairSettings(settings) {
   const dock = (s.dock && typeof s.dock === 'object') ? s.dock : {};
   const validDockPositions = ['top', 'left', 'bottom', 'right', 'off'];
   s.dock = {
+    ...dock,
     position: validDockPositions.includes(dock.position) ? dock.position : defaults.dock.position,
     autoHide: Boolean(dock.autoHide),
     maxItems: typeof dock.maxItems === 'number'
@@ -294,6 +310,7 @@ export function repairSettings(settings) {
   // glass
   const gl = (s.glass && typeof s.glass === 'object') ? s.glass : {};
   s.glass = {
+    ...gl,
     blur: typeof gl.blur === 'number'
       ? Math.max(0, Math.min(20, Math.round(gl.blur)))
       : defaults.glass.blur,
@@ -305,6 +322,7 @@ export function repairSettings(settings) {
   // weather
   const wth = (s.weather && typeof s.weather === 'object') ? s.weather : {};
   s.weather = {
+    ...wth,
     enabled: Boolean(wth.enabled),
     city: typeof wth.city === 'string' ? wth.city.slice(0, 100) : defaults.weather.city,
     lat: (typeof wth.lat === 'number' && wth.lat >= -90 && wth.lat <= 90) ? wth.lat : null,
@@ -316,6 +334,7 @@ export function repairSettings(settings) {
   // tabs
   const tb = (s.tabs && typeof s.tabs === 'object') ? s.tabs : {};
   s.tabs = {
+    ...tb,
     closeAfterSave: Boolean(tb.closeAfterSave),
     openAsGroup: typeof tb.openAsGroup === 'boolean' ? tb.openAsGroup : defaults.tabs.openAsGroup
   };
@@ -323,6 +342,7 @@ export function repairSettings(settings) {
   // hub
   const hb = (s.hub && typeof s.hub === 'object') ? s.hub : {};
   s.hub = {
+    ...hb,
     view: ['columns', 'tabs'].includes(hb.view) ? hb.view : defaults.hub.view
   };
 
@@ -343,6 +363,7 @@ export function repairSettings(settings) {
         typeof bgVal.from === 'string' && /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(bgVal.from) &&
         typeof bgVal.to === 'string' && /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(bgVal.to)) {
       bgVal = {
+        ...bgVal,
         from: bgVal.from,
         to: bgVal.to,
         angle: (typeof bgVal.angle === 'number' && bgVal.angle >= 0 && bgVal.angle <= 360) ? bgVal.angle : 135
@@ -373,6 +394,7 @@ export function repairSettings(settings) {
 
   const validRotations = ['off', 'tab', 'hourly', 'daily'];
   s.background = {
+    ...bg,
     type: bgType,
     value: bgVal,
     dim: bgDim,
@@ -380,7 +402,7 @@ export function repairSettings(settings) {
     blur: (typeof bg.blur === 'number' && bg.blur >= 0 && bg.blur <= 20) ? bg.blur : 0,
     fit: ['cover', 'contain', 'fill'].includes(bg.fit) ? bg.fit : 'cover',
     focal: (bg.focal && typeof bg.focal.x === 'number' && typeof bg.focal.y === 'number')
-      ? { x: Math.max(0, Math.min(1, bg.focal.x)), y: Math.max(0, Math.min(1, bg.focal.y)) }
+      ? { ...bg.focal, x: Math.max(0, Math.min(1, bg.focal.x)), y: Math.max(0, Math.min(1, bg.focal.y)) }
       : { x: 0.5, y: 0.5 },
     wallpapers: Array.isArray(bg.wallpapers) ? bg.wallpapers : [],
     activeId: typeof bg.activeId === 'string' ? bg.activeId : null,
@@ -451,6 +473,7 @@ export function repairCategories(rawCategories, fallbackSpaceId = null) {
         }
 
         validBookmarks.push({
+          ...bm,
           id: bmId,
           name: bmName,
           url: norm.url,
@@ -461,6 +484,7 @@ export function repairCategories(rawCategories, fallbackSpaceId = null) {
     }
 
     repaired.push({
+      ...cat,
       id: catId,
       spaceId,
       name: catName,
@@ -513,6 +537,7 @@ export function migrate(rawData) {
   });
 
   return {
+    ...doc,
     version: targetVersion,
     activeSpaceId,
     spaces,

@@ -30,6 +30,13 @@ export function _resetSyncStateForTests() {
 }
 
 /**
+ * Returns current pending data for testing save queue behavior.
+ */
+export function _getPendingDataForTests() {
+  return pendingData;
+}
+
+/**
  * Checks if running inside an active Chrome/Brave Extension environment.
  * @returns {boolean}
  */
@@ -55,8 +62,10 @@ export async function loadDashboardData() {
           const parsed = JSON.parse(rawEmergency);
           if (parsed && parsed.data && validateDashboardData(parsed.data).valid) {
             emergencyData = parsed.data;
+          } else {
+            // Corrupt or invalid emergency data can be removed safely
+            localStorage.removeItem(EMERGENCY_RECOVERY_KEY);
           }
-          localStorage.removeItem(EMERGENCY_RECOVERY_KEY);
         }
       }
     } catch (e) {}
@@ -64,6 +73,11 @@ export async function loadDashboardData() {
     if (emergencyData) {
       console.warn('[NTD Storage] Recovered unsaved dashboard state from emergency recovery slot');
       await saveDashboardDataImmediately(emergencyData);
+      try {
+        if (typeof localStorage !== 'undefined') {
+          localStorage.removeItem(EMERGENCY_RECOVERY_KEY);
+        }
+      } catch (e) {}
       checkAndTriggerDailySnapshot(emergencyData).catch(() => {});
       return migrate(emergencyData);
     }
@@ -161,38 +175,58 @@ export async function saveDashboardDataImmediately(data) {
     clearTimeout(saveTimeout);
     saveTimeout = null;
   }
-  pendingData = null;
 
   updateBootCache(data);
 
   const serialized = JSON.stringify(data);
-  lastSerializedWrite = serialized;
 
   if (hasChromeStorage()) {
     await chrome.storage.local.set({ [STORAGE_KEY]: data });
+    if (chrome.runtime?.lastError) {
+      throw new Error(chrome.runtime.lastError.message || String(chrome.runtime.lastError));
+    }
   } else if (typeof localStorage !== 'undefined') {
     localStorage.setItem(STORAGE_KEY, serialized);
+  }
+
+  lastSerializedWrite = serialized;
+  if (pendingData === data) {
+    pendingData = null;
   }
 }
 
 /**
  * Debounced save operation to optimize disk I/O.
+ * Retains pendingData and reschedules on failure.
  * @param {import('./schema.js').DashboardData} data
  */
 export function queueSaveDashboardData(data) {
   pendingData = data;
   updateBootCache(data);
 
-
   if (saveTimeout) {
     clearTimeout(saveTimeout);
   }
 
-  saveTimeout = setTimeout(async () => {
-    if (pendingData) {
-      await saveDashboardDataImmediately(pendingData);
-    }
-  }, DEBOUNCE_DELAY_MS);
+  const scheduleSave = (delayMs) => {
+    saveTimeout = setTimeout(async () => {
+      saveTimeout = null;
+      if (pendingData) {
+        const dataToSave = pendingData;
+        try {
+          await saveDashboardDataImmediately(dataToSave);
+        } catch (err) {
+          console.error('[NTD Storage] Debounced write failed, scheduling retry:', err);
+          // If pendingData was not replaced or cleared, reschedule retry
+          if (pendingData && !saveTimeout) {
+            scheduleSave(1000);
+          }
+        }
+      }
+    }, delayMs);
+  };
+
+  scheduleSave(DEBOUNCE_DELAY_MS);
 }
 
 /**
@@ -215,15 +249,35 @@ export function flushPendingSave() {
     } catch (e) {}
 
     if (hasChromeStorage()) {
-      chrome.storage.local.set({ [STORAGE_KEY]: pendingData }, () => {
+      let resolved = false;
+      const onDone = () => {
+        if (resolved) return;
+        resolved = true;
         try {
+          if (chrome.runtime?.lastError) {
+            console.error('[NTD Storage] Failed to flush to chrome.storage.local during unload:', chrome.runtime.lastError);
+            return;
+          }
           if (typeof localStorage !== 'undefined') {
             localStorage.removeItem(EMERGENCY_RECOVERY_KEY);
           }
         } catch (e) {}
-      });
+      };
+
+      try {
+        const maybePromise = chrome.storage.local.set({ [STORAGE_KEY]: pendingData }, onDone);
+        if (maybePromise && typeof maybePromise.then === 'function') {
+          maybePromise.then(onDone).catch(() => {});
+        }
+      } catch (e) {
+        console.error('[NTD Storage] Failed to invoke chrome.storage.local.set during flush:', e);
+      }
     } else if (typeof localStorage !== 'undefined') {
-      localStorage.setItem(STORAGE_KEY, serialized);
+      try {
+        localStorage.setItem(STORAGE_KEY, serialized);
+      } catch (e) {
+        console.error('[NTD Storage] Failed to write to localStorage during flush:', e);
+      }
     }
   }
 }

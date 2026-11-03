@@ -12,8 +12,13 @@ import {
   flushPendingSave,
   loadDashboardData,
   queueSaveDashboardData,
+  saveDashboardDataImmediately,
+  _resetSyncStateForTests,
+  _getPendingDataForTests,
   EMERGENCY_RECOVERY_KEY
 } from '../extension/js/core/storage.js';
+import { store } from '../extension/js/core/state.js';
+import { migrate } from '../extension/js/core/migrate.js';
 import { createDefaultDashboardData, CURRENT_SCHEMA_VERSION } from '../extension/js/core/schema.js';
 import { closeDB, saveSnapshotRecord } from '../extension/js/core/idb.js';
 
@@ -239,4 +244,195 @@ test('Reliability: checkAndTriggerDailySnapshot captures baseline state upon ini
 
   const skipped = await checkAndTriggerDailySnapshot(baseline);
   assert.equal(skipped, false, 'Subsequent call within 24 hours must be skipped');
+});
+
+test('Reliability: flushPendingSave retains emergency recovery copy when storage write fails with lastError', () => {
+  _resetSyncStateForTests();
+  const storageMap = new Map();
+  globalThis.localStorage = {
+    getItem: (k) => storageMap.get(k) || null,
+    setItem: (k, v) => storageMap.set(k, String(v)),
+    removeItem: (k) => storageMap.delete(k),
+    clear: () => storageMap.clear(),
+    get length() { return storageMap.size; },
+    key: (i) => Array.from(storageMap.keys())[i] || null
+  };
+
+  globalThis.chrome = {
+    runtime: {
+      lastError: { message: 'QUOTA_BYTES quota exceeded' }
+    },
+    storage: {
+      local: {
+        set: (data, callback) => {
+          if (typeof callback === 'function') {
+            callback();
+          }
+        }
+      }
+    }
+  };
+
+  const testState = createDefaultDashboardData();
+  queueSaveDashboardData(testState);
+  flushPendingSave();
+
+  // Emergency copy must still be present because chrome.runtime.lastError occurred
+  const emergencyRaw = globalThis.localStorage.getItem(EMERGENCY_RECOVERY_KEY);
+  assert.ok(emergencyRaw, 'Emergency backup must NOT be removed when storage write fails with lastError');
+
+  delete globalThis.chrome;
+  _resetSyncStateForTests();
+});
+
+test('Reliability: loadDashboardData retains emergency recovery copy if immediate save fails', async () => {
+  _resetSyncStateForTests();
+  const storageMap = new Map();
+  globalThis.localStorage = {
+    getItem: (k) => storageMap.get(k) || null,
+    setItem: (k, v) => storageMap.set(k, String(v)),
+    removeItem: (k) => storageMap.delete(k),
+    clear: () => storageMap.clear(),
+    get length() { return storageMap.size; },
+    key: (i) => Array.from(storageMap.keys())[i] || null
+  };
+
+  const emergencyData = createDefaultDashboardData();
+  emergencyData.categories.push({
+    id: 'crash-recovered-cat',
+    name: 'Unsaved Crash State',
+    order: 10,
+    bookmarks: []
+  });
+
+  storageMap.set(EMERGENCY_RECOVERY_KEY, JSON.stringify({
+    timestamp: Date.now(),
+    data: emergencyData
+  }));
+
+  // Mock chrome storage to simulate a write failure during recovery save
+  globalThis.chrome = {
+    storage: {
+      local: {
+        set: async () => {
+          throw new Error('Disk write I/O error');
+        }
+      }
+    }
+  };
+
+  // Attempt loading - the save will throw
+  try {
+    await loadDashboardData();
+  } catch (err) {}
+
+  // The emergency backup must NOT have been removed prior to confirmed save
+  const rawRemaining = globalThis.localStorage.getItem(EMERGENCY_RECOVERY_KEY);
+  assert.ok(rawRemaining, 'Emergency backup must remain intact if the immediate recovery save fails');
+
+  delete globalThis.chrome;
+  _resetSyncStateForTests();
+});
+
+test('Reliability: queueSaveDashboardData retains pendingData when storage write fails', async () => {
+  _resetSyncStateForTests();
+  globalThis.chrome = {
+    storage: {
+      local: {
+        set: async () => {
+          throw new Error('Storage write rejected');
+        }
+      }
+    }
+  };
+
+  const testState = createDefaultDashboardData();
+  queueSaveDashboardData(testState);
+  assert.equal(_getPendingDataForTests(), testState, 'pendingData should be set');
+
+  try {
+    await saveDashboardDataImmediately(testState);
+    assert.fail('Should have thrown');
+  } catch (err) {
+    // Expected write failure
+  }
+
+  // pendingData must still be retained for automatic retry
+  assert.equal(_getPendingDataForTests(), testState, 'pendingData must NOT be cleared when storage write rejects');
+
+  delete globalThis.chrome;
+  _resetSyncStateForTests();
+});
+
+test('Reliability: store.get() returns a protected read-only view that throws on mutation', () => {
+  const current = store.get();
+  assert.throws(() => {
+    // Attempting to modify properties outside store methods must throw
+    current.categories = [];
+  }, /Cannot modify state directly outside store methods/);
+
+  assert.throws(() => {
+    // Attempting to mutate nested arrays directly must throw
+    current.categories[0].name = 'Tampered Name';
+  }, /Cannot modify state directly outside store methods/);
+});
+
+test('Reliability: migrate() preserves unknown and forward-compatible fields', () => {
+  const futureData = {
+    version: 99,
+    unknownRootField: 'root-future-value',
+    activeSpaceId: 'space-future',
+    spaces: [
+      {
+        id: 'space-future',
+        name: 'Future Space',
+        icon: 'planet',
+        order: 0,
+        pinned: ['b-future-1'],
+        unknownSpaceProperty: 42,
+        todos: [
+          { id: 't1', text: 'Future Task', done: false, priority: 'urgent' }
+        ]
+      }
+    ],
+    settings: {
+      theme: 'dark',
+      accent: 'blue',
+      unknownGlobalSetting: 'experimental',
+      clock: {
+        style: 'large',
+        unknownClockSetting: true
+      }
+    },
+    categories: [
+      {
+        id: 'cat-future',
+        spaceId: 'space-future',
+        name: 'Future Category',
+        icon: 'star',
+        order: 0,
+        unknownCategoryTag: 'starred-tag',
+        bookmarks: [
+          {
+            id: 'b-future-1',
+            name: 'Future Link',
+            url: 'https://future.example.com',
+            order: 0,
+            unknownBookmarkMetadata: { rating: 5 }
+          }
+        ]
+      }
+    ]
+  };
+
+  const migrated = migrate(futureData);
+
+  assert.equal(migrated.version, 99, 'Must preserve future schema version');
+  assert.equal(migrated.unknownRootField, 'root-future-value', 'Must preserve unknown root field');
+  assert.equal(migrated.spaces[0].unknownSpaceProperty, 42, 'Must preserve unknown space field');
+  assert.equal(migrated.spaces[0].todos[0].priority, 'urgent', 'Must preserve unknown todo field');
+  assert.equal(migrated.settings.unknownGlobalSetting, 'experimental', 'Must preserve unknown setting field');
+  assert.equal(migrated.settings.clock.unknownClockSetting, true, 'Must preserve unknown nested setting field');
+  assert.equal(migrated.categories[0].unknownCategoryTag, 'starred-tag', 'Must preserve unknown category field');
+  assert.equal(migrated.categories[0].bookmarks[0].unknownBookmarkMetadata?.rating, 5, 'Must preserve unknown bookmark metadata');
 });

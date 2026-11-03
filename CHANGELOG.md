@@ -18,7 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 32-bit FNV-1a checksums on all snapshots for bitrot and tampering detection.
   - Pre-restore schema validation (`validateDashboardData`) and auto-migration pipeline.
   - Pre-edit baseline snapshots captured upon opening the first tab of the day.
-  - Crash-safe emergency unload flush (`ntd_emergency_recovery`) preventing data loss on abrupt tab termination.
+  - Crash-safe emergency unload flush (`dashboard:emergency_recovery`) preventing data loss on abrupt tab termination.
 - **Performance:** Selective store subscriptions with memoized dirty-check watchers, eliminating full-page DOM re-renders during micro-interactions.
 - **Large Dataset Benchmarks:** 1,000-bookmark (<15ms) and 5,000-bookmark (<45ms) search and ranking performance assertions.
 - **CI / CD:** Automated GitHub Actions test workflow across Node.js 18.x, 20.x, and 22.x.

@@ -22,7 +22,7 @@ How do we achieve high performance with frequent drag-and-drop mutations while g
 We established a strict 4-tier storage hierarchy:
 1. **`chrome.storage.local`**: Authoritative store for all dashboard state, spaces, and collections. Writes are debounced at 300ms.
 2. **`localStorage` Boot Cache**: Synchronously stores theme/glass tokens (`ntd:boot`) read by `boot.js` before DOM rendering to eliminate FOWT.
-3. **`ntd_emergency_recovery`**: On `pagehide` / tab close, `flushPendingSave()` writes any in-flight state to synchronous `localStorage` before initiating `chrome.storage.local.set()`. If the browser kills async I/O prematurely, `loadDashboardData()` automatically recovers the unsaved work on the next tab launch.
+3. **`dashboard:emergency_recovery`**: On `pagehide` / tab close, `flushPendingSave()` writes any in-flight state to synchronous `localStorage` before initiating `chrome.storage.local.set()`. If the browser kills async I/O prematurely, `loadDashboardData()` automatically recovers the unsaved work on the next tab launch. Only when the primary storage write confirms success is the emergency recovery slot cleared.
 4. **IndexedDB Rolling Snapshots**: Maintains up to 10 point-in-time state backups enriched with FNV-1a checksums, schema version, and data sizes. Snapshots are verified for integrity and auto-migrated before restore.
 
 ## Consequences

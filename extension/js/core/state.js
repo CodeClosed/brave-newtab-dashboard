@@ -4,6 +4,40 @@ import { createDefaultDashboardData, generateId } from './schema.js';
 import { normalizeUrl } from '../utils/url.js';
 import { createSnapshot, checkAndTriggerDailySnapshot, registerSnapshotStore } from './snapshots.js';
 
+const readonlyCache = new WeakMap();
+
+/**
+ * Recursively creates a read-only proxy around an object to protect internal state.
+ * @template T
+ * @param {T} target
+ * @returns {T}
+ */
+export function makeReadonlyProxy(target) {
+  if (target === null || typeof target !== 'object') {
+    return target;
+  }
+  let proxy = readonlyCache.get(target);
+  if (!proxy) {
+    proxy = new Proxy(target, {
+      get(obj, prop, receiver) {
+        const val = Reflect.get(obj, prop, receiver);
+        if (val !== null && typeof val === 'object') {
+          return makeReadonlyProxy(val);
+        }
+        return val;
+      },
+      set(obj, prop) {
+        throw new Error(`Cannot modify state directly outside store methods: attempted to set "${String(prop)}"`);
+      },
+      deleteProperty(obj, prop) {
+        throw new Error(`Cannot modify state directly outside store methods: attempted to delete "${String(prop)}"`);
+      }
+    });
+    readonlyCache.set(target, proxy);
+  }
+  return proxy;
+}
+
 class StateStore {
   constructor() {
     /** @type {import('./schema.js').DashboardData} */
@@ -17,7 +51,7 @@ class StateStore {
    * Initializes state by reading stored data.
    */
   async init() {
-    if (this._initialized) return this._data;
+    if (this._initialized) return this.get();
     this._data = await loadDashboardData();
     this._initialized = true;
 
@@ -27,22 +61,31 @@ class StateStore {
       this._notify();
     });
 
-    return this._data;
+    return this.get();
   }
 
   /**
-   * Gets current state snapshot.
+   * Gets current state snapshot as a protected read-only view.
+   * Direct mutations outside store methods will throw an Error.
    * @returns {import('./schema.js').DashboardData}
    */
   get() {
-    return this._data;
+    return makeReadonlyProxy(this._data);
   }
 
   /**
-   * Gets current state snapshot (alias for get).
+   * Gets current state snapshot as a protected read-only view (alias for get).
    * @returns {import('./schema.js').DashboardData}
    */
   getState() {
+    return makeReadonlyProxy(this._data);
+  }
+
+  /**
+   * Returns internal mutable data object for tests.
+   * @returns {import('./schema.js').DashboardData}
+   */
+  _getRawDataForTests() {
     return this._data;
   }
 
@@ -79,9 +122,10 @@ class StateStore {
    * @private
    */
   _notify() {
+    const readonlyView = makeReadonlyProxy(this._data);
     for (const listener of this._subscribers) {
       try {
-        listener(this._data);
+        listener(readonlyView);
       } catch (err) {
         console.error('State subscriber error:', err);
       }
@@ -362,6 +406,102 @@ class StateStore {
 
     queueSaveDashboardData(this._data);
     this._notify();
+  }
+
+  /**
+   * Toggles bookmark pin status in active space.
+   * @param {string} bookmarkId
+   * @returns {{ success: boolean, pinned: boolean, reason?: string }}
+   */
+  togglePinBookmark(bookmarkId) {
+    let space = this._data.spaces?.find(s => s.id === this._data.activeSpaceId) || this._data.spaces?.[0];
+    if (!space) return { success: false, pinned: false, reason: 'no-space' };
+
+    if (!Array.isArray(space.pinned)) {
+      space.pinned = [];
+    }
+
+    const idx = space.pinned.indexOf(bookmarkId);
+    if (idx !== -1) {
+      space.pinned.splice(idx, 1);
+      queueSaveDashboardData(this._data);
+      this._notify();
+      return { success: true, pinned: false };
+    }
+
+    const maxItems = typeof this._data.settings?.dock?.maxItems === 'number'
+      ? this._data.settings.dock.maxItems
+      : 12;
+
+    if (space.pinned.length >= maxItems) {
+      return { success: false, pinned: false, reason: `Maximum ${maxItems} pinned bookmarks reached` };
+    }
+
+    space.pinned.push(bookmarkId);
+    queueSaveDashboardData(this._data);
+    this._notify();
+    return { success: true, pinned: true };
+  }
+
+  /**
+   * Pins bookmark into the active space dock at an optional index.
+   * @param {string} bookmarkId
+   * @param {number} [targetIndex=-1]
+   * @returns {{ success: boolean, pinned: boolean, reason?: string, alreadyPinned?: boolean }}
+   */
+  pinBookmark(bookmarkId, targetIndex = -1) {
+    let space = this._data.spaces?.find(s => s.id === this._data.activeSpaceId) || this._data.spaces?.[0];
+    if (!space) return { success: false, pinned: false, reason: 'no-space' };
+
+    if (!Array.isArray(space.pinned)) {
+      space.pinned = [];
+    }
+
+    const existingIdx = space.pinned.indexOf(bookmarkId);
+    if (existingIdx !== -1) {
+      if (targetIndex >= 0 && targetIndex < space.pinned.length && targetIndex !== existingIdx) {
+        this.reorderPinnedBookmark(existingIdx, targetIndex);
+      }
+      return { success: true, pinned: true, alreadyPinned: true };
+    }
+
+    const maxItems = typeof this._data.settings?.dock?.maxItems === 'number'
+      ? this._data.settings.dock.maxItems
+      : 12;
+
+    if (space.pinned.length >= maxItems) {
+      return { success: false, pinned: false, reason: `Maximum ${maxItems} pinned bookmarks reached` };
+    }
+
+    if (targetIndex >= 0 && targetIndex <= space.pinned.length) {
+      space.pinned.splice(targetIndex, 0, bookmarkId);
+    } else {
+      space.pinned.push(bookmarkId);
+    }
+
+    queueSaveDashboardData(this._data);
+    this._notify();
+    return { success: true, pinned: true };
+  }
+
+  /**
+   * Reorders a pinned bookmark within the active space.
+   * @param {number} fromIndex
+   * @param {number} toIndex
+   * @returns {boolean}
+   */
+  reorderPinnedBookmark(fromIndex, toIndex) {
+    let space = this._data.spaces?.find(s => s.id === this._data.activeSpaceId) || this._data.spaces?.[0];
+    if (!space || !Array.isArray(space.pinned)) return false;
+    if (fromIndex < 0 || fromIndex >= space.pinned.length) return false;
+    if (toIndex < 0 || toIndex >= space.pinned.length) return false;
+    if (fromIndex === toIndex) return false;
+
+    const [movedId] = space.pinned.splice(fromIndex, 1);
+    space.pinned.splice(toIndex, 0, movedId);
+    queueSaveDashboardData(this._data);
+    this._notify();
+    return true;
   }
 
   /**
@@ -697,6 +837,103 @@ class StateStore {
 
     queueSaveDashboardData(this._data);
     this._notify();
+  }
+
+  /**
+   * Bulk deletes bookmarks across categories.
+   * @param {string[]} bookmarkIds
+   */
+  bulkDeleteBookmarks(bookmarkIds) {
+    const idSet = new Set(bookmarkIds);
+    for (const cat of this._data.categories || []) {
+      if (Array.isArray(cat.bookmarks)) {
+        cat.bookmarks = cat.bookmarks.filter(b => !idSet.has(b.id));
+        cat.bookmarks.forEach((b, idx) => { b.order = idx; });
+      }
+    }
+    if (Array.isArray(this._data.spaces)) {
+      this._data.spaces.forEach(sp => {
+        if (Array.isArray(sp.pinned)) {
+          sp.pinned = sp.pinned.filter(id => !idSet.has(id));
+        }
+      });
+    }
+    queueSaveDashboardData(this._data);
+    this._notify();
+  }
+
+  /**
+   * Bulk moves bookmarks to a target category.
+   * @param {string[]} bookmarkIds
+   * @param {string} targetCategoryId
+   */
+  bulkMoveBookmarks(bookmarkIds, targetCategoryId) {
+    const idSet = new Set(bookmarkIds);
+    const targetCat = this._data.categories?.find(c => c.id === targetCategoryId);
+    if (!targetCat) return;
+
+    /** @type {any[]} */
+    const movedBookmarks = [];
+    for (const cat of this._data.categories || []) {
+      if (cat.id === targetCategoryId) continue;
+      if (Array.isArray(cat.bookmarks)) {
+        const remaining = [];
+        for (const bm of cat.bookmarks) {
+          if (idSet.has(bm.id)) {
+            movedBookmarks.push(bm);
+          } else {
+            remaining.push(bm);
+          }
+        }
+        cat.bookmarks = remaining;
+        cat.bookmarks.forEach((b, idx) => { b.order = idx; });
+      }
+    }
+
+    if (!Array.isArray(targetCat.bookmarks)) {
+      targetCat.bookmarks = [];
+    }
+
+    for (const bm of movedBookmarks) {
+      bm.order = targetCat.bookmarks.length;
+      targetCat.bookmarks.push(bm);
+    }
+
+    queueSaveDashboardData(this._data);
+    this._notify();
+  }
+
+  /**
+   * Bulk pins bookmarks to the active space, capping at 8.
+   * @param {string[]} bookmarkIds
+   * @returns {{ pinnedCount: number, capped: boolean }}
+   */
+  bulkPinBookmarks(bookmarkIds) {
+    const space = this._data.spaces?.find(s => s.id === this._data.activeSpaceId) || this._data.spaces?.[0];
+    if (!space) return { pinnedCount: 0, capped: false };
+
+    if (!Array.isArray(space.pinned)) {
+      space.pinned = [];
+    }
+
+    let count = 0;
+    let capped = false;
+    for (const id of bookmarkIds) {
+      if (space.pinned.includes(id)) continue;
+      if (space.pinned.length >= 8) {
+        capped = true;
+        break;
+      }
+      space.pinned.push(id);
+      count++;
+    }
+
+    if (count > 0) {
+      queueSaveDashboardData(this._data);
+      this._notify();
+    }
+
+    return { pinnedCount: count, capped };
   }
 
   /**

@@ -78,8 +78,9 @@ To guarantee data integrity across rapid edits and abrupt tab closes, the dashbo
 
 ### Persistence Guarantees
 1. **Single Source of Truth:** `chrome.storage.local` is the sole authoritative store for all settings, spaces, and bookmarks.
-2. **FOWT Elimination:** `localStorage` holds only immutable theme/glass tokens read synchronously by `js/boot.js` in `<head>` before CSS parsing to eliminate Flash of Wrong Theme.
-3. **Rollback & Disaster Recovery:** Every schema migration and major import automatically snapshots state into IndexedDB before applying changes. If corruption is detected on load, a recovery copy is preserved without overwriting storage.
+2. **FOWT Elimination:** `localStorage` holds only immutable theme/glass tokens (`ntd:boot`) read synchronously by `js/boot.js` in `<head>` before CSS parsing to eliminate Flash of Wrong Theme.
+3. **Emergency Unload Recovery:** Synchronous mirroring to `localStorage` under `dashboard:emergency_recovery` during `pagehide` prevents data loss when asynchronous operations are abruptly killed on tab closure. The slot is only cleared once primary storage confirms a successful write.
+4. **Rollback & Disaster Recovery:** Every schema migration and major import automatically snapshots state into IndexedDB before applying changes. If corruption is detected on load, a recovery copy is preserved without overwriting storage. Snapshots are verified with FNV-1a checksums before restore.
 
 ---
 
