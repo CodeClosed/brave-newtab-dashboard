@@ -1,6 +1,7 @@
 // @ts-check
 import { el } from '../utils/dom.js';
 import { createFaviconElement } from '../ui/favicons.js';
+import { getIconSvg } from '../ui/icons.js';
 
 const MAX_IMAGE_BYTES = 12 * 1024; // 12 KB limit
 
@@ -18,7 +19,7 @@ export function validateCustomIcon(icon) {
     return { valid: false, error: 'Icon must be an object or null' };
   }
 
-  if (icon.type === 'emoji') {
+  if (icon.type === 'emoji' || icon.type === 'lucide') {
     if (typeof icon.value !== 'string' || !icon.value.trim()) {
       return { valid: false, error: 'Emoji icon must have a non-empty string value' };
     }
@@ -98,16 +99,24 @@ export async function downscaleIconImage(file, maxSize = 64, maxBytes = MAX_IMAG
   });
 }
 
+export const processCustomIconFile = downscaleIconImage;
+
 /**
- * Renders the icon element for a bookmark, supporting emoji, custom image, or favicon fallback.
+ * Renders the icon element for a bookmark, supporting Lucide/emoji key, custom image, or favicon fallback.
  * @param {import('../core/schema.js').Bookmark} bookmark
  * @returns {HTMLElement}
  */
 export function renderBookmarkIcon(bookmark) {
   if (bookmark?.icon) {
-    if (bookmark.icon.type === 'emoji') {
+    if (bookmark.icon.type === 'emoji' || bookmark.icon.type === 'lucide') {
       const container = el('div', { className: 'favicon-container custom-emoji-container' }, [
-        el('span', { className: 'bookmark-custom-emoji', 'aria-hidden': 'true', text: bookmark.icon.value })
+        el('span', {
+          className: 'bookmark-custom-emoji',
+          'aria-hidden': 'true',
+          dataset: { iconKey: bookmark.icon.value },
+          text: bookmark.icon.value,
+          html: getIconSvg(bookmark.icon.value, 18)
+        })
       ]);
       return container;
     }

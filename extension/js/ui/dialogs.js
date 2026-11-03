@@ -3,14 +3,21 @@ import { el, clearChildren } from '../utils/dom.js';
 import { normalizeUrl } from '../utils/url.js';
 import { store } from '../core/state.js';
 import { findDuplicateBookmark } from '../features/duplicates.js';
-import { downscaleIconImage, validateCustomIcon } from '../features/custom-icons.js';
+import { processCustomIconFile, validateCustomIcon } from '../features/custom-icons.js';
 import { refreshFavicon } from './favicons.js';
 import { showToast } from './toasts.js';
+import { isBookmarkPinned, pinBookmark, togglePinBookmark } from '../features/pinned.js';
+import {
+  DEFAULT_ICON_KEYS,
+  ICON_LABELS,
+  ICON_CLOSE,
+  ICON_REFRESH,
+  getIconSvg,
+  resolveIconKey
+} from './icons.js';
 
 let activeDialog = null;
 let lastActiveElement = null;
-
-const DEFAULT_EMOJIS = ['💻', '💼', '📚', '🎓', '🎬', '🛠️', '🛒', '🎮', '✈️', '🎵', '💡', '📌'];
 
 /**
  * Ensures or creates the global <dialog> modal in the document body.
@@ -53,14 +60,14 @@ export function closeModal() {
  * @param {object} options
  * @param {'add' | 'edit'} options.mode
  * @param {import('../core/schema.js').Category} [options.category]
- * @param {(categoryData: { name: string, icon: string }) => void} options.onSave
+ * @param {(categoryData: { name: string, icon: string, color?: string | null }) => void} options.onSave
  */
 export function openCategoryDialog({ mode, category, onSave }) {
   lastActiveElement = /** @type {HTMLElement} */ (document.activeElement);
   const dialog = getDialogElement();
   clearChildren(dialog);
 
-  let selectedEmoji = category?.icon || '📁';
+  let selectedIcon = resolveIconKey(category?.icon || 'folder', 'folder');
 
   const title = el('h2', {
     className: 'modal-title',
@@ -71,7 +78,7 @@ export function openCategoryDialog({ mode, category, onSave }) {
     className: 'modal-close-btn',
     type: 'button',
     'aria-label': 'Close dialog',
-    text: '✕',
+    html: ICON_CLOSE,
     onclick: () => dialog.close()
   });
 
@@ -80,7 +87,7 @@ export function openCategoryDialog({ mode, category, onSave }) {
   const nameInput = /** @type {HTMLInputElement} */ (el('input', {
     className: 'form-input',
     type: 'text',
-    placeholder: 'e.g. Development, Entertainment, College',
+    placeholder: 'e.g. Development, Design, Reading',
     value: category?.name || '',
     required: true,
     autocomplete: 'off'
@@ -94,49 +101,33 @@ export function openCategoryDialog({ mode, category, onSave }) {
     nameError
   );
 
-  const emojiContainer = el('div', { className: 'emoji-selector' });
-  const customEmojiInput = /** @type {HTMLInputElement} */ (el('input', {
-    className: 'form-input',
-    style: { width: '60px', textAlign: 'center', height: '32px' },
-    type: 'text',
-    value: selectedEmoji,
-    maxLength: 4,
-    title: 'Custom icon or emoji'
-  }));
+  const iconContainer = el('div', { className: 'emoji-selector' });
 
-  function updateEmojiSelection(emoji) {
-    selectedEmoji = emoji;
-    customEmojiInput.value = emoji;
-    emojiContainer.querySelectorAll('.emoji-pill').forEach(btn => {
-      btn.classList.toggle('selected', btn.textContent === emoji);
+  function updateIconSelection(iconKey) {
+    selectedIcon = iconKey;
+    iconContainer.querySelectorAll('.emoji-pill').forEach(btn => {
+      const btnKey = /** @type {HTMLElement} */ (btn).dataset.icon;
+      btn.classList.toggle('selected', btnKey === iconKey);
     });
   }
 
-  for (const emoji of DEFAULT_EMOJIS) {
+  for (const iconKey of DEFAULT_ICON_KEYS) {
+    const label = ICON_LABELS[iconKey] || iconKey;
     const pill = el('button', {
-      className: `emoji-pill${selectedEmoji === emoji ? ' selected' : ''}`,
+      className: `emoji-pill${selectedIcon === iconKey ? ' selected' : ''}`,
       type: 'button',
-      text: emoji,
-      onclick: () => updateEmojiSelection(emoji)
+      title: label,
+      'aria-label': `Icon ${label}`,
+      dataset: { icon: iconKey },
+      html: getIconSvg(iconKey, 16),
+      onclick: () => updateIconSelection(iconKey)
     });
-    emojiContainer.appendChild(pill);
+    iconContainer.appendChild(pill);
   }
-
-  customEmojiInput.addEventListener('input', () => {
-    if (customEmojiInput.value.trim()) {
-      selectedEmoji = customEmojiInput.value.trim();
-      emojiContainer.querySelectorAll('.emoji-pill').forEach(btn => {
-        btn.classList.toggle('selected', btn.textContent === selectedEmoji);
-      });
-    }
-  });
 
   const iconGroup = el('div', { className: 'form-group' },
-    el('label', { className: 'form-label', text: 'Icon / Emoji' }),
-    el('div', { style: { display: 'flex', alignItems: 'center', gap: '8px' } },
-      customEmojiInput,
-      emojiContainer
-    )
+    el('label', { className: 'form-label', text: 'Collection Icon' }),
+    iconContainer
   );
 
   // 12.3 Chrome Group Color Picker
@@ -218,7 +209,7 @@ export function openCategoryDialog({ mode, category, onSave }) {
     }
     nameError.classList.remove('visible');
     dialog.close();
-    onSave({ name: val, icon: selectedEmoji, color: selectedColor });
+    onSave({ name: val, icon: selectedIcon, color: selectedColor });
   });
 
   dialog.appendChild(form);
@@ -233,7 +224,7 @@ export function openCategoryDialog({ mode, category, onSave }) {
  * @param {'add' | 'edit'} options.mode
  * @param {string} [options.categoryId]
  * @param {import('../core/schema.js').Bookmark} [options.bookmark]
- * @param {(bookmarkData: { name: string, url: string, targetCategoryId?: string }) => void} options.onSave
+ * @param {(bookmarkData: { name: string, url: string, targetCategoryId?: string, icon?: any, pinned?: boolean }) => any} options.onSave
  */
 export function openBookmarkDialog({ mode, categoryId, bookmark, onSave }) {
   lastActiveElement = /** @type {HTMLElement} */ (document.activeElement);
@@ -252,7 +243,7 @@ export function openBookmarkDialog({ mode, categoryId, bookmark, onSave }) {
     className: 'modal-close-btn',
     type: 'button',
     'aria-label': 'Close dialog',
-    text: '✕',
+    html: ICON_CLOSE,
     onclick: () => dialog.close()
   });
 
@@ -314,7 +305,7 @@ export function openBookmarkDialog({ mode, categoryId, bookmark, onSave }) {
   for (const cat of categories) {
     const opt = /** @type {HTMLOptionElement} */ (el('option', {
       value: cat.id,
-      text: `${cat.icon} ${cat.name}`
+      text: cat.name
     }));
     if (cat.id === currentCatId) opt.selected = true;
     categorySelect.appendChild(opt);
@@ -325,23 +316,43 @@ export function openBookmarkDialog({ mode, categoryId, bookmark, onSave }) {
     categorySelect
   );
 
-  // Icon choice: website (null), emoji, or image
+  // Icon choice: website (null), custom Lucide icon ('emoji' type for schema compatibility), or image
   let chosenIcon = bookmark?.icon ? { ...bookmark.icon } : null;
+  let currentLucideKey = chosenIcon?.type === 'emoji' ? resolveIconKey(chosenIcon.value, 'star') : 'star';
 
   const iconTypeSelect = /** @type {HTMLSelectElement} */ (el('select', { className: 'form-select' }, [
-    el('option', { value: 'website', selected: !chosenIcon }, ['Use website icon']),
-    el('option', { value: 'emoji', selected: chosenIcon?.type === 'emoji' }, ['Choose emoji']),
+    el('option', { value: 'website', selected: !chosenIcon }, ['Use website favicon']),
+    el('option', { value: 'emoji', selected: chosenIcon?.type === 'emoji' }, ['Choose vector icon']),
     el('option', { value: 'image', selected: chosenIcon?.type === 'image' }, ['Upload custom image'])
   ]));
 
-  const emojiInput = /** @type {HTMLInputElement} */ (el('input', {
-    type: 'text',
-    className: 'form-input',
-    placeholder: 'e.g. ⭐',
-    maxLength: 8,
-    value: chosenIcon?.type === 'emoji' ? chosenIcon.value : '⭐',
-    style: { width: '80px', textAlign: 'center', display: chosenIcon?.type === 'emoji' ? 'block' : 'none' }
-  }));
+  const bookmarkIconPicker = el('div', {
+    className: 'emoji-selector',
+    style: {
+      display: chosenIcon?.type === 'emoji' ? 'flex' : 'none',
+      marginTop: '6px'
+    }
+  });
+
+  for (const iconKey of DEFAULT_ICON_KEYS.slice(0, 12)) {
+    const label = ICON_LABELS[iconKey] || iconKey;
+    const pill = el('button', {
+      className: `emoji-pill${currentLucideKey === iconKey ? ' selected' : ''}`,
+      type: 'button',
+      title: label,
+      'aria-label': `Icon ${label}`,
+      dataset: { icon: iconKey },
+      html: getIconSvg(iconKey, 15),
+      onclick: () => {
+        currentLucideKey = iconKey;
+        chosenIcon = { type: 'emoji', value: iconKey };
+        bookmarkIconPicker.querySelectorAll('.emoji-pill').forEach(btn => {
+          btn.classList.toggle('selected', /** @type {HTMLElement} */ (btn).dataset.icon === iconKey);
+        });
+      }
+    });
+    bookmarkIconPicker.appendChild(pill);
+  }
 
   const fileInput = /** @type {HTMLInputElement} */ (el('input', {
     type: 'file',
@@ -366,14 +377,14 @@ export function openBookmarkDialog({ mode, categoryId, bookmark, onSave }) {
   const refreshIconBtn = mode === 'edit' ? el('button', {
     type: 'button',
     className: 'btn-quiet btn-sm',
-    text: '↻ Refresh icon',
+    html: `${ICON_REFRESH}<span>Refresh icon</span>`,
     title: 'Retry fetching website favicon',
     onclick: () => {
       if (bookmark?.url) {
         refreshFavicon(bookmark.url);
         chosenIcon = null;
         iconTypeSelect.value = 'website';
-        emojiInput.style.display = 'none';
+        bookmarkIconPicker.style.display = 'none';
         fileInput.style.display = 'none';
         imagePreview.style.display = 'none';
         showToast('Refreshed website icon');
@@ -385,30 +396,26 @@ export function openBookmarkDialog({ mode, categoryId, bookmark, onSave }) {
     const val = iconTypeSelect.value;
     if (val === 'website') {
       chosenIcon = null;
-      emojiInput.style.display = 'none';
+      bookmarkIconPicker.style.display = 'none';
       fileInput.style.display = 'none';
       imagePreview.style.display = 'none';
     } else if (val === 'emoji') {
-      chosenIcon = { type: 'emoji', value: emojiInput.value.trim() || '⭐' };
-      emojiInput.style.display = 'block';
+      chosenIcon = { type: 'emoji', value: currentLucideKey };
+      bookmarkIconPicker.style.display = 'flex';
       fileInput.style.display = 'none';
       imagePreview.style.display = 'none';
     } else if (val === 'image') {
-      emojiInput.style.display = 'none';
+      bookmarkIconPicker.style.display = 'none';
       fileInput.style.display = 'block';
       imagePreview.style.display = chosenIcon?.type === 'image' ? 'block' : 'none';
     }
-  });
-
-  emojiInput.addEventListener('input', () => {
-    chosenIcon = { type: 'emoji', value: emojiInput.value.trim() || '⭐' };
   });
 
   fileInput.addEventListener('change', async () => {
     const file = fileInput.files?.[0];
     if (file) {
       try {
-        const dataUrl = await downscaleIconImage(file, 64);
+        const dataUrl = await processCustomIconFile(file);
         chosenIcon = { type: 'image', value: dataUrl };
         imagePreview.src = dataUrl;
         imagePreview.style.display = 'block';
@@ -420,7 +427,6 @@ export function openBookmarkDialog({ mode, categoryId, bookmark, onSave }) {
 
   const iconControls = el('div', { style: { display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' } }, [
     iconTypeSelect,
-    emojiInput,
     fileInput,
     imagePreview,
     refreshIconBtn
@@ -428,10 +434,28 @@ export function openBookmarkDialog({ mode, categoryId, bookmark, onSave }) {
 
   const iconGroup = el('div', { className: 'form-group' },
     el('label', { className: 'form-label', text: 'Bookmark Icon' }),
-    iconControls
+    iconControls,
+    bookmarkIconPicker
   );
 
-  const body = el('div', { className: 'modal-body' }, urlGroup, nameGroup, categoryGroup, iconGroup);
+  const isCurrentlyPinned = bookmark?.id ? isBookmarkPinned(bookmark.id) : false;
+  const pinCheckbox = /** @type {HTMLInputElement} */ (el('input', {
+    type: 'checkbox',
+    className: 'form-checkbox',
+    id: 'bookmark-pin-dock-checkbox'
+  }));
+  if (isCurrentlyPinned) {
+    pinCheckbox.checked = true;
+  }
+
+  const pinLabel = el('label', {
+    className: 'form-checkbox-label',
+    htmlFor: 'bookmark-pin-dock-checkbox'
+  }, pinCheckbox, el('span', { text: 'Pin to Navbar (App Dock)' }));
+
+  const pinGroup = el('div', { className: 'form-group form-group-checkbox' }, pinLabel);
+
+  const body = el('div', { className: 'modal-body' }, urlGroup, nameGroup, categoryGroup, iconGroup, pinGroup);
 
   const cancelBtn = el('button', {
     className: 'btn-secondary',
@@ -472,12 +496,24 @@ export function openBookmarkDialog({ mode, categoryId, bookmark, onSave }) {
     }
 
     dialog.close();
-    onSave({
+    const shouldPin = Boolean(pinCheckbox.checked);
+    const savedResult = onSave({
       name: bookmarkName,
       url: norm.url,
       targetCategoryId: categorySelect.value,
-      icon: chosenIcon
+      icon: chosenIcon,
+      pinned: shouldPin
     });
+
+    if (mode === 'edit' && bookmark?.id) {
+      if (shouldPin && !isCurrentlyPinned) {
+        pinBookmark(bookmark.id);
+      } else if (!shouldPin && isCurrentlyPinned) {
+        togglePinBookmark(bookmark.id);
+      }
+    } else if (mode === 'add' && shouldPin && savedResult && savedResult.id) {
+      pinBookmark(savedResult.id);
+    }
   });
 
   dialog.appendChild(form);
@@ -489,7 +525,7 @@ export function openBookmarkDialog({ mode, categoryId, bookmark, onSave }) {
  * Opens a pre-import preview modal showing item counts and requiring confirmation.
  *
  * @param {object} options
- * @param {{ categoryCount: number, bookmarkCount: number }} options.summary
+ * @param {{ categoryCount: number, bookmarkCount: number, skippedBookmarksCount?: number }} options.summary
  * @param {() => void} options.onConfirm
  */
 export function openImportPreviewDialog({ summary, onConfirm }) {
@@ -502,7 +538,8 @@ export function openImportPreviewDialog({ summary, onConfirm }) {
     el('button', {
       className: 'modal-close-btn',
       type: 'button',
-      text: '✕',
+      'aria-label': 'Close dialog',
+      html: ICON_CLOSE,
       onclick: () => dialog.close()
     })
   );
@@ -590,7 +627,8 @@ export function openConfirmDialog({ title, message, confirmText = 'Delete', onCo
     el('button', {
       className: 'modal-close-btn',
       type: 'button',
-      text: '✕',
+      'aria-label': 'Close dialog',
+      html: ICON_CLOSE,
       onclick: () => dialog.close()
     })
   );

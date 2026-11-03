@@ -2,6 +2,7 @@
 import { store } from '../core/state.js';
 import { generateId } from '../core/schema.js';
 import { el, clearChildren } from '../utils/dom.js';
+import { getIconSvg } from '../ui/icons.js';
 
 /**
  * Starter template definitions with generic bookmarks adhering to roadmap C2 rules.
@@ -9,12 +10,12 @@ import { el, clearChildren } from '../utils/dom.js';
 export const STARTER_TEMPLATES = {
   student: {
     name: 'Student',
-    icon: '🎓',
+    icon: 'grad',
     description: 'Study, research, course tools, and cloud storage',
     categories: [
       {
         name: 'Study & Research',
-        icon: '📚',
+        icon: 'book',
         bookmarks: [
           { name: 'Wikipedia', url: 'https://en.wikipedia.org' },
           { name: 'Google Scholar', url: 'https://scholar.google.com' },
@@ -24,7 +25,7 @@ export const STARTER_TEMPLATES = {
       },
       {
         name: 'Tools & Writing',
-        icon: '📝',
+        icon: 'file',
         bookmarks: [
           { name: 'Google Docs', url: 'https://docs.google.com' },
           { name: 'Notion', url: 'https://www.notion.so' },
@@ -34,7 +35,7 @@ export const STARTER_TEMPLATES = {
       },
       {
         name: 'Campus & Planning',
-        icon: '🎓',
+        icon: 'grad',
         bookmarks: [
           { name: 'Calendar', url: 'https://calendar.google.com' },
           { name: 'Canvas LMS', url: 'https://canvas.instructure.com' },
@@ -45,12 +46,12 @@ export const STARTER_TEMPLATES = {
   },
   developer: {
     name: 'Developer',
-    icon: '💻',
+    icon: 'code',
     description: 'Repositories, documentation, and cloud tooling',
     categories: [
       {
         name: 'Code & Repos',
-        icon: '🐙',
+        icon: 'git',
         bookmarks: [
           { name: 'GitHub', url: 'https://github.com' },
           { name: 'GitLab', url: 'https://gitlab.com' },
@@ -59,7 +60,7 @@ export const STARTER_TEMPLATES = {
       },
       {
         name: 'Docs & Learning',
-        icon: '📖',
+        icon: 'book',
         bookmarks: [
           { name: 'MDN Web Docs', url: 'https://developer.mozilla.org' },
           { name: 'DevDocs', url: 'https://devdocs.io' },
@@ -68,7 +69,7 @@ export const STARTER_TEMPLATES = {
       },
       {
         name: 'Cloud & Ops',
-        icon: '☁️',
+        icon: 'cloud',
         bookmarks: [
           { name: 'GitHub Actions', url: 'https://github.com/features/actions' },
           { name: 'Docker Hub', url: 'https://hub.docker.com' },
@@ -79,12 +80,12 @@ export const STARTER_TEMPLATES = {
   },
   creator: {
     name: 'Creator',
-    icon: '🎨',
+    icon: 'palette',
     description: 'Visual design, publishing, and creative inspiration',
     categories: [
       {
         name: 'Design & Visuals',
-        icon: '🎨',
+        icon: 'palette',
         bookmarks: [
           { name: 'Figma', url: 'https://www.figma.com' },
           { name: 'Unsplash', url: 'https://unsplash.com' },
@@ -93,7 +94,7 @@ export const STARTER_TEMPLATES = {
       },
       {
         name: 'Content & Publishing',
-        icon: '✍️',
+        icon: 'pen',
         bookmarks: [
           { name: 'YouTube Studio', url: 'https://studio.youtube.com' },
           { name: 'Substack', url: 'https://substack.com' },
@@ -102,7 +103,7 @@ export const STARTER_TEMPLATES = {
       },
       {
         name: 'Inspiration',
-        icon: '💡',
+        icon: 'bulb',
         bookmarks: [
           { name: 'Dribbble', url: 'https://dribbble.com' },
           { name: 'Behance', url: 'https://www.behance.com' },
@@ -113,7 +114,7 @@ export const STARTER_TEMPLATES = {
   },
   empty: {
     name: 'Start empty',
-    icon: '📄',
+    icon: 'sparkles',
     description: 'A clean canvas with no starter bookmarks',
     categories: []
   }
@@ -240,7 +241,7 @@ export async function openFirstRunDialog() {
         }
       }
     },
-      el('span', { className: 'template-card-icon', text: tpl.icon }),
+      el('span', { className: 'template-card-icon', html: getIconSvg(tpl.icon, 24) }),
       el('span', { className: 'template-card-name', text: tpl.name }),
       el('span', { className: 'template-card-desc', text: tpl.description })
     );
@@ -279,7 +280,6 @@ export async function openFirstRunDialog() {
 
   const footer = el('footer', { className: 'modal-footer' }, skipBtn, tourBtn);
   const content = el('div', { className: 'modal-content' }, header, body, footer);
-
   dialog.appendChild(content);
   dialog.showModal();
 }

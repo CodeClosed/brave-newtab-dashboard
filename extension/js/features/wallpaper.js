@@ -8,6 +8,7 @@ import {
 } from '../core/idb.js';
 import { el, clearChildren } from '../utils/dom.js';
 import { calculateDownscaleDimensions } from './theme.js';
+import { ICON_CLOSE, ICON_SUN, ICON_MOON } from '../ui/icons.js';
 
 export const MAX_WALLPAPERS = 10;
 export const MAX_WALLPAPER_BYTES = 1.5 * 1024 * 1024; // 1.5 MB
@@ -596,7 +597,7 @@ export async function renderWallpaperLibrary(container, storeInstance, options =
         type: 'button',
         title: 'Delete wallpaper',
         'aria-label': `Delete ${item.name || 'wallpaper'}`,
-        text: '×'
+        html: ICON_CLOSE
       });
       delBtn.addEventListener('click', async (e) => {
         if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
@@ -616,7 +617,7 @@ export async function renderWallpaperLibrary(container, storeInstance, options =
         type: 'button',
         title: isDay ? 'Unset Day Wallpaper' : 'Set as Day Wallpaper',
         'aria-label': `Day wallpaper for ${item.name || 'image'}`,
-        text: '☀️ Day'
+        html: `${ICON_SUN}<span>Day</span>`
       });
       dayBtn.addEventListener('click', async (e) => {
         if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
@@ -630,7 +631,7 @@ export async function renderWallpaperLibrary(container, storeInstance, options =
         type: 'button',
         title: isNight ? 'Unset Night Wallpaper' : 'Set as Night Wallpaper',
         'aria-label': `Night wallpaper for ${item.name || 'image'}`,
-        text: '🌙 Night'
+        html: `${ICON_MOON}<span>Night</span>`
       });
       nightBtn.addEventListener('click', async (e) => {
         if (e && typeof e.stopPropagation === 'function') e.stopPropagation();

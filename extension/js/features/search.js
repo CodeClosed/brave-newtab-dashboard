@@ -44,6 +44,12 @@ export function applySearchEngine(engineKey) {
   form.action = engine.url;
   input.name = engine.param;
   input.placeholder = engine.placeholder;
+
+  const prefix = form.querySelector('.search-icon-prefix');
+  if (prefix) {
+    prefix.setAttribute('title', `Search engine: ${engine.name} (click to switch)`);
+    prefix.setAttribute(' data-engine'.trim(), engineKey in SEARCH_ENGINES ? engineKey : 'google');
+  }
 }
 
 /**
@@ -373,6 +379,24 @@ export function initUnifiedSearch() {
   const resultsList = /** @type {HTMLUListElement | null} */ (document.getElementById('search-results-list'));
 
   if (!form || !input || !resultsList) return;
+
+  // Interactive search engine switcher on the prefix icon badge
+  const prefixEl = form.querySelector('.search-icon-prefix');
+  if (prefixEl && !prefixEl.hasAttribute('data-BoundEngineSwitcher')) {
+    prefixEl.setAttribute('data-BoundEngineSwitcher', 'true');
+    prefixEl.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const engineOrder = Object.keys(SEARCH_ENGINES);
+      const currentEngine = store.getState()?.settings?.searchEngine || 'google';
+      const idx = engineOrder.indexOf(currentEngine);
+      const nextEngine = engineOrder[(idx + 1) % engineOrder.length];
+      store.updateSettings({ searchEngine: nextEngine });
+      applySearchEngine(nextEngine);
+      showToast(`Search engine: ${SEARCH_ENGINES[nextEngine].name}`);
+      input.focus();
+    });
+  }
 
   let selectedIndex = -1;
   /** @type {Array<any>} */

@@ -184,3 +184,28 @@ test('B2: settings drawer is built on native <dialog> with aria-labelledby', asy
   assert.equal(drawer.open, false, 'Drawer must be closed');
   assert.equal(globalThis.document.activeElement, triggerBtn, 'Must return focus to trigger on close');
 });
+
+test('B2: clicking a setting in the drawer preserves scroll position instead of jumping to top', async () => {
+  const { openDrawer, closeDrawer, _getDrawerElementForTests } = await import('../extension/js/ui/drawer.js');
+  const { store } = await import('../extension/js/core/state.js');
+
+  openDrawer('appearance');
+  const drawer = _getDrawerElementForTests();
+  assert.ok(drawer);
+
+  const contentEl = drawer.querySelector('.drawer-content');
+  assert.ok(contentEl, 'Must render .drawer-content');
+
+  // Simulate user scrolling down 320px
+  contentEl.scrollTop = 320;
+
+  // Simulate clicking a setting (e.g. changing theme)
+  store.updateSettings({ theme: 'dark' });
+
+  // Finding the updated content element after re-render
+  const updatedContent = drawer.querySelector('.drawer-content');
+  assert.ok(updatedContent);
+  assert.equal(updatedContent.scrollTop, 320, 'Scroll position should be preserved at 320px');
+
+  closeDrawer();
+});

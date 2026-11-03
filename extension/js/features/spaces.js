@@ -3,6 +3,19 @@ import { store } from '../core/state.js';
 import { el, clearChildren } from '../utils/dom.js';
 import { showToast } from '../ui/toasts.js';
 import { openConfirmDialog } from '../ui/dialogs.js';
+import {
+  DEFAULT_ICON_KEYS,
+  ICON_LABELS,
+  ICON_CLOSE,
+  ICON_PLUS,
+  ICON_EDIT,
+  ICON_TRASH,
+  ICON_ARROW_LEFT,
+  ICON_ARROW_RIGHT,
+  ICON_MORE_HORIZONTAL,
+  getIconSvg,
+  resolveIconKey
+} from '../ui/icons.js';
 
 let activeSpaceMenu = null;
 
@@ -68,31 +81,46 @@ export function openAddSpaceDialog() {
 
   clearChildren(dialog);
 
+  let selectedIcon = 'folder';
+
   const title = el('h2', { id: 'space-dialog-title', className: 'modal-title' }, ['New Space']);
   const closeBtn = el('button', {
     type: 'button',
     className: 'btn-icon modal-close-btn',
     'aria-label': 'Close dialog',
+    html: ICON_CLOSE,
     onclick: () => dialog?.close()
-  }, ['✕']);
+  });
 
   const header = el('div', { className: 'modal-header' }, [title, closeBtn]);
 
-  const nameInput = el('input', {
+  const nameInput = /** @type {HTMLInputElement} */ (el('input', {
     type: 'text',
     className: 'form-input',
     placeholder: 'Space name (e.g. Work, Study, Projects)',
     required: true,
     maxLength: 60
-  });
+  }));
 
-  const iconInput = el('input', {
-    type: 'text',
-    className: 'form-input',
-    placeholder: 'Icon emoji (e.g. 💼)',
-    value: '📁',
-    maxLength: 8
-  });
+  const iconContainer = el('div', { className: 'emoji-selector' });
+  for (const iconKey of DEFAULT_ICON_KEYS.slice(0, 12)) {
+    const label = ICON_LABELS[iconKey] || iconKey;
+    const pill = el('button', {
+      className: `emoji-pill${selectedIcon === iconKey ? ' selected' : ''}`,
+      type: 'button',
+      title: label,
+      'aria-label': `Icon ${label}`,
+      dataset: { icon: iconKey },
+      html: getIconSvg(iconKey, 16),
+      onclick: () => {
+        selectedIcon = iconKey;
+        iconContainer.querySelectorAll('.emoji-pill').forEach(btn => {
+          btn.classList.toggle('selected', /** @type {HTMLElement} */ (btn).dataset.icon === iconKey);
+        });
+      }
+    });
+    iconContainer.appendChild(pill);
+  }
 
   const nameGroup = el('div', { className: 'form-group' }, [
     el('label', { className: 'form-label' }, ['Name']),
@@ -100,8 +128,8 @@ export function openAddSpaceDialog() {
   ]);
 
   const iconGroup = el('div', { className: 'form-group' }, [
-    el('label', { className: 'form-label' }, ['Icon']),
-    iconInput
+    el('label', { className: 'form-label' }, ['Space Icon']),
+    iconContainer
   ]);
 
   const cancelBtn = el('button', {
@@ -123,8 +151,7 @@ export function openAddSpaceDialog() {
     e.preventDefault();
     const nameVal = nameInput.value.trim();
     if (!nameVal) return;
-    const iconVal = iconInput.value.trim() || '📁';
-    const newSpace = store.addSpace({ name: nameVal, icon: iconVal });
+    const newSpace = store.addSpace({ name: nameVal, icon: selectedIcon });
     store.setActiveSpace(newSpace.id);
     showToast(`Created space "${newSpace.name}"`);
     dialog?.close();
@@ -158,30 +185,46 @@ export function openRenameSpaceDialog(space) {
 
   clearChildren(dialog);
 
+  let selectedIcon = resolveIconKey(space.icon || 'folder', 'folder');
+
   const title = el('h2', { id: 'space-dialog-title', className: 'modal-title' }, ['Rename Space']);
   const closeBtn = el('button', {
     type: 'button',
     className: 'btn-icon modal-close-btn',
     'aria-label': 'Close dialog',
+    html: ICON_CLOSE,
     onclick: () => dialog?.close()
-  }, ['✕']);
+  });
 
   const header = el('div', { className: 'modal-header' }, [title, closeBtn]);
 
-  const nameInput = el('input', {
+  const nameInput = /** @type {HTMLInputElement} */ (el('input', {
     type: 'text',
     className: 'form-input',
     value: space.name,
     required: true,
     maxLength: 60
-  });
+  }));
 
-  const iconInput = el('input', {
-    type: 'text',
-    className: 'form-input',
-    value: space.icon || '📁',
-    maxLength: 8
-  });
+  const iconContainer = el('div', { className: 'emoji-selector' });
+  for (const iconKey of DEFAULT_ICON_KEYS.slice(0, 12)) {
+    const label = ICON_LABELS[iconKey] || iconKey;
+    const pill = el('button', {
+      className: `emoji-pill${selectedIcon === iconKey ? ' selected' : ''}`,
+      type: 'button',
+      title: label,
+      'aria-label': `Icon ${label}`,
+      dataset: { icon: iconKey },
+      html: getIconSvg(iconKey, 16),
+      onclick: () => {
+        selectedIcon = iconKey;
+        iconContainer.querySelectorAll('.emoji-pill').forEach(btn => {
+          btn.classList.toggle('selected', /** @type {HTMLElement} */ (btn).dataset.icon === iconKey);
+        });
+      }
+    });
+    iconContainer.appendChild(pill);
+  }
 
   const nameGroup = el('div', { className: 'form-group' }, [
     el('label', { className: 'form-label' }, ['Name']),
@@ -189,8 +232,8 @@ export function openRenameSpaceDialog(space) {
   ]);
 
   const iconGroup = el('div', { className: 'form-group' }, [
-    el('label', { className: 'form-label' }, ['Icon']),
-    iconInput
+    el('label', { className: 'form-label' }, ['Space Icon']),
+    iconContainer
   ]);
 
   const cancelBtn = el('button', {
@@ -212,8 +255,7 @@ export function openRenameSpaceDialog(space) {
     e.preventDefault();
     const nameVal = nameInput.value.trim();
     if (!nameVal) return;
-    const iconVal = iconInput.value.trim() || '📁';
-    store.updateSpace(space.id, { name: nameVal, icon: iconVal });
+    store.updateSpace(space.id, { name: nameVal, icon: selectedIcon });
     showToast(`Updated space "${nameVal}"`);
     dialog?.close();
   });
@@ -274,8 +316,9 @@ export function openDeleteSpaceDialog(space) {
     type: 'button',
     className: 'btn-icon modal-close-btn',
     'aria-label': 'Close dialog',
+    html: ICON_CLOSE,
     onclick: () => dialog?.close()
-  }, ['✕']);
+  });
 
   const header = el('div', { className: 'modal-header' }, [title, closeBtn]);
 
@@ -283,17 +326,17 @@ export function openDeleteSpaceDialog(space) {
     `This space contains ${collectionsInSpace.length} collection(s). What would you like to do with them?`
   ]);
 
-  const radioTransfer = el('input', {
+  const radioTransfer = /** @type {HTMLInputElement} */ (el('input', {
     type: 'radio',
     name: 'deleteAction',
     value: 'transfer',
     id: 'delete-action-transfer',
     checked: true
-  });
+  }));
 
-  const selectTargetSpace = el('select', { className: 'form-select', style: { marginTop: '6px' } },
-    otherSpaces.map(s => el('option', { value: s.id }, [`${s.icon || '📁'} ${s.name}`]))
-  );
+  const selectTargetSpace = /** @type {HTMLSelectElement} */ (el('select', { className: 'form-select', style: { marginTop: '6px' } },
+    otherSpaces.map(s => el('option', { value: s.id }, [s.name]))
+  ));
 
   const transferLabel = el('label', { htmlFor: 'delete-action-transfer', style: { display: 'block', fontWeight: '500' } }, [
     radioTransfer,
@@ -383,8 +426,9 @@ export function openMoveCategoryToSpaceDialog(category) {
     type: 'button',
     className: 'btn-icon modal-close-btn',
     'aria-label': 'Close dialog',
+    html: ICON_CLOSE,
     onclick: () => dialog?.close()
-  }, ['✕']);
+  });
 
   const header = el('div', { className: 'modal-header' }, [title, closeBtn]);
 
@@ -409,7 +453,7 @@ export function openMoveCategoryToSpaceDialog(category) {
           });
         }
       }, [
-        el('span', { text: sp.icon || '📁' }),
+        el('span', { html: getIconSvg(sp.icon || 'folder', 15) }),
         el('span', { text: sp.name })
       ]);
       return btn;
@@ -456,7 +500,7 @@ function openSpaceOptionsMenu(triggerBtn, currentSpace, spaceIndex, totalSpaces)
     type: 'button',
     className: 'menu-item',
     role: 'menuitem',
-    text: '+ New Space',
+    html: `${ICON_PLUS}<span>New Space</span>`,
     onclick: () => {
       closeActiveSpaceMenu();
       openAddSpaceDialog();
@@ -469,7 +513,7 @@ function openSpaceOptionsMenu(triggerBtn, currentSpace, spaceIndex, totalSpaces)
     type: 'button',
     className: 'menu-item',
     role: 'menuitem',
-    text: '✎ Rename space',
+    html: `${ICON_EDIT}<span>Rename space</span>`,
     onclick: () => {
       closeActiveSpaceMenu();
       openRenameSpaceDialog(currentSpace);
@@ -483,7 +527,7 @@ function openSpaceOptionsMenu(triggerBtn, currentSpace, spaceIndex, totalSpaces)
       type: 'button',
       className: 'menu-item',
       role: 'menuitem',
-      text: '← Move earlier',
+      html: `${ICON_ARROW_LEFT}<span>Move earlier</span>`,
       onclick: () => {
         closeActiveSpaceMenu();
         store.reorderSpaces(spaceIndex, spaceIndex - 1);
@@ -498,7 +542,7 @@ function openSpaceOptionsMenu(triggerBtn, currentSpace, spaceIndex, totalSpaces)
       type: 'button',
       className: 'menu-item',
       role: 'menuitem',
-      text: '→ Move later',
+      html: `${ICON_ARROW_RIGHT}<span>Move later</span>`,
       onclick: () => {
         closeActiveSpaceMenu();
         store.reorderSpaces(spaceIndex, spaceIndex + 1);
@@ -513,7 +557,7 @@ function openSpaceOptionsMenu(triggerBtn, currentSpace, spaceIndex, totalSpaces)
       type: 'button',
       className: 'menu-item danger',
       role: 'menuitem',
-      text: '✕ Delete space',
+      html: `${ICON_TRASH}<span>Delete space</span>`,
       onclick: () => {
         closeActiveSpaceMenu();
         openDeleteSpaceDialog(currentSpace);
@@ -526,7 +570,6 @@ function openSpaceOptionsMenu(triggerBtn, currentSpace, spaceIndex, totalSpaces)
   activeSpaceMenu = menu;
 
   const rect = triggerBtn.getBoundingClientRect();
-  const menuRect = menu.getBoundingClientRect();
   const top = rect.bottom + 4;
   const left = Math.max(8, rect.left);
 
@@ -534,7 +577,7 @@ function openSpaceOptionsMenu(triggerBtn, currentSpace, spaceIndex, totalSpaces)
   menu.style.left = `${left + (window.scrollX || 0)}px`;
 
   const firstItem = menu.querySelector('[role="menuitem"]');
-  firstItem?.focus();
+  /** @type {HTMLElement | null} */ (firstItem)?.focus();
 }
 
 /**
@@ -564,7 +607,7 @@ export function renderSpaceSwitcher(container) {
 
   const tabsGroup = el('div', { className: 'space-tabs-group', role: 'tablist', 'aria-label': 'Spaces' });
 
-  sortedSpaces.forEach((sp, idx) => {
+  sortedSpaces.forEach((sp) => {
     const isActive = sp.id === activeSpaceId;
     const tabBtn = el('button', {
       type: 'button',
@@ -578,7 +621,7 @@ export function renderSpaceSwitcher(container) {
         }
       }
     }, [
-      el('span', { className: 'space-tab-icon', text: sp.icon || '📁' }),
+      el('span', { className: 'space-tab-icon', html: getIconSvg(sp.icon || 'folder', 14) }),
       el('span', { className: 'space-tab-name', text: sp.name })
     ]);
 
@@ -594,7 +637,7 @@ export function renderSpaceSwitcher(container) {
     className: 'space-manage-btn nav-icon-btn',
     'aria-label': 'Space options',
     title: 'Manage spaces',
-    text: '⋯',
+    html: ICON_MORE_HORIZONTAL,
     onclick: (e) => {
       e.stopPropagation();
       openSpaceOptionsMenu(menuTrigger, currentSpace, currentSpaceIndex >= 0 ? currentSpaceIndex : 0, sortedSpaces.length);

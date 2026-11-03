@@ -18,7 +18,7 @@ export function generateId() {
 export const VALID_TAB_GROUP_COLORS = ['grey', 'blue', 'red', 'yellow', 'green', 'pink', 'purple', 'cyan', 'orange'];
 export const VALID_HERO_LAYOUTS = ['studio', 'centered'];
 export const VALID_DOCK_POSITIONS = ['top', 'left', 'bottom', 'right', 'off'];
-export const VALID_PAGE_MODES = ['two-stage', 'classic'];
+export const VALID_PAGE_MODES = ['two-stage'];
 export const VALID_LANDING_MODES = ['hero', 'remember'];
 export const VALID_HUB_VIEWS = ['columns', 'tabs'];
 
@@ -44,10 +44,14 @@ export function createDefaultSettings() {
       layout: 'studio',
       zones: { clock: 'left', weather: 'right', search: 'right', tasks: 'off' },
       widgets: {
-        clock:   { x: null, y: null, w: null, hidden: false },
-        weather: { x: null, y: null, w: null, hidden: false },
-        search:  { x: null, y: null, w: null, hidden: false },
-        tasks:   { x: null, y: null, w: null, hidden: true }
+        clock:     { x: null, y: null, w: null, h: null, hidden: false },
+        weather:   { x: null, y: null, w: null, h: null, hidden: false },
+        search:    { x: null, y: null, w: null, h: null, hidden: false },
+        tasks:     { x: null, y: null, w: null, h: null, hidden: true },
+        notes:     { x: null, y: null, w: null, h: null, hidden: true },
+        timer:     { x: null, y: null, w: null, h: null, hidden: false },
+        speeddial: { x: null, y: null, w: null, h: null, hidden: false },
+        quote:     { x: null, y: null, w: null, h: null, hidden: false }
       }
     },
     dock: {
@@ -126,7 +130,7 @@ export function createDefaultSettings() {
       nightId: null,
       rotation: 'off'
     },
-    widgets: { notes: false, todo: false },
+    widgets: { notes: false, todo: false, timer: true, speeddial: true, quote: true },
     firstRunDone: false
   };
 }
@@ -139,7 +143,7 @@ export function createDefaultSpaces() {
   return {
     activeSpaceId: homeSpaceId,
     spaces: [
-      { id: homeSpaceId, name: 'Home', icon: '🏠', order: 0, pinned: [], note: '', todos: [] }
+      { id: homeSpaceId, name: 'Home', icon: 'home', order: 0, pinned: [], note: '', todos: [] }
     ]
   };
 }
@@ -160,7 +164,7 @@ export function createDefaultDashboardData() {
         id: generateId(),
         spaceId: activeSpaceId,
         name: 'Development',
-        icon: '💻',
+        icon: 'code',
         order: 0,
         collapsed: false,
         displayMode: null,
@@ -179,7 +183,7 @@ export function createDefaultDashboardData() {
         id: generateId(),
         spaceId: activeSpaceId,
         name: 'Professional',
-        icon: '💼',
+        icon: 'work',
         order: 1,
         collapsed: false,
         displayMode: null,
@@ -198,7 +202,7 @@ export function createDefaultDashboardData() {
         id: generateId(),
         spaceId: activeSpaceId,
         name: 'Media & Reading',
-        icon: '📚',
+        icon: 'book',
         order: 2,
         collapsed: false,
         displayMode: null,
@@ -217,7 +221,7 @@ export function createDefaultDashboardData() {
         id: generateId(),
         spaceId: activeSpaceId,
         name: 'Reference & Tools',
-        icon: '🎓',
+        icon: 'grad',
         order: 3,
         collapsed: false,
         displayMode: null,

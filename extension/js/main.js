@@ -1,11 +1,12 @@
 // @ts-check
+import { el, clearChildren } from './utils/dom.js';
 import { store } from './core/state.js';
 import { renderCategoriesGrid } from './ui/components.js';
 import { openCategoryDialog } from './ui/dialogs.js';
 import { showToast } from './ui/toasts.js';
 import { applySearchEngine, initSearchShortcuts } from './features/search.js';
 import { renderClockAndGreeting, startClockTicker } from './features/clock.js';
-import { applyBackground, applyThemeAndAccent, applyTypography } from './features/theme.js';
+import { applyBackground, applyThemeAndAccent, applyTypography, applyGlassSettings } from './features/theme.js';
 import { initEditMode } from './features/edit-mode.js';
 import { initDropAndPaste } from './features/drag-paste.js';
 import { renderPinnedStrip } from './features/pinned.js';
@@ -22,6 +23,9 @@ import { initAutoHide } from './features/auto-hide.js';
 import { applyAccessibilitySettings } from './features/accessibility.js';
 import { renderNotesWidget } from './features/notes.js';
 import { renderTodoWidget } from './features/todo.js';
+import { renderTimerWidget } from './features/timer.js';
+import { renderSpeedDialWidget } from './features/speeddial.js';
+import { renderQuoteWidget } from './features/quote.js';
 import { applyPageMode, applyLanding, initPageShell, scrollToHero } from './features/page-shell.js';
 import { applyHeroLayout, initHero } from './features/hero.js';
 import { renderDock, initDock } from './features/dock.js';
@@ -41,6 +45,9 @@ function applySettings(settings) {
 
   // 4.4 Theme, Palette & Accent
   try { applyThemeAndAccent(settings, root); } catch (e) { console.error('[NTD] Theme error:', e); }
+
+  // Glass settings (opacity & blur)
+  try { applyGlassSettings(settings, root); } catch (e) { console.error('[NTD] Glass settings error:', e); }
 
   // 6.2 Typography
   try { applyTypography(settings, root); } catch (e) { console.error('[NTD] Typography error:', e); }
@@ -66,7 +73,7 @@ function applySettings(settings) {
   // 6.5 Auto-Hide Mode
   try { initAutoHide(settings); } catch (e) { console.error('[NTD] Auto-hide error:', e); }
 
-  // 9.1 Two-Stage / Classic Page Shell
+  // 9.1 Page Shell
   try { applyPageMode(settings, document.body); } catch (e) { console.error('[NTD] Page mode error:', e); }
 
   // 10.1 Hero Layout
@@ -104,7 +111,7 @@ async function loadAndRenderWeather(weatherSettings, bypassCache = false) {
       humidity: 32,
       code: 3,
       conditionLabel: 'Overcast',
-      icon: '☁️',
+      icon: 'cloud',
       unit: weatherSettings.unit === 'f' ? '°F' : '°C',
       city: weatherSettings.city || 'London',
       isCached: true,
@@ -130,11 +137,12 @@ async function initApp() {
 
   // Glass v2: Seamless upgrade for existing installs so they immediately experience the overhaul
   const upgrades = {};
-  if (data.settings?.page === 'classic' && !data.settings?.optedInClassic) {
+  if (data.settings?.page !== 'two-stage' || data.settings?.optedInClassic) {
+    delete data.settings.optedInClassic;
     upgrades.page = 'two-stage';
     data.settings.page = 'two-stage';
   }
-  if (!data.settings?.background || data.settings?.background?.type === 'none') {
+  if (!data.settings?.background) {
     upgrades.background = {
       type: 'image',
       value: 'bundled:misty-forest',
@@ -178,6 +186,29 @@ async function initApp() {
       unit: 'c'
     };
     data.settings.weather = upgrades.weather;
+  }
+  if (!data.settings?.newWidgetsV2Activated) {
+    const curWidgets = data.settings?.widgets || {};
+    const curHeroWidgets = data.settings?.hero?.widgets || {};
+    upgrades.widgets = {
+      ...curWidgets,
+      timer: curWidgets.timer !== false,
+      speeddial: curWidgets.speeddial !== false,
+      quote: curWidgets.quote !== false
+    };
+    data.settings.widgets = upgrades.widgets;
+
+    const heroWidgets = {
+      ...curHeroWidgets,
+      timer: { ...(curHeroWidgets.timer || {}), hidden: false },
+      speeddial: { ...(curHeroWidgets.speeddial || {}), hidden: false },
+      quote: { ...(curHeroWidgets.quote || {}), hidden: false }
+    };
+    upgrades.hero = { ...(data.settings?.hero || {}), widgets: heroWidgets };
+    data.settings.hero = upgrades.hero;
+
+    upgrades.newWidgetsV2Activated = true;
+    data.settings.newWidgetsV2Activated = true;
   }
   if (Object.keys(upgrades).length > 0) {
     store.updateSettings(upgrades);
@@ -236,12 +267,15 @@ async function initApp() {
   const pinnedStripContainer = document.getElementById('pinned-strip');
   const spaceSwitcherContainer = document.getElementById('space-switcher');
   const widgetsContainer = document.getElementById('widgets-container');
-  const notesWidgetContainer = document.getElementById('notes-widget-container') || widgetsContainer;
-  const todoWidgetContainer = document.getElementById('todo-widget-container') || widgetsContainer;
+  const notesWidgetContainer = document.getElementById('hero-notes-slot') || document.getElementById('notes-widget-container') || widgetsContainer;
+  const todoWidgetContainer = document.getElementById('hero-tasks-slot') || document.getElementById('todo-widget-container') || widgetsContainer;
+  const timerWidgetContainer = document.getElementById('hero-timer-slot');
+  const speedDialWidgetContainer = document.getElementById('hero-speeddial-slot');
+  const quoteWidgetContainer = document.getElementById('hero-quote-slot');
 
   function updateWidgetsVisibility(s) {
     if (widgetsContainer) {
-      const hasAny = Boolean(s?.widgets?.notes || s?.widgets?.todo);
+      const hasAny = Boolean(s?.widgets?.notes || s?.widgets?.todo || s?.widgets?.timer || s?.widgets?.speeddial || s?.widgets?.quote);
       widgetsContainer.hidden = !hasAny;
     }
   }
@@ -277,6 +311,28 @@ async function initApp() {
       if (label) label.textContent = hubView === 'tabs' ? 'Tabs' : 'Columns';
     }
 
+    if (currentHubFilter && visibleCategories.length === 0) {
+      clearChildren(gridContainer);
+      const emptyDiv = el('div', { className: 'dashboard-empty hub-filter-empty' },
+        el('h2', { text: 'No matching collections or bookmarks' }),
+        el('p', { text: `No results matching "${currentHubFilter}". Try a different keyword.` }),
+        el('button', {
+          className: 'btn-secondary',
+          type: 'button',
+          text: 'Clear filter',
+          onclick: () => {
+            const filterInput = /** @type {HTMLInputElement | null} */ (document.getElementById('hub-filter-input'));
+            if (filterInput) filterInput.value = '';
+            currentHubFilter = '';
+            const freshState = store.getState ? store.getState() : store.get();
+            renderHubCollections(freshState);
+          }
+        })
+      );
+      gridContainer.appendChild(emptyDiv);
+      return;
+    }
+
     if (hubView === 'tabs') {
       renderTabbedHub(visibleCategories, gridContainer, { spaceId: s.activeSpaceId });
     } else {
@@ -298,6 +354,9 @@ async function initApp() {
   try { updateWidgetsVisibility(data.settings); } catch (e) { console.error('[NTD] widgets visibility error:', e); }
   try { renderNotesWidget(notesWidgetContainer, data, (note) => store.updateSpaceNote(data.activeSpaceId, note, true)); } catch (e) { console.error('[NTD] notes error:', e); }
   try { renderTodoWidget(todoWidgetContainer, data); } catch (e) { console.error('[NTD] todo error:', e); }
+  try { renderTimerWidget(timerWidgetContainer, data); } catch (e) { console.error('[NTD] timer error:', e); }
+  try { renderSpeedDialWidget(speedDialWidgetContainer, data); } catch (e) { console.error('[NTD] speeddial error:', e); }
+  try { renderQuoteWidget(quoteWidgetContainer, data); } catch (e) { console.error('[NTD] quote error:', e); }
   try { renderHubCollections(data); } catch (e) { console.error('[NTD] hub error:', e); }
 
   if (typeof window !== 'undefined' && /** @type {any} */ (window).__ntd_data_unreadable_warning) {
@@ -406,6 +465,25 @@ async function initApp() {
   try { initDropAndPaste(); } catch (e) { console.error('[NTD] initDropAndPaste error:', e); }
   try { initBulkOperations(); } catch (e) { console.error('[NTD] initBulkOperations error:', e); }
 
+  let lastPinnedKey = '';
+  let lastDockSettingsKey = '';
+  let lastSpaceId = '';
+
+  const shouldRenderDock = (state) => {
+    const activeSpace = state.spaces?.find(s => s.id === state.activeSpaceId) || state.spaces?.[0];
+    const pinnedKey = (activeSpace?.pinned || []).join(',');
+    const dockKey = JSON.stringify(state.settings?.dock || {});
+    const spaceId = state.activeSpaceId || '';
+
+    if (pinnedKey !== lastPinnedKey || dockKey !== lastDockSettingsKey || spaceId !== lastSpaceId) {
+      lastPinnedKey = pinnedKey;
+      lastDockSettingsKey = dockKey;
+      lastSpaceId = spaceId;
+      return true;
+    }
+    return false;
+  };
+
   // React to store mutations
   store.subscribe((state) => {
     try { applySettings(state.settings); } catch (e) { console.error('[NTD] Sub applySettings error:', e); }
@@ -413,13 +491,16 @@ async function initApp() {
     try { renderSpaceSwitcher(spaceSwitcherContainer); } catch (e) { console.error('[NTD] Sub spaces error:', e); }
     try { renderPinnedStrip(pinnedStripContainer); } catch (e) { console.error('[NTD] Sub pinned error:', e); }
     try {
-      if (appDockEl) {
+      if (appDockEl && shouldRenderDock(state)) {
         renderDock(appDockEl, state);
       }
     } catch (e) { console.error('[NTD] Sub dock error:', e); }
     try { updateWidgetsVisibility(state.settings); } catch (e) { console.error('[NTD] Sub widgets error:', e); }
     try { renderNotesWidget(notesWidgetContainer, state, (note) => store.updateSpaceNote(state.activeSpaceId, note, true)); } catch (e) { console.error('[NTD] Sub notes error:', e); }
     try { renderTodoWidget(todoWidgetContainer, state); } catch (e) { console.error('[NTD] Sub todo error:', e); }
+    try { renderTimerWidget(timerWidgetContainer, state); } catch (e) { console.error('[NTD] Sub timer error:', e); }
+    try { renderSpeedDialWidget(speedDialWidgetContainer, state); } catch (e) { console.error('[NTD] Sub speeddial error:', e); }
+    try { renderQuoteWidget(quoteWidgetContainer, state); } catch (e) { console.error('[NTD] Sub quote error:', e); }
     try { renderHubCollections(state); } catch (e) { console.error('[NTD] Sub hub error:', e); }
   });
 }

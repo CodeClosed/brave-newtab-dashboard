@@ -4,7 +4,10 @@ import { el } from '../utils/dom.js';
 let toastContainer = null;
 
 function ensureToastContainer() {
-  if (!toastContainer || !document.body.contains(toastContainer)) {
+  if (typeof document === 'undefined' || !document.body || typeof document.body.appendChild !== 'function') {
+    return null;
+  }
+  if (!toastContainer || !document.body.contains || !document.body.contains(toastContainer)) {
     toastContainer = el('div', {
       className: 'toast-container',
       'aria-live': 'polite',
@@ -25,6 +28,7 @@ function ensureToastContainer() {
 export function showToast(message, onUndo = null, durationMs = 5000) {
   if (typeof document === 'undefined') return;
   const container = ensureToastContainer();
+  if (!container) return;
 
   const msgSpan = el('span', { className: 'toast-message', text: message });
   /** @type {HTMLElement[]} */

@@ -151,13 +151,13 @@ class StateStore {
    * @param {{ name: string, icon?: string, spaceId?: string }} params
    * @returns {import('./schema.js').Category}
    */
-  addCategory({ name, icon = '📁', spaceId, color = null, source = null, savedAt = null, bookmarks = [] }) {
+  addCategory({ name, icon = 'folder', spaceId, color = null, source = null, savedAt = null, bookmarks = [] }) {
     const targetSpaceId = spaceId || this._data.activeSpaceId || this._data.spaces?.[0]?.id;
     const newCategory = {
       id: generateId(),
       spaceId: targetSpaceId,
       name: (name && typeof name === 'string' && name.trim()) || 'New Collection',
-      icon: icon || '📁',
+      icon: icon || 'folder',
       color: color || null,
       source: source || null,
       savedAt: savedAt || null,
@@ -179,7 +179,7 @@ class StateStore {
    * @param {{ name: string, icon?: string }} params
    * @returns {import('./schema.js').Space}
    */
-  addSpace({ name, icon = '📁' }) {
+  addSpace({ name, icon = 'folder' }) {
     if (!Array.isArray(this._data.spaces)) {
       this._data.spaces = [];
     }
@@ -187,7 +187,7 @@ class StateStore {
     const newSpace = {
       id: generateId(),
       name: name.trim() || 'New Space',
-      icon: icon || '📁',
+      icon: icon || 'folder',
       order: this._data.spaces.length,
       pinned: []
     };

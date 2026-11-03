@@ -3,16 +3,15 @@
 let scrollCleanup = null;
 
 /**
- * Applies the page mode ('two-stage' | 'classic') to the target body element.
- * @param {import('../core/schema.js').DashboardData['settings']} settings
+ * Applies the page mode ('two-stage') to the target body element.
+ * @param {import('../core/schema.js').DashboardData['settings']} [settings]
  * @param {HTMLElement | { setAttribute: Function }} [bodyElement]
  */
 export function applyPageMode(settings, bodyElement) {
   const body = bodyElement || (typeof document !== 'undefined' ? document.body : null);
   if (!body || typeof body.setAttribute !== 'function') return;
 
-  const mode = settings?.page === 'two-stage' ? 'two-stage' : 'classic';
-  body.setAttribute('data-page', mode);
+  body.setAttribute('data-page', 'two-stage');
 }
 
 /**
@@ -114,8 +113,7 @@ export function initPageShell() {
 
     const isNearHero = window.scrollY < (window.innerHeight * 0.4);
     if (isNearHero && (e.key === 'PageDown' || e.key === 'ArrowDown')) {
-      e.preventDefault();
-      scrollToHub('smooth');
+      // Hub is hidden/removed in single-stage desktop mode; do not hijack arrow down
     } else if (!isNearHero && (e.key === 'PageUp' || e.key === 'Home')) {
       e.preventDefault();
       scrollToHero('smooth');

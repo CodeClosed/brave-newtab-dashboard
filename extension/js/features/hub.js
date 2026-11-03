@@ -1,6 +1,7 @@
 // @ts-check
 import { clearChildren, el } from '../utils/dom.js';
 import { renderCategoryCard } from '../ui/components.js';
+import { getIconSvg } from '../ui/icons.js';
 
 let rememberedTabs = {};
 
@@ -147,7 +148,7 @@ export function renderTabbedHub(categories, container, options = {}) {
           }
         }
       },
-      el('span', { className: 'tab-icon', text: cat.icon || '📁' }),
+      el('span', { className: 'tab-icon', html: getIconSvg(cat.icon || 'folder', 15) }),
       el('span', { className: 'tab-name', text: cat.name }),
       colorDot,
       el('span', { className: 'tab-count', text: `(${bmCount})` })

@@ -177,7 +177,7 @@ test('8.1 Settings repair & clamp: clamps glass blur, glass opacity, dock maxIte
 test('8.1 Validation: validates all enum lists and detects malformed values', () => {
   assert.deepEqual(VALID_TAB_GROUP_COLORS, ['grey', 'blue', 'red', 'yellow', 'green', 'pink', 'purple', 'cyan', 'orange']);
   assert.deepEqual(VALID_DOCK_POSITIONS, ['top', 'left', 'bottom', 'right', 'off']);
-  assert.deepEqual(VALID_PAGE_MODES, ['two-stage', 'classic']);
+  assert.deepEqual(VALID_PAGE_MODES, ['two-stage']);
   assert.deepEqual(VALID_LANDING_MODES, ['hero', 'remember']);
   assert.deepEqual(VALID_HERO_LAYOUTS, ['studio', 'centered']);
   assert.deepEqual(VALID_HUB_VIEWS, ['columns', 'tabs']);

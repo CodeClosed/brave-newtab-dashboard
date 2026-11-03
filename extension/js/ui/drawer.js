@@ -14,23 +14,46 @@ import { THEME_PRESETS, applyThemePreset } from '../features/presets.js';
 import { getSolarTimes } from '../features/schedule.js';
 import { renderWallpaperLibrary, BUNDLED_WALLPAPERS } from '../features/wallpaper.js';
 import { isValidTimezone, getSupportedTimezones } from '../features/clock.js';
+import {
+  ICON_PALETTE,
+  ICON_LAYOUT,
+  ICON_CLOCK,
+  ICON_SEARCH,
+  ICON_WIDGETS,
+  ICON_SPACES,
+  ICON_COLLECTIONS,
+  ICON_ACCESSIBILITY,
+  ICON_DATA,
+  ICON_CHECK,
+  ICON_WARNING,
+  ICON_SUN,
+  ICON_MOON,
+  ICON_ARROW_UP,
+  ICON_ARROW_DOWN,
+  ICON_EDIT,
+  ICON_CLOSE,
+  ICON_PLUS,
+  getIconSvg
+} from './icons.js';
 
 let drawerElement = null;
 let activeTab = 'appearance';
 let lastActiveElement = null;
 let openingSnapshot = null;
 let searchQuery = '';
+let lastRenderedTab = null;
+let lastSearchQuery = '';
 
 const TABS = [
-  { id: 'appearance', label: 'Appearance', icon: '🎨' },
-  { id: 'layout', label: 'Layout', icon: '📐' },
-  { id: 'clock', label: 'Clock & Date', icon: '⏰' },
-  { id: 'search', label: 'Search', icon: '🔍' },
-  { id: 'widgets', label: 'Widgets', icon: '🧩' },
-  { id: 'spaces', label: 'Spaces', icon: '📁' },
-  { id: 'categories', label: 'Collections', icon: '🗂️' },
-  { id: 'accessibility', label: 'Accessibility', icon: '♿' },
-  { id: 'data', label: 'Backup & Data', icon: '💾' }
+  { id: 'appearance', label: 'Appearance', icon: ICON_PALETTE },
+  { id: 'layout', label: 'Layout', icon: ICON_LAYOUT },
+  { id: 'clock', label: 'Clock & Date', icon: ICON_CLOCK },
+  { id: 'search', label: 'Search', icon: ICON_SEARCH },
+  { id: 'widgets', label: 'Widget Editor', icon: ICON_WIDGETS },
+  { id: 'spaces', label: 'Spaces', icon: ICON_SPACES },
+  { id: 'categories', label: 'Collections', icon: ICON_COLLECTIONS },
+  { id: 'accessibility', label: 'Accessibility', icon: ICON_ACCESSIBILITY },
+  { id: 'data', label: 'Backup & Data', icon: ICON_DATA }
 ];
 
 const ACCENTS = [
@@ -74,13 +97,14 @@ const SETTINGS_CATALOG = [
   { id: 'palette', section: 'appearance', label: 'Color Palette', keywords: 'palette default amoled paper contrast' },
   { id: 'accent', section: 'appearance', label: 'Accent Color', keywords: 'accent slate blue emerald amber rose custom color' },
   { id: 'background', section: 'appearance', label: 'Background & Wallpaper', keywords: 'wallpaper background solid gradient image' },
+  { id: 'glass', section: 'appearance', label: 'Frosted Glass Surface (Blur & Opacity)', keywords: 'glass blur opacity frosted translucency transparency' },
   { id: 'layout', section: 'layout', label: 'Card Layout', keywords: 'grid compact layout card style' },
   { id: 'cards', section: 'layout', label: 'Card Columns & Width', keywords: 'columns gap width translucent cards filled' },
   { id: 'accessibility', section: 'accessibility', label: 'Accessibility & Reduced Motion', keywords: 'accessibility motion reduce animation transitions large targets touch contrast wcag aaa' },
   { id: 'clock', section: 'clock', label: 'Clock & Date Display', keywords: 'time clock greeting date format 12h 24h 24-hour seconds timezone' },
   { id: 'searchEngine', section: 'search', label: 'Search Engine', keywords: 'search engine google brave duckduckgo bing' },
   { id: 'searchShortcuts', section: 'search', label: 'Search Filter & Shortcuts', keywords: 'shortcuts filter bookmarks calculator math' },
-  { id: 'widgets', section: 'widgets', label: 'Optional Widgets', keywords: 'widgets notes todo tasks scratchpad plain text checklist' },
+  { id: 'widgets', section: 'widgets', label: 'Widget Editor & Sizes', keywords: 'widgets editor resize small big format clock weather search timer notes tasks quote speeddial size layout' },
   { id: 'spaces', section: 'spaces', label: 'Spaces & Dashboards', keywords: 'spaces dashboards add switch cycle move' },
   { id: 'categories', section: 'categories', label: 'Manage Collections', keywords: 'categories collections add reorder delete' },
   { id: 'snapshots', section: 'data', label: 'Snapshots & Backups', keywords: 'snapshots restore backup export import json database' }
@@ -120,6 +144,7 @@ export function resetSettingsSection(sectionId) {
       palette: defaults.palette,
       accent: defaults.accent,
       accentCustom: defaults.accentCustom,
+      glass: JSON.parse(JSON.stringify(defaults.glass)),
       font: JSON.parse(JSON.stringify(defaults.font)),
       themeSchedule: JSON.parse(JSON.stringify(defaults.themeSchedule)),
       background: JSON.parse(JSON.stringify(defaults.background))
@@ -162,9 +187,16 @@ export function resetSettingsSection(sectionId) {
     };
   } else if (sectionId === 'widgets') {
     label = 'Widgets';
+    const heroWidgets = { ...(store.get()?.settings?.hero?.widgets || {}) };
+    heroWidgets.timer = { ...(heroWidgets.timer || {}), hidden: !defaults.widgets.timer };
+    heroWidgets.speeddial = { ...(heroWidgets.speeddial || {}), hidden: !defaults.widgets.speeddial };
+    heroWidgets.quote = { ...(heroWidgets.quote || {}), hidden: !defaults.widgets.quote };
+    heroWidgets.tasks = { ...(heroWidgets.tasks || {}), hidden: !defaults.widgets.todo };
+    heroWidgets.notes = { ...(heroWidgets.notes || {}), hidden: !defaults.widgets.notes };
     patch = {
       widgets: JSON.parse(JSON.stringify(defaults.widgets)),
       weather: JSON.parse(JSON.stringify(defaults.weather)),
+      hero: { ...(store.get()?.settings?.hero || {}), widgets: heroWidgets }
     };
   }
 
@@ -225,6 +257,8 @@ export function openDrawer(tab = 'appearance') {
   lastActiveElement = /** @type {HTMLElement} */ (document.activeElement);
   activeTab = tab;
   searchQuery = '';
+  lastRenderedTab = null;
+  lastSearchQuery = '';
   openingSnapshot = JSON.parse(JSON.stringify(store.get()));
   renderDrawerContent();
 
@@ -268,6 +302,13 @@ export function closeDrawer(revert = false) {
  */
 function renderDrawerContent() {
   if (!drawerElement) return;
+
+  const isSameView = (activeTab === lastRenderedTab) && (searchQuery === lastSearchQuery);
+  const prevContent = drawerElement.querySelector('.drawer-content');
+  const prevScrollTop = (prevContent && isSameView) ? prevContent.scrollTop : 0;
+  const prevNav = drawerElement.querySelector('.drawer-nav');
+  const prevNavScrollTop = prevNav ? prevNav.scrollTop : 0;
+
   clearChildren(drawerElement);
 
   const state = store.get();
@@ -318,6 +359,7 @@ function renderDrawerContent() {
   // Tab Nav (hidden if actively searching)
   const nav = el('nav', { className: 'drawer-nav', 'aria-label': 'Settings sections' });
   for (const tab of TABS) {
+    const isSvg = typeof tab.icon === 'string' && tab.icon.includes('<svg');
     const tabBtn = el('button', {
       className: `drawer-tab-btn${activeTab === tab.id ? ' active' : ''}`,
       type: 'button',
@@ -327,7 +369,10 @@ function renderDrawerContent() {
         renderDrawerContent();
       }
     }, [
-      el('span', { className: 'drawer-tab-icon', text: tab.icon || '⚙️' }),
+      el('span', {
+        className: 'drawer-tab-icon',
+        ...(isSvg ? { html: tab.icon } : { text: tab.icon || '' })
+      }),
       el('span', { className: 'drawer-tab-label', text: tab.label })
     ]);
     nav.appendChild(tabBtn);
@@ -402,6 +447,23 @@ function renderDrawerContent() {
 
   drawerElement.appendChild(header);
   drawerElement.appendChild(modalBody);
+
+  const newContent = drawerElement.querySelector('.drawer-content');
+  if (newContent && prevScrollTop > 0) {
+    newContent.scrollTop = prevScrollTop;
+    if (typeof requestAnimationFrame === 'function') {
+      requestAnimationFrame(() => {
+        if (newContent) newContent.scrollTop = prevScrollTop;
+      });
+    }
+  }
+  const newNav = drawerElement.querySelector('.drawer-nav');
+  if (newNav && prevNavScrollTop > 0) {
+    newNav.scrollTop = prevNavScrollTop;
+  }
+
+  lastRenderedTab = activeTab;
+  lastSearchQuery = searchQuery;
 }
 
 // --- Section Renderers ---
@@ -539,7 +601,9 @@ function renderAppearanceSection(settings) {
 
     const contrastBadge = el('span', {
       className: `search-result-section-badge${contrastRes.valid ? '' : ' danger'}`,
-      text: contrastRes.valid ? `✓ WCAG AA (${contrastRes.ratio}:1)` : `⚠ Fails AA (${contrastRes.ratio}:1)`
+      html: contrastRes.valid
+        ? `${ICON_CHECK}<span>WCAG AA (${contrastRes.ratio}:1)</span>`
+        : `${ICON_WARNING}<span>Fails AA (${contrastRes.ratio}:1)</span>`
     });
 
     const updateCustomColor = (newHex) => {
@@ -649,7 +713,7 @@ function renderAppearanceSection(settings) {
           borderRadius: 'var(--radius-xs)',
           border: '1px solid var(--border-subtle)'
         },
-        text: `☀️ Sunrise: ~${solarTimes.sunriseStr}  •  🌙 Sunset: ~${solarTimes.sunsetStr} (solar estimation from local date)`
+        html: `<span style="display:inline-flex;align-items:center;gap:6px">${ICON_SUN}<span>Sunrise: ~${solarTimes.sunriseStr}</span><span style="opacity:0.5">•</span>${ICON_MOON}<span>Sunset: ~${solarTimes.sunsetStr} (solar estimation from local date)</span></span>`
       });
       scheduleGroup.appendChild(solarInfo);
     } else {
@@ -964,6 +1028,9 @@ function renderAppearanceSection(settings) {
               ...bgConfig,
               type: 'image',
               activeId: wp.id,
+              dayId: null,
+              nightId: null,
+              rotation: 'off',
               autoReadability: true
             }
           });
@@ -1153,8 +1220,65 @@ function renderAppearanceSection(settings) {
     scaleSlider
   );
 
+  // 15.5 Glass v2 Material Settings (Blur & Opacity)
+  const glassConf = settings.glass || { blur: 16, opacity: 0.62 };
+  const currentBlur = typeof glassConf.blur === 'number' ? glassConf.blur : 16;
+  const currentGlassOpacity = typeof glassConf.opacity === 'number' ? glassConf.opacity : 0.62;
+
+  const blurValSpan = el('span', { text: `${currentBlur}px`, style: { fontSize: '12px' } });
+  const blurSlider = /** @type {HTMLInputElement} */ (el('input', {
+    type: 'range',
+    min: '8',
+    max: '24',
+    step: '1',
+    value: String(currentBlur),
+    style: { width: '100%' }
+  }));
+  blurSlider.addEventListener('input', () => {
+    const val = parseInt(blurSlider.value, 10);
+    blurValSpan.textContent = `${val}px`;
+    store.updateSettings({ glass: { ...(settings.glass || {}), blur: val } });
+  });
+
+  const opacityValSpan = el('span', { text: `${Math.round(currentGlassOpacity * 100)}%`, style: { fontSize: '12px' } });
+  const opacitySlider = /** @type {HTMLInputElement} */ (el('input', {
+    type: 'range',
+    min: '0.45',
+    max: '0.90',
+    step: '0.01',
+    value: String(currentGlassOpacity),
+    style: { width: '100%' }
+  }));
+  opacitySlider.addEventListener('input', () => {
+    const val = Math.round(parseFloat(opacitySlider.value) * 100) / 100;
+    opacityValSpan.textContent = `${Math.round(val * 100)}%`;
+    store.updateSettings({ glass: { ...(settings.glass || {}), opacity: val } });
+  });
+
+  const glassGroup = el('div', { className: 'setting-item' },
+    el('div', { className: 'setting-item-header' },
+      el('span', { className: 'setting-label', text: 'Frosted Glass Surface' }),
+      el('span', { className: 'setting-desc', text: 'Calm Glass v2 translucency & backdrop blur' })
+    ),
+    el('div', { style: { display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '6px' } },
+      el('div', { style: { display: 'flex', justifyContent: 'space-between' } },
+        el('span', { className: 'setting-desc', text: 'Glass Opacity (45% – 90%)' }),
+        opacityValSpan
+      ),
+      opacitySlider
+    ),
+    el('div', { style: { display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '10px' } },
+      el('div', { style: { display: 'flex', justifyContent: 'space-between' } },
+        el('span', { className: 'setting-desc', text: 'Backdrop Blur (8px – 24px)' }),
+        blurValSpan
+      ),
+      blurSlider
+    )
+  );
+
   section.appendChild(fontFamilyGroup);
   section.appendChild(fontScaleGroup);
+  section.appendChild(glassGroup);
 
   section.appendChild(el('button', {
     className: 'btn-secondary section-reset-btn',
@@ -1168,26 +1292,6 @@ function renderAppearanceSection(settings) {
 
 function renderLayoutSection(settings) {
   const section = el('div', { className: 'settings-section' });
-
-  // 16.3 Page Architecture Mode
-  const currentPageMode = settings.page || 'two-stage';
-  const pageModeGroup = el('div', { className: 'setting-item' },
-    el('div', { className: 'setting-item-header' },
-      el('span', { className: 'setting-label', text: 'Dashboard Page Layout' }),
-      el('span', { className: 'setting-desc', text: 'Two-stage provides an uncluttered hero stage with glass collections below the fold.' })
-    ),
-    el('div', { className: 'radio-group-cards', style: { gridTemplateColumns: 'repeat(2, 1fr)' } },
-      renderRadioCard('Two-Stage Hub', currentPageMode === 'two-stage', () => {
-        store.updateSettings({ page: 'two-stage', optedInClassic: false });
-        renderDrawerContent();
-      }),
-      renderRadioCard('Classic (Deprecated)', currentPageMode === 'classic', () => {
-        store.updateSettings({ page: 'classic', optedInClassic: true });
-        renderDrawerContent();
-      })
-    )
-  );
-  section.appendChild(pageModeGroup);
 
   const layoutGroup = el('div', { className: 'setting-item' },
     el('div', { className: 'setting-item-header' },
@@ -1204,6 +1308,7 @@ function renderLayoutSection(settings) {
       })
     )
   );
+  section.appendChild(layoutGroup);
 
   // 4.1 Card Style Cards
   const currentCardStyle = settings.cards?.style || 'filled';
@@ -1211,7 +1316,11 @@ function renderLayoutSection(settings) {
     el('div', { className: 'setting-item-header' },
       el('span', { className: 'setting-label', text: 'Card Style' })
     ),
-    el('div', { className: 'radio-group-cards', style: { gridTemplateColumns: 'repeat(4, 1fr)' } },
+    el('div', { className: 'radio-group-cards', style: { gridTemplateColumns: 'repeat(5, 1fr)' } },
+      renderRadioCard('Glass', currentCardStyle === 'glass', () => {
+        store.updateSettings({ cards: { ...(settings.cards || {}), style: 'glass' } });
+        renderDrawerContent();
+      }),
       renderRadioCard('Filled', currentCardStyle === 'filled', () => {
         store.updateSettings({ cards: { ...(settings.cards || {}), style: 'filled' } });
         renderDrawerContent();
@@ -1551,7 +1660,6 @@ function renderLayoutSection(settings) {
     )
   );
 
-  section.appendChild(layoutGroup);
   section.appendChild(hubViewGroup);
   section.appendChild(dockPosGroup);
   section.appendChild(dockAutoHideRow);
@@ -1678,23 +1786,48 @@ function renderClockSection(settings) {
   );
   section.appendChild(countdownGroup);
 
-  // 6.1 Clock Style
-  const currentClockStyle = clockConf.style === 'small' ? 'small' : (clockConf.style === 'left' || clockConf.style === 'left-aligned' ? 'left' : 'large');
+  // 6.1 Clock Size & Style
+  const currentClockSize = clockConf.size || (clockConf.style === 'small' ? 'small' : (clockConf.style === 'large' ? 'large' : (clockConf.style === 'medium' ? 'medium' : 'huge')));
   const clockStyleGroup = el('div', { className: 'setting-item' },
     el('div', { className: 'setting-item-header' },
-      el('span', { className: 'setting-label', text: 'Clock Layout Style' })
+      el('span', { className: 'setting-label', text: 'Clock Size' }),
+      el('span', { className: 'setting-desc', text: 'Choose clock size (Small, Medium, Large, Huge)' })
     ),
-    el('div', { className: 'radio-group-cards', style: { gridTemplateColumns: 'repeat(3, 1fr)' } },
-      renderRadioCard('Large', currentClockStyle === 'large', () => {
-        store.updateSettings({ clock: { ...clockConf, style: 'large' } });
+    el('div', { className: 'radio-group-cards', style: { gridTemplateColumns: 'repeat(4, 1fr)' } },
+      renderRadioCard('Small', currentClockSize === 'small', () => {
+        const curHero = { ...(settings.hero?.widgets || {}) };
+        curHero.clock = { ...(curHero.clock || {}), w: 300, h: 80 };
+        store.updateSettings({
+          clock: { ...clockConf, style: 'small', size: 'small' },
+          hero: { ...(settings.hero || {}), widgets: curHero }
+        });
         renderDrawerContent();
       }),
-      renderRadioCard('Small', currentClockStyle === 'small', () => {
-        store.updateSettings({ clock: { ...clockConf, style: 'small' } });
+      renderRadioCard('Medium', currentClockSize === 'medium', () => {
+        const curHero = { ...(settings.hero?.widgets || {}) };
+        curHero.clock = { ...(curHero.clock || {}), w: 480, h: 120 };
+        store.updateSettings({
+          clock: { ...clockConf, style: 'large', size: 'medium' },
+          hero: { ...(settings.hero || {}), widgets: curHero }
+        });
         renderDrawerContent();
       }),
-      renderRadioCard('Left-aligned', currentClockStyle === 'left', () => {
-        store.updateSettings({ clock: { ...clockConf, style: 'left' } });
+      renderRadioCard('Large', currentClockSize === 'large', () => {
+        const curHero = { ...(settings.hero?.widgets || {}) };
+        curHero.clock = { ...(curHero.clock || {}), w: 680, h: 160 };
+        store.updateSettings({
+          clock: { ...clockConf, style: 'large', size: 'large' },
+          hero: { ...(settings.hero || {}), widgets: curHero }
+        });
+        renderDrawerContent();
+      }),
+      renderRadioCard('Huge', currentClockSize === 'huge' || currentClockSize === 'hero', () => {
+        const curHero = { ...(settings.hero?.widgets || {}) };
+        curHero.clock = { ...(curHero.clock || {}), w: null, h: null };
+        store.updateSettings({
+          clock: { ...clockConf, style: 'hero', size: 'huge' },
+          hero: { ...(settings.hero || {}), widgets: curHero }
+        });
         renderDrawerContent();
       })
     )
@@ -1956,11 +2089,196 @@ function renderWidgetsSection(settings) {
   const section = el('div', { className: 'settings-section' });
   const widgets = settings.widgets || { notes: false, todo: false };
   const weather = settings.weather || { enabled: false, city: '', lat: null, lon: null, unit: 'c' };
+  const clockConf = settings.clock || {};
+  const heroWidgets = settings.hero?.widgets || {};
 
-  // 14.1 & 14.2 Weather Widget (Opt-in)
+  // 1. Live Interactive Desktop Editor Action Banner
+  const editorCallout = el('div', {
+    className: 'setting-item',
+    style: {
+      padding: '16px',
+      borderRadius: '12px',
+      background: 'var(--accent-tint, rgba(59, 130, 246, 0.1))',
+      border: '1px solid var(--accent-base, #3b82f6)',
+      marginBottom: '20px',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '12px'
+    }
+  },
+    el('div', { className: 'setting-item-header' },
+      el('span', { className: 'setting-label', style: { fontSize: '15px', fontWeight: '600' }, text: 'Visual Desktop Editor' }),
+      el('span', { className: 'setting-desc', text: 'Drag to position widgets freely on your wallpaper and use corner handles to make them small or big.' })
+    ),
+    el('div', { style: { display: 'flex', gap: '8px', flexWrap: 'wrap' } },
+      el('button', {
+        className: 'btn-primary',
+        type: 'button',
+        style: { display: 'inline-flex', alignItems: 'center', gap: '6px' },
+        html: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg><span>Open Live Desktop Editor</span>`,
+        onclick: () => {
+          closeDrawer();
+          import('../features/edit-mode.js').then(m => m.setEditMode(true)).catch(() => {});
+        }
+      }),
+      el('button', {
+        className: 'btn-secondary',
+        type: 'button',
+        text: 'Reset Layout & Sizes',
+        onclick: () => {
+          const s = store.getState ? store.getState() : store.get();
+          const cleanWidgets = {};
+          const widgetKeys = ['clock', 'search', 'weather', 'tasks', 'notes', 'timer', 'speeddial', 'quote'];
+          for (const k of widgetKeys) {
+            cleanWidgets[k] = { x: null, y: null, w: null, h: null, hidden: s.hero?.widgets?.[k]?.hidden || false };
+          }
+          store.updateSettings({
+            clock: { ...(s.clock || {}), style: 'hero', size: 'huge' },
+            hero: { ...(s.hero || {}), widgets: cleanWidgets }
+          });
+          renderDrawerContent();
+        }
+      })
+    )
+  );
+  section.appendChild(editorCallout);
+
+  // Helper for sizing cards
+  function renderSizeSelector(currentW, smallW, smallH, medW, medH, largeW, largeH, onSelect) {
+    const isSmall = currentW && currentW <= (smallW + 35);
+    const isLarge = currentW && currentW >= (largeW - 35);
+    const isMed = !isSmall && !isLarge;
+
+    return el('div', { className: 'radio-group-cards', style: { gridTemplateColumns: 'repeat(3, 1fr)', marginTop: '8px', marginBottom: '8px' } },
+      renderRadioCard('Small', isSmall, () => onSelect(smallW, smallH, 'small')),
+      renderRadioCard('Medium', isMed, () => onSelect(medW, medH, 'medium')),
+      renderRadioCard('Large', isLarge, () => onSelect(largeW, largeH, 'large'))
+    );
+  }
+
+  // 2. Clock Widget Size & Formatting
+  const currentClockSize = clockConf.size || (clockConf.style === 'small' ? 'small' : (clockConf.style === 'large' ? 'large' : (clockConf.style === 'medium' ? 'medium' : 'huge')));
+
+  const clockGroup = el('div', { className: 'setting-item', style: { marginBottom: '20px' } },
+    el('div', { className: 'setting-item-header' },
+      el('span', { className: 'setting-label', text: 'Clock Size & Formatting' }),
+      el('span', { className: 'setting-desc', text: 'Choose clock size (Small, Medium, Large, Huge) and display format' })
+    ),
+    el('div', { className: 'radio-group-cards', style: { gridTemplateColumns: 'repeat(4, 1fr)', marginBottom: '10px' } },
+      renderRadioCard('Small', currentClockSize === 'small', () => {
+        const curHero = { ...(settings.hero?.widgets || {}) };
+        curHero.clock = { ...(curHero.clock || {}), w: 300, h: 80 };
+        store.updateSettings({
+          clock: { ...clockConf, style: 'small', size: 'small' },
+          hero: { ...(settings.hero || {}), widgets: curHero }
+        });
+        renderDrawerContent();
+      }),
+      renderRadioCard('Medium', currentClockSize === 'medium', () => {
+        const curHero = { ...(settings.hero?.widgets || {}) };
+        curHero.clock = { ...(curHero.clock || {}), w: 480, h: 120 };
+        store.updateSettings({
+          clock: { ...clockConf, style: 'large', size: 'medium' },
+          hero: { ...(settings.hero || {}), widgets: curHero }
+        });
+        renderDrawerContent();
+      }),
+      renderRadioCard('Large', currentClockSize === 'large', () => {
+        const curHero = { ...(settings.hero?.widgets || {}) };
+        curHero.clock = { ...(curHero.clock || {}), w: 680, h: 160 };
+        store.updateSettings({
+          clock: { ...clockConf, style: 'large', size: 'large' },
+          hero: { ...(settings.hero || {}), widgets: curHero }
+        });
+        renderDrawerContent();
+      }),
+      renderRadioCard('Huge (Hero)', currentClockSize === 'huge' || currentClockSize === 'hero', () => {
+        const curHero = { ...(settings.hero?.widgets || {}) };
+        curHero.clock = { ...(curHero.clock || {}), w: null, h: null };
+        store.updateSettings({
+          clock: { ...clockConf, style: 'hero', size: 'huge' },
+          hero: { ...(settings.hero || {}), widgets: curHero }
+        });
+        renderDrawerContent();
+      })
+    ),
+    el('div', { className: 'radio-group-cards', style: { gridTemplateColumns: 'repeat(2, 1fr)', marginBottom: '8px' } },
+      renderRadioCard('12-Hour (AM/PM)', settings.timeFormat === '12h', () => {
+        store.updateSettings({ timeFormat: '12h' });
+        renderDrawerContent();
+      }),
+      renderRadioCard('24-Hour', settings.timeFormat === '24h', () => {
+        store.updateSettings({ timeFormat: '24h' });
+        renderDrawerContent();
+      })
+    ),
+    renderToggleRow('Show Seconds', 'Display running seconds counter', Boolean(clockConf.showSeconds), (val) => {
+      store.updateSettings({ clock: { ...clockConf, showSeconds: val } });
+      renderDrawerContent();
+    }),
+    renderToggleRow('Show Greeting', 'Show personalized greeting below clock', settings.showGreeting !== false, (val) => {
+      store.updateSettings({ showGreeting: val });
+      renderDrawerContent();
+    }),
+    renderToggleRow('Show Date', 'Show calendar date below clock', settings.showDate !== false, (val) => {
+      store.updateSettings({ showDate: val });
+      renderDrawerContent();
+    })
+  );
+  section.appendChild(clockGroup);
+
+  // 3. Search Bar Widget Size & Engine
+  const currentSearchWidth = heroWidgets.search?.w;
+  const searchSizeLabel = currentSearchWidth && currentSearchWidth <= 420 ? 'small' : (currentSearchWidth && currentSearchWidth >= 750 ? 'large' : 'medium');
+
+  const searchEngineSelect = /** @type {HTMLSelectElement} */ (el('select', { className: 'form-select', style: { marginTop: '8px' } },
+    el('option', { value: 'google', text: 'Google' }),
+    el('option', { value: 'duckduckgo', text: 'DuckDuckGo' }),
+    el('option', { value: 'brave', text: 'Brave Search' }),
+    el('option', { value: 'bing', text: 'Bing' }),
+    el('option', { value: 'ecosia', text: 'Ecosia' })
+  ));
+  searchEngineSelect.value = settings.searchEngine || 'google';
+  searchEngineSelect.addEventListener('change', () => {
+    store.updateSettings({ searchEngine: searchEngineSelect.value });
+  });
+
+  const searchGroup = el('div', { className: 'setting-item', style: { marginBottom: '20px' } },
+    el('div', { className: 'setting-item-header' },
+      el('span', { className: 'setting-label', text: 'Search Bar Size & Engine' }),
+      el('span', { className: 'setting-desc', text: 'Select search bar width (Small, Medium, Wide) and default provider' })
+    ),
+    el('div', { className: 'radio-group-cards', style: { gridTemplateColumns: 'repeat(3, 1fr)', marginBottom: '8px' } },
+      renderRadioCard('Small (Compact)', searchSizeLabel === 'small', () => {
+        const curHero = { ...(settings.hero?.widgets || {}) };
+        curHero.search = { ...(curHero.search || {}), w: 380 };
+        store.updateSettings({ hero: { ...(settings.hero || {}), widgets: curHero } });
+        renderDrawerContent();
+      }),
+      renderRadioCard('Medium (Standard)', searchSizeLabel === 'medium', () => {
+        const curHero = { ...(settings.hero?.widgets || {}) };
+        curHero.search = { ...(curHero.search || {}), w: 560 };
+        store.updateSettings({ hero: { ...(settings.hero || {}), widgets: curHero } });
+        renderDrawerContent();
+      }),
+      renderRadioCard('Large (Wide)', searchSizeLabel === 'large', () => {
+        const curHero = { ...(settings.hero?.widgets || {}) };
+        curHero.search = { ...(curHero.search || {}), w: 800 };
+        store.updateSettings({ hero: { ...(settings.hero || {}), widgets: curHero } });
+        renderDrawerContent();
+      })
+    ),
+    el('div', { className: 'setting-item-header', style: { marginTop: '10px' } },
+      el('span', { className: 'setting-label', style: { fontSize: '13px' }, text: 'Search Provider' })
+    ),
+    searchEngineSelect
+  );
+  section.appendChild(searchGroup);
+
+  // 4. Weather Widget (Opt-in)
   const weatherToggleRow = renderToggleRow(
     'Weather Capsule',
-    'Fetches live local weather from Open-Meteo with 30-minute offline caching. Zero tracking, zero API key.',
+    'Live local weather from Open-Meteo with offline caching. Zero tracking, zero API key.',
     Boolean(weather.enabled),
     (checked) => {
       store.updateSettings({
@@ -1972,7 +2290,6 @@ function renderWidgetsSection(settings) {
   section.appendChild(weatherToggleRow);
 
   if (weather.enabled) {
-    // City name input
     const cityInput = /** @type {HTMLInputElement} */ (el('input', {
       type: 'text',
       className: 'form-input',
@@ -1995,7 +2312,6 @@ function renderWidgetsSection(settings) {
     );
     section.appendChild(cityGroup);
 
-    // Unit select
     const unitSelect = /** @type {HTMLSelectElement} */ (el('select', { className: 'form-select' },
       el('option', { value: 'c', text: 'Celsius (°C)' }),
       el('option', { value: 'f', text: 'Fahrenheit (°F)' })
@@ -2007,7 +2323,7 @@ function renderWidgetsSection(settings) {
       });
     });
 
-    const unitGroup = el('div', { className: 'setting-item', style: { marginBottom: '12px' } },
+    const unitGroup = el('div', { className: 'setting-item', style: { marginBottom: '16px' } },
       el('div', { className: 'setting-item-header' },
         el('span', { className: 'setting-label', text: 'Temperature Unit' })
       ),
@@ -2016,35 +2332,187 @@ function renderWidgetsSection(settings) {
     section.appendChild(unitGroup);
   }
 
-  // Notes Widget
+  // 5. Notes Widget
+  const notesSizeSelector = renderSizeSelector(
+    heroWidgets.notes?.w,
+    280, 180,
+    380, 260,
+    520, 360,
+    (w, h) => {
+      const curHero = { ...(settings.hero?.widgets || {}) };
+      curHero.notes = { ...(curHero.notes || {}), w, h };
+      store.updateSettings({ hero: { ...(settings.hero || {}), widgets: curHero } });
+      renderDrawerContent();
+    }
+  );
+
   const notesToggleRow = renderToggleRow(
     'Notes Widget',
-    'A single plain-text note per space with automatic debounced saving',
+    'Plain-text scratchpad with automatic debounced saving',
     Boolean(widgets.notes),
     (checked) => {
+      const curHero = { ...(settings.hero?.widgets || {}) };
+      curHero.notes = { ...(curHero.notes || {}), hidden: !checked };
       store.updateSettings({
-        widgets: { ...widgets, notes: checked }
+        widgets: { ...widgets, notes: checked },
+        hero: { ...(settings.hero || {}), widgets: curHero }
       });
       renderDrawerContent();
     }
   );
   section.appendChild(notesToggleRow);
+  if (widgets.notes) {
+    section.appendChild(el('div', { className: 'setting-item', style: { marginBottom: '16px' } },
+      el('div', { className: 'setting-item-header' }, el('span', { className: 'setting-label', text: 'Notes Card Size' })),
+      notesSizeSelector
+    ));
+  }
 
-  // To-do Widget
+  // 6. To-do / Tasks Widget
+  const todoSizeSelector = renderSizeSelector(
+    heroWidgets.tasks?.w,
+    280, 200,
+    380, 300,
+    520, 420,
+    (w, h) => {
+      const curHero = { ...(settings.hero?.widgets || {}) };
+      curHero.tasks = { ...(curHero.tasks || {}), w, h };
+      store.updateSettings({ hero: { ...(settings.hero || {}), widgets: curHero } });
+      renderDrawerContent();
+    }
+  );
+
   const todoToggleRow = renderToggleRow(
-    'To-do Widget',
-    'Simple checklist for tasks and reminders',
+    'To-do / Tasks Widget',
+    'Simple checklist for daily tasks and reminders',
     Boolean(widgets.todo),
     (checked) => {
+      const curHero = { ...(settings.hero?.widgets || {}) };
+      curHero.tasks = { ...(curHero.tasks || {}), hidden: !checked };
       store.updateSettings({
-        widgets: { ...widgets, todo: checked }
+        widgets: { ...widgets, todo: checked },
+        hero: { ...(settings.hero || {}), widgets: curHero }
       });
       renderDrawerContent();
     }
   );
   section.appendChild(todoToggleRow);
+  if (widgets.todo) {
+    section.appendChild(el('div', { className: 'setting-item', style: { marginBottom: '16px' } },
+      el('div', { className: 'setting-item-header' }, el('span', { className: 'setting-label', text: 'To-do Card Size' })),
+      todoSizeSelector
+    ));
+  }
 
-  // Reset Widgets
+  // 7. Focus / Pomodoro Timer Widget
+  const timerSizeSelector = renderSizeSelector(
+    heroWidgets.timer?.w,
+    240, 130,
+    320, 180,
+    420, 240,
+    (w, h) => {
+      const curHero = { ...(settings.hero?.widgets || {}) };
+      curHero.timer = { ...(curHero.timer || {}), w, h };
+      store.updateSettings({ hero: { ...(settings.hero || {}), widgets: curHero } });
+      renderDrawerContent();
+    }
+  );
+
+  const timerToggleRow = renderToggleRow(
+    'Focus / Pomodoro Timer',
+    '25-minute focus and 5-minute break interval timer with visual alerts',
+    Boolean(widgets.timer),
+    (checked) => {
+      const curHero = { ...(settings.hero?.widgets || {}) };
+      curHero.timer = { ...(curHero.timer || {}), hidden: !checked };
+      store.updateSettings({
+        widgets: { ...widgets, timer: checked },
+        hero: { ...(settings.hero || {}), widgets: curHero }
+      });
+      renderDrawerContent();
+    }
+  );
+  section.appendChild(timerToggleRow);
+  if (widgets.timer) {
+    section.appendChild(el('div', { className: 'setting-item', style: { marginBottom: '16px' } },
+      el('div', { className: 'setting-item-header' }, el('span', { className: 'setting-label', text: 'Timer Card Size' })),
+      timerSizeSelector
+    ));
+  }
+
+  // 8. Speed Dial Widget
+  const speeddialSizeSelector = renderSizeSelector(
+    heroWidgets.speeddial?.w,
+    320, 140,
+    480, 200,
+    680, 280,
+    (w, h) => {
+      const curHero = { ...(settings.hero?.widgets || {}) };
+      curHero.speeddial = { ...(curHero.speeddial || {}), w, h };
+      store.updateSettings({ hero: { ...(settings.hero || {}), widgets: curHero } });
+      renderDrawerContent();
+    }
+  );
+
+  const speeddialToggleRow = renderToggleRow(
+    'Speed Dial Strip',
+    'Quick-access pill strip for your top apps and pinned sites',
+    Boolean(widgets.speeddial),
+    (checked) => {
+      const curHero = { ...(settings.hero?.widgets || {}) };
+      curHero.speeddial = { ...(curHero.speeddial || {}), hidden: !checked };
+      store.updateSettings({
+        widgets: { ...widgets, speeddial: checked },
+        hero: { ...(settings.hero || {}), widgets: curHero }
+      });
+      renderDrawerContent();
+    }
+  );
+  section.appendChild(speeddialToggleRow);
+  if (widgets.speeddial) {
+    section.appendChild(el('div', { className: 'setting-item', style: { marginBottom: '16px' } },
+      el('div', { className: 'setting-item-header' }, el('span', { className: 'setting-label', text: 'Speed Dial Size' })),
+      speeddialSizeSelector
+    ));
+  }
+
+  // 9. Daily Focus & Quote Widget
+  const quoteSizeSelector = renderSizeSelector(
+    heroWidgets.quote?.w,
+    280, 120,
+    420, 160,
+    580, 220,
+    (w, h) => {
+      const curHero = { ...(settings.hero?.widgets || {}) };
+      curHero.quote = { ...(curHero.quote || {}), w, h };
+      store.updateSettings({ hero: { ...(settings.hero || {}), widgets: curHero } });
+      renderDrawerContent();
+    }
+  );
+
+  const quoteToggleRow = renderToggleRow(
+    'Daily Focus & Quote',
+    'Curated daily inspiration and an editable priority goal for today',
+    Boolean(widgets.quote),
+    (checked) => {
+      const curHero = { ...(settings.hero?.widgets || {}) };
+      curHero.quote = { ...(curHero.quote || {}), hidden: !checked };
+      store.updateSettings({
+        widgets: { ...widgets, quote: checked },
+        hero: { ...(settings.hero || {}), widgets: curHero }
+      });
+      renderDrawerContent();
+    }
+  );
+  section.appendChild(quoteToggleRow);
+  if (widgets.quote) {
+    section.appendChild(el('div', { className: 'setting-item', style: { marginBottom: '16px' } },
+      el('div', { className: 'setting-item-header' }, el('span', { className: 'setting-label', text: 'Quote Card Size' })),
+      quoteSizeSelector
+    ));
+  }
+
+  // Reset Widgets to Defaults
   section.appendChild(el('button', {
     className: 'btn-secondary section-reset-btn',
     type: 'button',
@@ -2066,7 +2534,7 @@ function renderSpacesSection(state) {
     const isActive = sp.id === state.activeSpaceId;
 
     const info = el('div', { className: 'cat-mgmt-info' },
-      el('span', { text: sp.icon || '📁' }),
+      el('span', { className: 'cat-mgmt-icon', html: getIconSvg(sp.icon || 'folder', 15) }),
       el('span', { text: sp.name, style: { fontWeight: '500' } }),
       el('span', { text: `(${colCount} collections)`, style: { color: 'var(--text-muted)' } }),
       isActive ? el('span', { className: 'search-result-section-badge', text: 'Active' }) : null
@@ -2075,7 +2543,7 @@ function renderSpacesSection(state) {
     const upBtn = idx > 0 ? el('button', {
       className: 'icon-action-btn',
       type: 'button',
-      text: '↑',
+      html: ICON_ARROW_UP,
       title: 'Move up',
       onclick: () => {
         store.reorderSpaces(idx, idx - 1);
@@ -2086,7 +2554,7 @@ function renderSpacesSection(state) {
     const downBtn = idx < spaces.length - 1 ? el('button', {
       className: 'icon-action-btn',
       type: 'button',
-      text: '↓',
+      html: ICON_ARROW_DOWN,
       title: 'Move down',
       onclick: () => {
         store.reorderSpaces(idx, idx + 1);
@@ -2097,7 +2565,7 @@ function renderSpacesSection(state) {
     const editBtn = el('button', {
       className: 'icon-action-btn',
       type: 'button',
-      text: '✎',
+      html: ICON_EDIT,
       title: 'Rename space',
       onclick: () => {
         openRenameSpaceDialog(sp);
@@ -2107,7 +2575,7 @@ function renderSpacesSection(state) {
     const deleteBtn = spaces.length > 1 ? el('button', {
       className: 'icon-action-btn delete',
       type: 'button',
-      text: '✕',
+      html: ICON_CLOSE,
       title: 'Delete space',
       onclick: () => {
         openDeleteSpaceDialog(sp);
@@ -2127,7 +2595,7 @@ function renderSpacesSection(state) {
   const addBtn = el('button', {
     className: 'btn-secondary',
     type: 'button',
-    text: '+ Add New Space',
+    html: `${ICON_PLUS}<span>Add New Space</span>`,
     onclick: () => {
       openAddSpaceDialog();
     }
@@ -2146,7 +2614,7 @@ function renderCategoriesSection(categories) {
 
   categories.forEach((cat, idx) => {
     const info = el('div', { className: 'cat-mgmt-info' },
-      el('span', { text: cat.icon }),
+      el('span', { className: 'cat-mgmt-icon', html: getIconSvg(cat.icon || 'folder', 15) }),
       el('span', { text: cat.name, style: { fontWeight: '500' } }),
       el('span', { text: `(${cat.bookmarks.length})`, style: { color: 'var(--text-muted)' } })
     );
@@ -2154,7 +2622,7 @@ function renderCategoriesSection(categories) {
     const upBtn = idx > 0 ? el('button', {
       className: 'icon-action-btn',
       type: 'button',
-      text: '↑',
+      html: ICON_ARROW_UP,
       title: 'Move up',
       onclick: () => {
         store.reorderCategories(idx, idx - 1);
@@ -2165,7 +2633,7 @@ function renderCategoriesSection(categories) {
     const downBtn = idx < categories.length - 1 ? el('button', {
       className: 'icon-action-btn',
       type: 'button',
-      text: '↓',
+      html: ICON_ARROW_DOWN,
       title: 'Move down',
       onclick: () => {
         store.reorderCategories(idx, idx + 1);
@@ -2176,7 +2644,7 @@ function renderCategoriesSection(categories) {
     const editBtn = el('button', {
       className: 'icon-action-btn',
       type: 'button',
-      text: '✎',
+      html: ICON_EDIT,
       title: 'Edit collection',
       onclick: () => {
         openCategoryDialog({
@@ -2202,7 +2670,7 @@ function renderCategoriesSection(categories) {
   const addBtn = el('button', {
     className: 'btn-secondary',
     type: 'button',
-    text: '+ Add New Collection',
+    html: `${ICON_PLUS}<span>Add New Collection</span>`,
     onclick: () => {
       openCategoryDialog({
         mode: 'add',
@@ -2394,7 +2862,7 @@ function renderDataSection() {
           el('button', {
             className: 'btn-icon btn-sm btn-danger',
             type: 'button',
-            text: '✕',
+            html: ICON_CLOSE,
             title: 'Delete snapshot',
             onclick: async () => {
               await deleteSnapshot(snap.id);

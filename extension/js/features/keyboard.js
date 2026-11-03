@@ -1,5 +1,6 @@
 import { el, clearChildren } from '../utils/dom.js';
 import { cycleSpace } from './spaces.js';
+import { ICON_CLOSE } from '../ui/icons.js';
 
 /**
  * @typedef {object} JumpState
@@ -141,12 +142,14 @@ export function openShortcutsHelpDialog() {
       type: 'button',
       className: 'btn-icon modal-close-btn',
       'aria-label': 'Close keyboard shortcuts',
+      html: ICON_CLOSE,
       onclick: () => dialog?.close()
-    }, ['✕'])
+    })
   ]);
 
   const shortcutsList = [
     { key: '/', desc: 'Focus search bar' },
+    { key: '\\', desc: 'Toggle Applications & Collections Launcher' },
     { key: 'g + [1-9]', desc: 'Jump to collection, then [1-9] to open link' },
     { key: 'e', desc: 'Toggle edit mode (reorder & inline editing)' },
     { key: 'f', desc: 'Toggle focus mode (clock & search only)' },
@@ -267,13 +270,19 @@ export function initKeyboardNavigation(options = {}) {
         jumpState.collectionIndex = null;
         if (document.body && document.body.getAttribute('data-page') === 'two-stage') {
           const hub = document.getElementById('collections-hub');
-          if (hub && typeof hub.scrollIntoView === 'function') {
+          if (hub && !hub.hidden && hub.style.display !== 'none' && typeof hub.scrollIntoView === 'function') {
             const isReduced = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
             hub.scrollIntoView({ behavior: isReduced ? 'auto' : 'smooth' });
           }
         }
         renderCollectionBadges();
       }
+      return;
+    }
+
+    if (e.key === '\\') {
+      e.preventDefault();
+      import('../ui/launcher.js').then(m => m.toggleAppLauncher());
       return;
     }
 

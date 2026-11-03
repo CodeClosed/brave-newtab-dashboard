@@ -7,12 +7,32 @@ import { openCategoryDialog, openBookmarkDialog, openConfirmDialog } from './dia
 import { showToast } from './toasts.js';
 import { attachCategoryDnD, attachBookmarkDnD, attachCategoryListDrop, announceReorder } from '../features/dnd.js';
 import { startInlineRename } from '../features/edit-mode.js';
-import { isBookmarkPinned, togglePinBookmark, openAllCollectionLinks } from '../features/pinned.js';
+import { isBookmarkPinned, togglePinBookmark, pinBookmark, openAllCollectionLinks } from '../features/pinned.js';
 import { openMoveCategoryToSpaceDialog } from '../features/spaces.js';
 import { openAddManyDialog, getSelectedBookmarkIds } from '../features/bulk-ops.js';
 import { renderBookmarkIcon } from '../features/custom-icons.js';
 import { resolveCategoryDisplayMode } from '../features/display.js';
 import { openCollectionAsGroup, saveCurrentTabs, formatSavedBadgeDate } from '../features/tab-groups.js';
+import {
+  ICON_MORE_VERTICAL,
+  ICON_GRIP_VERTICAL,
+  ICON_PIN,
+  ICON_PLUS,
+  ICON_CHEVRON_DOWN,
+  ICON_CHEVRON_RIGHT,
+  ICON_EDIT,
+  ICON_TRASH,
+  ICON_TABS_GROUP,
+  ICON_SAVE_TABS,
+  ICON_EXTERNAL_LINK,
+  ICON_SORT_AZ,
+  ICON_MOVE,
+  ICON_ARROW_UP,
+  ICON_ARROW_DOWN,
+  ICON_CHECK,
+  ICON_REFRESH,
+  getIconSvg
+} from './icons.js';
 
 let activeMenu = null;
 let activeMenuTrigger = null;
@@ -61,7 +81,7 @@ export function renderBookmarkItem(bookmark, categoryId, bmIndex, totalBookmarks
     className: 'drag-handle bookmark-drag-handle',
     'aria-hidden': 'true',
     title: 'Drag to reorder',
-    text: '⋮⋮'
+    html: ICON_GRIP_VERTICAL
   });
 
   const isSelected = typeof getSelectedBookmarkIds === 'function' ? getSelectedBookmarkIds().has(bookmark.id) : false;
@@ -114,7 +134,7 @@ export function renderBookmarkItem(bookmark, categoryId, bmIndex, totalBookmarks
     type: 'button',
     'aria-label': `Move ${bookmark.name} up`,
     title: 'Move up',
-    text: '↑',
+    html: ICON_ARROW_UP,
     onclick: (e) => {
       e.preventDefault();
       e.stopPropagation();
@@ -129,7 +149,7 @@ export function renderBookmarkItem(bookmark, categoryId, bmIndex, totalBookmarks
     type: 'button',
     'aria-label': `Move ${bookmark.name} down`,
     title: 'Move down',
-    text: '↓',
+    html: ICON_ARROW_DOWN,
     onclick: (e) => {
       e.preventDefault();
       e.stopPropagation();
@@ -144,7 +164,7 @@ export function renderBookmarkItem(bookmark, categoryId, bmIndex, totalBookmarks
     type: 'button',
     'aria-label': `Edit bookmark ${bookmark.name}`,
     title: 'Edit bookmark',
-    text: '✎',
+    html: ICON_EDIT,
     onclick: (e) => {
       e.preventDefault();
       e.stopPropagation();
@@ -166,7 +186,7 @@ export function renderBookmarkItem(bookmark, categoryId, bmIndex, totalBookmarks
     type: 'button',
     'aria-label': `Delete bookmark ${bookmark.name}`,
     title: 'Delete bookmark',
-    text: '✕',
+    html: ICON_TRASH,
     onclick: (e) => {
       e.preventDefault();
       e.stopPropagation();
@@ -180,17 +200,17 @@ export function renderBookmarkItem(bookmark, categoryId, bmIndex, totalBookmarks
   const pinBtn = el('button', {
     className: `bookmark-action-btn pin-btn${isPinned ? ' is-pinned' : ''}`,
     type: 'button',
-    'aria-label': isPinned ? `Unpin ${bookmark.name} from dock` : `Pin ${bookmark.name} to dock`,
-    title: isPinned ? 'Unpin from dock' : 'Pin to dock',
-    text: '📌',
+    'aria-label': isPinned ? `Unpin ${bookmark.name} from navbar` : `Pin ${bookmark.name} to navbar`,
+    title: isPinned ? 'Unpin from navbar (dock)' : 'Pin to navbar (dock)',
+    html: ICON_PIN,
     onclick: (e) => {
       e.preventDefault();
       e.stopPropagation();
       const res = togglePinBookmark(bookmark.id);
       if (res.success) {
-        showToast(res.pinned ? `Pinned "${bookmark.name}"` : `Unpinned "${bookmark.name}"`);
+        showToast(res.pinned ? `Pinned "${bookmark.name}" to navbar` : `Unpinned "${bookmark.name}" from navbar`);
       } else {
-        showToast(res.reason || 'Could not pin');
+        showToast(res.reason || 'Could not pin to navbar');
       }
     }
   });
@@ -253,7 +273,7 @@ function openCategoryMenu(triggerBtn, category, categoryIndex, totalCategories) 
       className: 'menu-item',
       type: 'button',
       role: 'menuitem',
-      text: '↑ Move earlier',
+      html: `${ICON_ARROW_UP}<span>Move earlier</span>`,
       onclick: () => {
         closeActiveMenu();
         store.reorderCategories(categoryIndex, categoryIndex - 1);
@@ -269,7 +289,7 @@ function openCategoryMenu(triggerBtn, category, categoryIndex, totalCategories) 
       className: 'menu-item',
       type: 'button',
       role: 'menuitem',
-      text: '↓ Move later',
+      html: `${ICON_ARROW_DOWN}<span>Move later</span>`,
       onclick: () => {
         closeActiveMenu();
         store.reorderCategories(categoryIndex, categoryIndex + 1);
@@ -284,7 +304,7 @@ function openCategoryMenu(triggerBtn, category, categoryIndex, totalCategories) 
     className: 'menu-item',
     type: 'button',
     role: 'menuitem',
-    text: '✎ Edit collection',
+    html: `${ICON_EDIT}<span>Edit collection</span>`,
     onclick: () => {
       closeActiveMenu();
       openCategoryDialog({
@@ -304,15 +324,19 @@ function openCategoryMenu(triggerBtn, category, categoryIndex, totalCategories) 
     className: 'menu-item',
     type: 'button',
     role: 'menuitem',
-    text: '+ Add bookmark',
+    html: `${ICON_PLUS}<span>Add bookmark</span>`,
     onclick: () => {
       closeActiveMenu();
       openBookmarkDialog({
         mode: 'add',
         categoryId: category.id,
         onSave: (data) => {
-          store.addBookmark(category.id, data);
+          const added = store.addBookmark(category.id, data);
+          if (data.pinned && added?.id && !isBookmarkPinned(added.id)) {
+            pinBookmark(added.id);
+          }
           showToast(`Added "${data.name}" to ${category.name}`);
+          return added;
         }
       });
     }
@@ -324,7 +348,7 @@ function openCategoryMenu(triggerBtn, category, categoryIndex, totalCategories) 
     className: 'menu-item',
     type: 'button',
     role: 'menuitem',
-    text: '+ Add many…',
+    html: `${ICON_PLUS}<span>Add many…</span>`,
     onclick: () => {
       closeActiveMenu();
       openAddManyDialog(category.id);
@@ -332,13 +356,39 @@ function openCategoryMenu(triggerBtn, category, categoryIndex, totalCategories) 
   });
   menu.appendChild(addManyItem);
 
+  // Pin all to navbar
+  if (Array.isArray(category.bookmarks) && category.bookmarks.length > 0) {
+    const pinAllItem = el('button', {
+      className: 'menu-item',
+      type: 'button',
+      role: 'menuitem',
+      html: `${ICON_PIN}<span>Pin all to navbar</span>`,
+      onclick: () => {
+        closeActiveMenu();
+        let count = 0;
+        for (const bm of category.bookmarks) {
+          if (!isBookmarkPinned(bm.id)) {
+            const res = pinBookmark(bm.id);
+            if (res.success && !res.alreadyPinned) count++;
+          }
+        }
+        if (count > 0) {
+          showToast(`Pinned ${count} items to navbar`);
+        } else {
+          showToast('All items are already on navbar or limit reached');
+        }
+      }
+    });
+    menu.appendChild(pinAllItem);
+  }
+
   // Sort A-Z (one-shot, undoable)
   if (Array.isArray(category.bookmarks) && category.bookmarks.length > 1) {
     const sortItem = el('button', {
       className: 'menu-item',
       type: 'button',
       role: 'menuitem',
-      text: '🔤 Sort A–Z',
+      html: `${ICON_SORT_AZ}<span>Sort A–Z</span>`,
       onclick: () => {
         closeActiveMenu();
         const undo = store.sortCategoryBookmarks(category.id);
@@ -355,7 +405,7 @@ function openCategoryMenu(triggerBtn, category, categoryIndex, totalCategories) 
       className: 'menu-item',
       type: 'button',
       role: 'menuitem',
-      text: '⇄ Move to space…',
+      html: `${ICON_MOVE}<span>Move to space…</span>`,
       onclick: () => {
         closeActiveMenu();
         openMoveCategoryToSpaceDialog(category);
@@ -370,7 +420,7 @@ function openCategoryMenu(triggerBtn, category, categoryIndex, totalCategories) 
       className: 'menu-item',
       type: 'button',
       role: 'menuitem',
-      text: `↗ Open all links (${category.bookmarks.length})`,
+      html: `${ICON_EXTERNAL_LINK}<span>Open all links (${category.bookmarks.length})</span>`,
       onclick: () => {
         closeActiveMenu();
         openAllCollectionLinks(category.bookmarks);
@@ -383,7 +433,7 @@ function openCategoryMenu(triggerBtn, category, categoryIndex, totalCategories) 
       className: 'menu-item',
       type: 'button',
       role: 'menuitem',
-      text: '⚡ Open as tab group',
+      html: `${ICON_TABS_GROUP}<span>Open as tab group</span>`,
       onclick: () => {
         closeActiveMenu();
         openCollectionAsGroup(category);
@@ -397,7 +447,7 @@ function openCategoryMenu(triggerBtn, category, categoryIndex, totalCategories) 
     className: 'menu-item',
     type: 'button',
     role: 'menuitem',
-    text: '💾 Save tabs here',
+    html: `${ICON_SAVE_TABS}<span>Save tabs here</span>`,
     onclick: () => {
       closeActiveMenu();
       saveCurrentTabs({ targetCategoryId: category.id });
@@ -417,7 +467,7 @@ function openCategoryMenu(triggerBtn, category, categoryIndex, totalCategories) 
       className: `menu-item${isCurrent ? ' is-active' : ''}`,
       type: 'button',
       role: 'menuitem',
-      text: `${isCurrent ? '✓ ' : '  '}${m.label}`,
+      html: `${isCurrent ? ICON_CHECK : '<span style="width:14px;display:inline-block"></span>'}<span>${m.label}</span>`,
       onclick: () => {
         closeActiveMenu();
         store.updateCategory(category.id, { displayMode: m.id });
@@ -431,7 +481,7 @@ function openCategoryMenu(triggerBtn, category, categoryIndex, totalCategories) 
       className: 'menu-item',
       type: 'button',
       role: 'menuitem',
-      text: '↺ Reset view to default',
+      html: `${ICON_REFRESH}<span>Reset view to default</span>`,
       onclick: () => {
         closeActiveMenu();
         store.updateCategory(category.id, { displayMode: null });
@@ -446,7 +496,7 @@ function openCategoryMenu(triggerBtn, category, categoryIndex, totalCategories) 
     className: 'menu-item danger',
     type: 'button',
     role: 'menuitem',
-    text: '✕ Delete collection',
+    html: `${ICON_TRASH}<span>Delete collection</span>`,
     onclick: () => {
       closeActiveMenu();
       openConfirmDialog({
@@ -532,7 +582,7 @@ export function renderCategoryCard(category, categoryIndex, totalCategories) {
     className: 'drag-handle category-drag-handle',
     'aria-hidden': 'true',
     title: 'Drag collection',
-    text: '⋮⋮'
+    html: ICON_GRIP_VERTICAL
   });
 
   const catNameEl = el('h3', { className: 'category-name', text: category.name });
@@ -560,7 +610,7 @@ export function renderCategoryCard(category, categoryIndex, totalCategories) {
 
   const titleChildren = [
     catDragHandle,
-    el('span', { className: 'category-icon', text: category.icon || '📁' }),
+    el('span', { className: 'category-icon', html: getIconSvg(category.icon || 'folder', 15) }),
     catNameEl
   ];
   if (colorDot) titleChildren.push(colorDot);
@@ -585,14 +635,19 @@ export function renderCategoryCard(category, categoryIndex, totalCategories) {
     'aria-label': `Add bookmark to ${category.name}`,
     title: 'Add bookmark',
     text: '+',
+    html: ICON_PLUS,
     onclick: (e) => {
       e.stopPropagation();
       openBookmarkDialog({
         mode: 'add',
         categoryId: category.id,
         onSave: (data) => {
-          store.addBookmark(category.id, data);
+          const added = store.addBookmark(category.id, data);
+          if (data.pinned && added?.id && !isBookmarkPinned(added.id)) {
+            pinBookmark(added.id);
+          }
           showToast(`Added "${data.name}" to ${category.name}`);
+          return added;
         }
       });
     }
@@ -606,7 +661,7 @@ export function renderCategoryCard(category, categoryIndex, totalCategories) {
     'aria-expanded': 'false',
     'aria-label': `Options for ${category.name}`,
     title: 'Collection options',
-    text: '⋮',
+    html: ICON_MORE_VERTICAL,
     onclick: (e) => {
       e.stopPropagation();
       openCategoryMenu(menuBtn, category, categoryIndex, totalCategories);
@@ -623,7 +678,7 @@ export function renderCategoryCard(category, categoryIndex, totalCategories) {
     'aria-expanded': isCollapsed ? 'false' : 'true',
     'aria-controls': listId,
     title: isCollapsed ? 'Expand' : 'Collapse',
-    text: isCollapsed ? '▸' : '▾',
+    html: isCollapsed ? ICON_CHEVRON_RIGHT : ICON_CHEVRON_DOWN,
     onclick: () => {
       store.toggleCategoryCollapse(category.id);
     }
@@ -671,14 +726,18 @@ export function renderCategoryCard(category, categoryIndex, totalCategories) {
   const addBookmarkBtn = el('button', {
     className: 'add-bookmark-btn',
     type: 'button',
-    text: '+ Add',
+    html: `${ICON_PLUS}<span>Add</span>`,
     onclick: () => {
       openBookmarkDialog({
         mode: 'add',
         categoryId: category.id,
         onSave: (data) => {
-          store.addBookmark(category.id, data);
+          const added = store.addBookmark(category.id, data);
+          if (data.pinned && added?.id && !isBookmarkPinned(added.id)) {
+            pinBookmark(added.id);
+          }
           showToast(`Added "${data.name}"`);
+          return added;
         }
       });
     }
@@ -711,7 +770,7 @@ export function renderEmptyState() {
   const addBtn = el('button', {
     className: 'btn-primary',
     type: 'button',
-    text: '+ Create collection',
+    html: `${ICON_PLUS}<span>Create collection</span>`,
     onclick: () => {
       openCategoryDialog({
         mode: 'add',

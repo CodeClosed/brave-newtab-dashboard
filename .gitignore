@@ -3,3 +3,8 @@ node_modules/
 Thumbs.db
 *.log
 *.tmp
+
+# Local diagram & temporary files
+University_ER_*
+test_sec1.*
+

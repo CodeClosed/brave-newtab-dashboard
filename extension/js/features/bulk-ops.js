@@ -5,6 +5,7 @@ import { showToast } from '../ui/toasts.js';
 import { subscribeEditMode, getEditMode } from './edit-mode.js';
 import { createSnapshot } from '../core/snapshots.js';
 import { queueSaveDashboardData } from '../core/storage.js';
+import { ICON_CLOSE, ICON_CHECK, ICON_WARNING, getIconSvg } from '../ui/icons.js';
 
 /**
  * Parses multi-line input into valid and invalid bookmarks.
@@ -336,8 +337,9 @@ async function openBulkMoveDialog() {
     type: 'button',
     className: 'btn-icon modal-close-btn',
     'aria-label': 'Close dialog',
+    html: ICON_CLOSE,
     onclick: () => dialog?.close()
-  }, ['✕']);
+  });
 
   const header = el('div', { className: 'modal-header' }, [title, closeBtn]);
 
@@ -354,7 +356,7 @@ async function openBulkMoveDialog() {
         clearSelection();
       }
     }, [
-      el('span', { text: cat.icon || '📁' }),
+      el('span', { html: getIconSvg(cat.icon || 'folder', 15) }),
       el('span', { text: cat.name })
     ]))
   );
@@ -404,8 +406,9 @@ export async function openAddManyDialog(categoryId) {
     type: 'button',
     className: 'btn-icon modal-close-btn',
     'aria-label': 'Close dialog',
+    html: ICON_CLOSE,
     onclick: () => dialog?.close()
-  }, ['✕']);
+  });
 
   const header = el('div', { className: 'modal-header' }, [title, closeBtn]);
 
@@ -430,7 +433,7 @@ export async function openAddManyDialog(categoryId) {
 
     const validHeading = el('div', {
       style: { color: 'var(--accent-text)', fontWeight: '600', marginBottom: '4px' },
-      text: `✓ Valid bookmarks (${valid.length})`
+      html: `<span style="display:inline-flex;align-items:center;gap:6px">${ICON_CHECK}<span>Valid bookmarks (${valid.length})</span></span>`
     });
     previewBox.appendChild(validHeading);
 
@@ -447,7 +450,7 @@ export async function openAddManyDialog(categoryId) {
     if (invalid.length > 0) {
       const invalidHeading = el('div', {
         style: { color: 'var(--color-danger, #ef4444)', fontWeight: '600', marginBottom: '4px' },
-        text: `⚠ Skipped / Invalid lines (${invalid.length})`
+        html: `<span style="display:inline-flex;align-items:center;gap:6px">${ICON_WARNING}<span>Skipped / Invalid lines (${invalid.length})</span></span>`
       });
       const invalidList = el('ul', { style: { maxHeight: '80px', overflowY: 'auto', margin: '0 0 8px 16px', color: 'var(--text-muted)' } },
         invalid.slice(0, 5).map(inv => el('li', { text: `"${inv.line}" — ${inv.error}` }))

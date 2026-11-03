@@ -2,6 +2,7 @@
 import { el } from '../utils/dom.js';
 import { t } from '../utils/i18n.js';
 import { store } from '../core/state.js';
+import { ICON_TASKS, ICON_TRASH, getIconSvg } from '../ui/icons.js';
 
 /**
  * Renders or updates the To-do widget.
@@ -15,7 +16,9 @@ export function renderTodoWidget(container, state) {
   if (!isEnabled) {
     container.hidden = true;
     if (typeof container.replaceChildren === 'function') {
+      const existingFrame = container.querySelector ? container.querySelector('.widget-drag-frame') : null;
       container.replaceChildren();
+      if (existingFrame) container.appendChild(existingFrame);
     }
     return;
   }
@@ -26,7 +29,7 @@ export function renderTodoWidget(container, state) {
   const todos = Array.isArray(activeSpace?.todos) ? activeSpace.todos : [];
   const spaceId = activeSpace?.id;
   const spaceName = activeSpace?.name || 'Space';
-  const spaceIcon = activeSpace?.icon || '📁';
+  const spaceIcon = activeSpace?.icon || 'folder';
 
   const pendingCount = todos.filter(t => !t.done).length;
   const completedCount = todos.filter(t => t.done).length;
@@ -37,8 +40,8 @@ export function renderTodoWidget(container, state) {
   // Header
   const header = el('div', { className: 'widget-header' }, [
     el('div', { className: 'widget-title-group' }, [
-      el('span', { className: 'widget-title', text: titleText }),
-      el('span', { className: 'widget-space-badge', text: `${spaceIcon} ${spaceName}` }),
+      el('span', { className: 'widget-title', text: titleText, html: `${ICON_TASKS}<span>${titleText}</span>` }),
+      el('span', { className: 'widget-space-badge', text: spaceName, html: `${getIconSvg(spaceIcon, 12)}<span>${spaceName}</span>` }),
       el('span', { className: 'widget-count-badge', text: `${pendingCount} remaining` })
     ]),
     completedCount > 0 ? el('button', {
@@ -105,7 +108,7 @@ export function renderTodoWidget(container, state) {
     const deleteBtn = el('button', {
       className: 'icon-action-btn todo-delete-btn',
       type: 'button',
-      text: '×',
+      html: ICON_TRASH,
       title: 'Delete task',
       ariaLabel: `Delete "${item.text}"`,
       onclick: () => {
@@ -128,9 +131,14 @@ export function renderTodoWidget(container, state) {
     todos.length > 0 ? listEl : el('div', { className: 'todo-empty', text: 'No tasks yet.' })
   ]);
 
+  const existingFrame = container.querySelector ? container.querySelector('.widget-drag-frame') : null;
   if (typeof container.replaceChildren === 'function') {
     container.replaceChildren(card);
   } else {
+    container.textContent = '';
     container.appendChild(card);
+  }
+  if (existingFrame) {
+    container.appendChild(existingFrame);
   }
 }

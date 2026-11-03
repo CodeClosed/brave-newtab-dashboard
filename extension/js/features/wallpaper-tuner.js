@@ -1,6 +1,7 @@
 // @ts-check
-import { BUNDLED_WALLPAPERS } from './wallpaper.js';
+import { BUNDLED_WALLPAPERS, calculateAutoReadabilityDim, calculateAdaptiveGlassOpacity, resolveActiveWallpaperId } from './wallpaper.js';
 import { showToast } from '../ui/toasts.js';
+import { ICON_CLOSE, ICON_REFRESH, ICON_TRASH } from '../ui/icons.js';
 
 let activeTunerPopover = null;
 
@@ -36,6 +37,9 @@ export function toggleWallpaperTuner(anchorBtn, store) {
     glass: JSON.parse(JSON.stringify(currentSettings.glass || { blur: 16, opacity: 0.62 }))
   };
 
+  const root = typeof document !== 'undefined' ? document.documentElement : null;
+  const isDark = root ? (root.getAttribute('data-theme') === 'dark' || (root.classList && root.classList.contains('dark'))) : true;
+
   const popover = document.createElement('div');
   popover.className = 'wallpaper-tuner-popover';
   popover.setAttribute('role', 'dialog');
@@ -53,7 +57,7 @@ export function toggleWallpaperTuner(anchorBtn, store) {
   closeBtn.type = 'button';
   closeBtn.className = 'wallpaper-tuner-close-btn';
   closeBtn.setAttribute('aria-label', 'Close tuner');
-  closeBtn.textContent = '✕';
+  closeBtn.innerHTML = ICON_CLOSE;
   closeBtn.addEventListener('click', () => closeWallpaperTuner());
 
   header.appendChild(title);
@@ -76,12 +80,12 @@ export function toggleWallpaperTuner(anchorBtn, store) {
   const thumbGrid = document.createElement('div');
   thumbGrid.className = 'wallpaper-tuner-thumbs-grid';
 
-  const activeId = currentSettings.background?.activeId || '';
+  const resolvedActiveId = resolveActiveWallpaperId(currentSettings.background, isDark) || currentSettings.background?.activeId || '';
 
   BUNDLED_WALLPAPERS.forEach((wp) => {
     const card = document.createElement('button');
     card.type = 'button';
-    card.className = `wallpaper-thumb-card${activeId === wp.id ? ' is-active' : ''}`;
+    card.className = `wallpaper-thumb-card${resolvedActiveId === wp.id ? ' is-active' : ''}`;
     card.title = wp.name;
 
     const img = document.createElement('img');
@@ -101,16 +105,42 @@ export function toggleWallpaperTuner(anchorBtn, store) {
 
     card.addEventListener('click', () => {
       const s = store.getState ? store.getState().settings : store.get().settings;
+      const foundWp = BUNDLED_WALLPAPERS.find(b => b.id === wp.id);
+      const isDarkTheme = root ? (root.getAttribute('data-theme') === 'dark' || (root.classList && root.classList.contains('dark'))) : true;
+      const newDim = calculateAutoReadabilityDim(foundWp?.luminanceData || null, isDarkTheme);
+      const newGlassOpacity = calculateAdaptiveGlassOpacity(newDim, isDarkTheme);
+
       store.updateSettings({
         background: {
           ...(s.background || {}),
           type: 'image',
           activeId: wp.id,
-          autoReadability: true
+          dayId: null,
+          nightId: null,
+          rotation: 'off',
+          autoReadability: true,
+          dim: newDim
+        },
+        glass: {
+          ...(s.glass || {}),
+          opacity: newGlassOpacity
+        },
+        cards: {
+          ...(s.cards || {}),
+          style: 'glass'
         }
       });
       thumbGrid.querySelectorAll('.wallpaper-thumb-card').forEach(c => c.classList.remove('is-active'));
       card.classList.add('is-active');
+
+      if (dimSlider && dimValSpan) {
+        dimSlider.value = String(Math.round(newDim * 100));
+        dimValSpan.textContent = `${Math.round(newDim * 100)}%`;
+      }
+      if (glassSlider && glassValSpan) {
+        glassSlider.value = String(Math.round(newGlassOpacity * 100));
+        glassValSpan.textContent = `${Math.round(newGlassOpacity * 100)}%`;
+      }
     });
 
     thumbGrid.appendChild(card);
@@ -148,9 +178,14 @@ export function toggleWallpaperTuner(anchorBtn, store) {
     store.updateSettings({
       background: {
         ...(s.background || {}),
+        autoReadability: false,
         dim: val / 100
       }
     });
+    const overlay = document.getElementById('bg-overlay');
+    if (overlay) {
+      overlay.style.opacity = String(1 - (val / 100));
+    }
   });
 
   dimSection.appendChild(dimHeader);
@@ -189,6 +224,10 @@ export function toggleWallpaperTuner(anchorBtn, store) {
         blur: val
       }
     });
+    const overlay = document.getElementById('bg-overlay');
+    if (overlay) {
+      overlay.style.filter = val > 0 ? `blur(${val}px)` : 'none';
+    }
   });
 
   blurSection.appendChild(blurHeader);
@@ -225,8 +264,15 @@ export function toggleWallpaperTuner(anchorBtn, store) {
       glass: {
         ...(s.glass || {}),
         opacity: val / 100
+      },
+      background: {
+        ...(s.background || {}),
+        autoReadability: false
       }
     });
+    if (root?.style?.setProperty) {
+      root.style.setProperty('--glass-opacity', String(val / 100));
+    }
   });
 
   glassSection.appendChild(glassHeader);
@@ -235,20 +281,67 @@ export function toggleWallpaperTuner(anchorBtn, store) {
 
   popover.appendChild(body);
 
-  // Footer: Undo & Reset
+  // Footer: Remove Wallpaper & Undo
   const footer = document.createElement('div');
   footer.className = 'wallpaper-tuner-footer';
+
+  const removeBtn = document.createElement('button');
+  removeBtn.type = 'button';
+  removeBtn.className = 'btn-quiet';
+  removeBtn.style.color = '#ef4444';
+  removeBtn.innerHTML = `${ICON_TRASH}<span>Remove Wallpaper</span>`;
+  removeBtn.title = 'Remove wallpaper and use clean solid theme background';
+  removeBtn.addEventListener('click', () => {
+    const s = store.getState ? store.getState().settings : store.get().settings;
+    store.updateSettings({
+      background: {
+        ...(s.background || {}),
+        type: 'none',
+        activeId: null,
+        value: null
+      }
+    });
+    const overlay = document.getElementById('bg-overlay');
+    if (overlay) {
+      overlay.style.backgroundImage = 'none';
+      overlay.style.backgroundColor = 'transparent';
+      overlay.style.opacity = '0';
+      overlay.style.filter = 'none';
+    }
+    if (root && typeof root.setAttribute === 'function') {
+      root.setAttribute('data-bg', 'none');
+    }
+    thumbGrid.querySelectorAll('.wallpaper-thumb-card').forEach(c => c.classList.remove('is-active'));
+    showToast('Wallpaper removed');
+    closeWallpaperTuner();
+  });
 
   const undoBtn = document.createElement('button');
   undoBtn.type = 'button';
   undoBtn.className = 'btn-quiet';
-  undoBtn.textContent = '↺ Revert changes';
+  undoBtn.innerHTML = `${ICON_REFRESH}<span>Revert</span>`;
   undoBtn.addEventListener('click', () => {
     store.updateSettings(initialSnapshot);
+    if (root?.style?.setProperty) {
+      if (typeof initialSnapshot.glass?.opacity === 'number') {
+        root.style.setProperty('--glass-opacity', String(initialSnapshot.glass.opacity));
+      }
+      if (typeof initialSnapshot.glass?.blur === 'number') {
+        root.style.setProperty('--glass-blur-px', `${initialSnapshot.glass.blur}px`);
+      }
+    }
+    const overlay = document.getElementById('bg-overlay');
+    if (overlay) {
+      const dim = typeof initialSnapshot.background?.dim === 'number' ? initialSnapshot.background.dim : 0.35;
+      overlay.style.opacity = String(1 - dim);
+      const blur = typeof initialSnapshot.background?.blur === 'number' ? initialSnapshot.background.blur : 0;
+      overlay.style.filter = blur > 0 ? `blur(${blur}px)` : 'none';
+    }
     closeWallpaperTuner();
     showToast('Reverted wallpaper adjustments');
   });
 
+  footer.appendChild(removeBtn);
   footer.appendChild(undoBtn);
   popover.appendChild(footer);
 

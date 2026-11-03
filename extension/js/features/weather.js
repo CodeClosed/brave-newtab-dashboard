@@ -1,38 +1,39 @@
 // @ts-check
+import { getWeatherIconSvg, ICON_REFRESH } from '../ui/icons.js';
 
 /**
  * WMO Weather interpretation codes (WW)
  * https://open-meteo.com/en/docs
  */
 export const WMO_WEATHER_CODES = {
-  0: { label: 'Clear sky', icon: '☀️' },
-  1: { label: 'Mainly clear', icon: '🌤️' },
-  2: { label: 'Partly cloudy', icon: '⛅' },
-  3: { label: 'Overcast', icon: '☁️' },
-  45: { label: 'Fog', icon: '🌫️' },
-  48: { label: 'Depositing rime fog', icon: '🌫️' },
-  51: { label: 'Light drizzle', icon: '🌦️' },
-  53: { label: 'Moderate drizzle', icon: '🌦️' },
-  55: { label: 'Dense drizzle', icon: '🌦️' },
-  56: { label: 'Light freezing drizzle', icon: '🌧️' },
-  57: { label: 'Dense freezing drizzle', icon: '🌧️' },
-  61: { label: 'Slight rain', icon: '🌧️' },
-  63: { label: 'Moderate rain', icon: '🌧️' },
-  65: { label: 'Heavy rain', icon: '🌧️' },
-  66: { label: 'Light freezing rain', icon: '🌧️' },
-  67: { label: 'Heavy freezing rain', icon: '🌧️' },
-  71: { label: 'Slight snow fall', icon: '🌨️' },
-  73: { label: 'Moderate snow fall', icon: '🌨️' },
-  75: { label: 'Heavy snow fall', icon: '🌨️' },
-  77: { label: 'Snow grains', icon: '🌨️' },
-  80: { label: 'Slight rain showers', icon: '🌦️' },
-  81: { label: 'Moderate rain showers', icon: '🌦️' },
-  82: { label: 'Violent rain showers', icon: '🌦️' },
-  85: { label: 'Slight snow showers', icon: '🌨️' },
-  86: { label: 'Heavy snow showers', icon: '🌨️' },
-  95: { label: 'Thunderstorm', icon: '⛈️' },
-  96: { label: 'Thunderstorm with hail', icon: '⛈️' },
-  99: { label: 'Severe thunderstorm with hail', icon: '⛈️' }
+  0: { label: 'Clear sky', icon: 'sun' },
+  1: { label: 'Mainly clear', icon: 'cloud-sun' },
+  2: { label: 'Partly cloudy', icon: 'cloud-sun' },
+  3: { label: 'Overcast', icon: 'cloud' },
+  45: { label: 'Fog', icon: 'cloud-fog' },
+  48: { label: 'Depositing rime fog', icon: 'cloud-fog' },
+  51: { label: 'Light drizzle', icon: 'cloud-drizzle' },
+  53: { label: 'Moderate drizzle', icon: 'cloud-drizzle' },
+  55: { label: 'Dense drizzle', icon: 'cloud-drizzle' },
+  56: { label: 'Light freezing drizzle', icon: 'cloud-rain' },
+  57: { label: 'Dense freezing drizzle', icon: 'cloud-rain' },
+  61: { label: 'Slight rain', icon: 'cloud-rain' },
+  63: { label: 'Moderate rain', icon: 'cloud-rain' },
+  65: { label: 'Heavy rain', icon: 'cloud-rain' },
+  66: { label: 'Light freezing rain', icon: 'cloud-rain' },
+  67: { label: 'Heavy freezing rain', icon: 'cloud-rain' },
+  71: { label: 'Slight snow fall', icon: 'cloud-snow' },
+  73: { label: 'Moderate snow fall', icon: 'cloud-snow' },
+  75: { label: 'Heavy snow fall', icon: 'cloud-snow' },
+  77: { label: 'Snow grains', icon: 'cloud-snow' },
+  80: { label: 'Slight rain showers', icon: 'cloud-drizzle' },
+  81: { label: 'Moderate rain showers', icon: 'cloud-drizzle' },
+  82: { label: 'Violent rain showers', icon: 'cloud-rain' },
+  85: { label: 'Slight snow showers', icon: 'cloud-snow' },
+  86: { label: 'Heavy snow showers', icon: 'cloud-snow' },
+  95: { label: 'Thunderstorm', icon: 'cloud-lightning' },
+  96: { label: 'Thunderstorm with hail', icon: 'cloud-lightning' },
+  99: { label: 'Severe thunderstorm with hail', icon: 'cloud-lightning' }
 };
 
 /**
@@ -44,7 +45,7 @@ export function getWeatherCondition(code) {
   if (code in WMO_WEATHER_CODES) {
     return WMO_WEATHER_CODES[code];
   }
-  return { label: 'Fair', icon: '🌤️' };
+  return { label: 'Fair', icon: 'cloud-sun' };
 }
 
 /**
@@ -214,6 +215,7 @@ export function renderWeatherWidget(weatherData, containerEl, onRefresh) {
     return;
   }
 
+  const existingFrame = containerEl.querySelector ? containerEl.querySelector('.widget-drag-frame') : null;
   containerEl.hidden = false;
   containerEl.innerHTML = '';
 
@@ -268,7 +270,7 @@ export function renderWeatherWidget(weatherData, containerEl, onRefresh) {
 
   const iconEl = document.createElement('span');
   iconEl.className = 'weather-condition-icon';
-  iconEl.textContent = weatherData.icon;
+  iconEl.innerHTML = getWeatherIconSvg(weatherData.code ?? weatherData.icon, 28);
   iconEl.setAttribute('aria-hidden', 'true');
 
   const tempEl = document.createElement('span');
@@ -284,7 +286,7 @@ export function renderWeatherWidget(weatherData, containerEl, onRefresh) {
     refreshBtn.className = 'weather-refresh-btn';
     refreshBtn.title = 'Refresh weather';
     refreshBtn.setAttribute('aria-label', 'Refresh weather');
-    refreshBtn.textContent = '↺';
+    refreshBtn.innerHTML = ICON_REFRESH;
     refreshBtn.addEventListener('click', (e) => {
       if (typeof e?.stopPropagation === 'function') {
         e.stopPropagation();
@@ -297,4 +299,7 @@ export function renderWeatherWidget(weatherData, containerEl, onRefresh) {
   capsule.appendChild(colLeft);
   capsule.appendChild(colRight);
   containerEl.appendChild(capsule);
+  if (existingFrame) {
+    containerEl.appendChild(existingFrame);
+  }
 }

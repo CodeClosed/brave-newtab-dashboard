@@ -32,12 +32,19 @@ export function el(tag, attrs = {}, ...children) {
       Object.assign(element.style, val);
     } else if (key === 'text') {
       element.textContent = String(val);
+    } else if (key === 'html') {
+      element.innerHTML = String(val);
     } else if (key === 'value') {
       element.value = String(val);
       element.setAttribute(key, String(val));
     } else {
       element.setAttribute(key, String(val));
     }
+  }
+
+  // Ensure html wins over text in real DOM if both were provided
+  if (attrs.html != null && attrs.html !== false) {
+    element.innerHTML = String(attrs.html);
   }
 
   for (const child of children.flat(Infinity)) {

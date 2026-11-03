@@ -20,7 +20,7 @@ export function repairSpaces(rawSpaces, rawActiveSpaceId) {
       seenSpaceIds.add(id);
 
       const name = (typeof s.name === 'string' && s.name.trim()) ? s.name.trim().slice(0, 80) : 'Space';
-      const icon = (typeof s.icon === 'string' && s.icon.trim()) ? s.icon.trim().slice(0, 8) : '🏠';
+      const icon = (typeof s.icon === 'string' && s.icon.trim()) ? s.icon.trim().slice(0, 8) : 'home';
       const order = typeof s.order === 'number' ? s.order : idx;
       const pinned = Array.isArray(s.pinned)
         ? s.pinned.filter(p => typeof p === 'string' && p.trim().length > 0)
@@ -42,7 +42,7 @@ export function repairSpaces(rawSpaces, rawActiveSpaceId) {
 
   if (spaces.length === 0) {
     const homeId = generateId();
-    spaces.push({ id: homeId, name: 'Home', icon: '🏠', order: 0, pinned: [], note: '', todos: [] });
+    spaces.push({ id: homeId, name: 'Home', icon: 'home', order: 0, pinned: [], note: '', todos: [] });
   }
 
   const activeSpaceId = typeof rawActiveSpaceId === 'string' && spaces.some(s => s.id === rawActiveSpaceId)
@@ -82,8 +82,9 @@ export function repairSettings(settings) {
   const validLayouts = ['grid', 'compact'];
   s.layout = validLayouts.includes(s.layout) ? s.layout : defaults.layout;
 
-  const validPages = ['two-stage', 'classic'];
+  const validPages = ['two-stage'];
   s.page = validPages.includes(s.page) ? s.page : defaults.page;
+  delete s.optedInClassic;
 
   const validLandings = ['hero', 'remember'];
   s.landing = validLandings.includes(s.landing) ? s.landing : defaults.landing;
@@ -231,7 +232,10 @@ export function repairSettings(settings) {
   const w = (s.widgets && typeof s.widgets === 'object') ? s.widgets : {};
   s.widgets = {
     notes: Boolean(w.notes),
-    todo: Boolean(w.todo)
+    todo: Boolean(w.todo),
+    timer: w.timer !== undefined ? Boolean(w.timer) : true,
+    speeddial: w.speeddial !== undefined ? Boolean(w.speeddial) : true,
+    quote: w.quote !== undefined ? Boolean(w.quote) : true
   };
 
   // hero
@@ -268,7 +272,11 @@ export function repairSettings(settings) {
       clock: repairWidgetSlot(hw.clock, false),
       weather: repairWidgetSlot(hw.weather, false),
       search: repairWidgetSlot(hw.search, false),
-      tasks: repairWidgetSlot(hw.tasks, true)
+      tasks: repairWidgetSlot(hw.tasks, !s.widgets.todo),
+      notes: repairWidgetSlot(hw.notes, !s.widgets.notes),
+      timer: repairWidgetSlot(hw.timer, !s.widgets.timer),
+      speeddial: repairWidgetSlot(hw.speeddial, !s.widgets.speeddial),
+      quote: repairWidgetSlot(hw.quote, !s.widgets.quote)
     }
   };
 
@@ -406,7 +414,7 @@ export function repairCategories(rawCategories, fallbackSpaceId = null) {
     const spaceId = (typeof cat.spaceId === 'string' && cat.spaceId.trim()) ? cat.spaceId.trim() : fallbackSpaceId;
     const rawCatName = (typeof cat.name === 'string' && cat.name.trim()) ? cat.name.trim() : 'Collection';
     const catName = rawCatName.slice(0, 80);
-    const rawCatIcon = (typeof cat.icon === 'string' && cat.icon.trim()) ? cat.icon.trim() : '📁';
+    const rawCatIcon = (typeof cat.icon === 'string' && cat.icon.trim()) ? cat.icon.trim() : 'folder';
     const catIcon = rawCatIcon.slice(0, 8);
     const catOrder = typeof cat.order === 'number' ? cat.order : cIdx;
     const catCollapsed = Boolean(cat.collapsed);

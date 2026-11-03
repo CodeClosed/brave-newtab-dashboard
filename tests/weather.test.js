@@ -97,7 +97,7 @@ function createMockStorage(initial = {}) {
 
 test('14.1 WMO Weather Codes mapping', () => {
   assert.equal(getWeatherCondition(0).label, 'Clear sky');
-  assert.equal(getWeatherCondition(0).icon, '☀️');
+  assert.equal(getWeatherCondition(0).icon, 'sun');
   assert.equal(getWeatherCondition(61).label, 'Slight rain');
   assert.equal(getWeatherCondition(95).label, 'Thunderstorm');
 
@@ -126,7 +126,7 @@ test('14.1 parseWeatherResponse parses Open-Meteo payload correctly', () => {
   assert.equal(parsedC.humidity, 65);
   assert.equal(parsedC.code, 2);
   assert.equal(parsedC.conditionLabel, 'Partly cloudy');
-  assert.equal(parsedC.icon, '⛅');
+  assert.equal(parsedC.icon, 'cloud-sun');
   assert.equal(parsedC.unit, '°C');
 
   const parsedF = parseWeatherResponse(raw, 'f');

@@ -164,6 +164,7 @@ export function renderClockAndGreeting(settings) {
 
   const now = new Date();
   const clockConf = settings?.clock || {};
+  const clockSize = clockConf.size || (clockConf.style === 'small' ? 'small' : (clockConf.style === 'large' ? 'large' : (clockConf.style === 'medium' ? 'medium' : 'huge')));
   const clockStyle = clockConf.style === 'small'
     ? 'small'
     : (clockConf.style === 'left' || clockConf.style === 'left-aligned'
@@ -174,9 +175,13 @@ export function renderClockAndGreeting(settings) {
 
   if (headerEl) {
     headerEl.classList.toggle('clock-style-large', clockStyle === 'large');
-    headerEl.classList.toggle('clock-style-small', clockStyle === 'small');
+    headerEl.classList.toggle('clock-style-small', clockStyle === 'small' || clockSize === 'small');
     headerEl.classList.toggle('clock-style-left', clockStyle === 'left');
     headerEl.classList.toggle('clock-style-hero', clockStyle === 'hero');
+    headerEl.classList.toggle('clock-size-small', clockSize === 'small');
+    headerEl.classList.toggle('clock-size-medium', clockSize === 'medium');
+    headerEl.classList.toggle('clock-size-large', clockSize === 'large');
+    headerEl.classList.toggle('clock-size-huge', clockSize === 'huge');
   }
 
   // Clock
@@ -185,7 +190,7 @@ export function renderClockAndGreeting(settings) {
       clockEl.style.display = 'none';
     } else {
       clockEl.style.display = 'block';
-      clockEl.className = `clock-display clock-${clockStyle}`;
+      clockEl.className = `clock-display clock-${clockStyle} clock-size-${clockSize}`;
 
       let hours = now.getHours();
       const minutes = String(now.getMinutes()).padStart(2, '0');

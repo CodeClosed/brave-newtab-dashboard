@@ -1,6 +1,6 @@
-// @ts-check
 import { normalizeUrl, getDomainFromUrl } from '../utils/url.js';
 import { el } from '../utils/dom.js';
+import { showToast } from '../ui/toasts.js';
 
 let isEditMode = false;
 /** @type {Set<(state: boolean) => void>} */
@@ -12,6 +12,35 @@ const listeners = new Set();
  */
 export function getEditMode() {
   return isEditMode;
+}
+
+function updateEditModeBanner(active) {
+  if (typeof document === 'undefined' || !document.body || typeof document.createElement !== 'function' || typeof document.getElementById !== 'function') return;
+  try {
+    let banner = document.getElementById('edit-mode-top-banner');
+    if (active) {
+      if (!banner && typeof document.body.appendChild === 'function') {
+        banner = document.createElement('div');
+        banner.id = 'edit-mode-top-banner';
+        banner.className = 'edit-mode-top-banner';
+        banner.innerHTML = '<span class="edit-mode-indicator-dot"></span>' +
+          '<span class="edit-mode-banner-text"><strong>Edit Mode:</strong> Drag widgets to reposition, corner handles to resize</span>' +
+          '<button type="button" class="edit-mode-done-btn" id="edit-mode-banner-done-btn">Done</button>';
+        document.body.appendChild(banner);
+        const doneBtn = banner.querySelector ? banner.querySelector('#edit-mode-banner-done-btn') : null;
+        if (doneBtn && typeof doneBtn.addEventListener === 'function') {
+          doneBtn.addEventListener('click', () => {
+            setEditMode(false);
+          });
+        }
+      }
+      if (banner && banner.style) {
+        banner.style.display = 'flex';
+      }
+    } else if (banner && banner.style) {
+      banner.style.display = 'none';
+    }
+  } catch (_) {}
 }
 
 /**
@@ -32,6 +61,14 @@ export function setEditMode(enabled) {
       toggleBtn.setAttribute('aria-pressed', isEditMode ? 'true' : 'false');
       toggleBtn.classList.toggle('active', isEditMode);
       toggleBtn.title = isEditMode ? 'Exit edit mode (e)' : 'Enter edit mode (e)';
+    }
+
+    updateEditModeBanner(isEditMode);
+
+    if (isEditMode && typeof document !== 'undefined' && document.body) {
+      try {
+        showToast('Edit Mode on: Drag ⋮⋮ to move, corner handle to resize (press e to exit)');
+      } catch (_) {}
     }
   }
 

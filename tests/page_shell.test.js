@@ -63,15 +63,15 @@ test('9.1 Page mode attribute: applyPageMode sets data-page attribute on body', 
   applyPageMode({ page: 'two-stage' }, mockBody);
   assert.equal(attrs['data-page'], 'two-stage');
 
+  // Any legacy or invalid mode enforces modern page mode
   applyPageMode({ page: 'classic' }, mockBody);
-  assert.equal(attrs['data-page'], 'classic');
+  assert.equal(attrs['data-page'], 'two-stage');
 
-  // Defaults to classic if missing or invalid
   applyPageMode({}, mockBody);
-  assert.equal(attrs['data-page'], 'classic');
+  assert.equal(attrs['data-page'], 'two-stage');
 });
 
-test('9.2 Two-Stage CSS Rules: base.css defines scroll-snap, 100svh, and content-visibility optimizations', () => {
+test('9.2 Page CSS Rules: base.css defines scroll-snap, 100svh, and content-visibility optimizations', () => {
   const css = fs.readFileSync('extension/css/base.css', 'utf-8');
 
   assert.ok(css.includes('body[data-page="two-stage"]'), 'Must define two-stage body rules');
@@ -79,7 +79,7 @@ test('9.2 Two-Stage CSS Rules: base.css defines scroll-snap, 100svh, and content
   assert.ok(css.includes('min-height: 100svh'), 'Must set 100svh height');
   assert.ok(css.includes('content-visibility: auto'), 'Must optimize hub with content-visibility: auto');
   assert.ok(css.includes('.scroll-prompt'), 'Must style scroll prompt');
-  assert.ok(css.includes('body[data-page="classic"] #scroll-to-hub'), 'Must hide scroll prompt in classic mode');
+  assert.ok(!css.includes('body[data-page="classic"]'), 'Classic mode must be removed from base.css');
 });
 
 test('9.3 Landing guarantee: applyLanding sets manual scroll restoration and scrolls to (0, 0)', () => {

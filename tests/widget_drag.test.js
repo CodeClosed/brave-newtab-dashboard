@@ -7,7 +7,12 @@ import {
   snapToGuides,
   clampPosition,
   applyWidgetPositions,
-  initWidgetDrag
+  initWidgetDrag,
+  snapToGridDimension,
+  getGridUnits,
+  GRID_CELL_WIDTH,
+  GRID_CELL_HEIGHT,
+  WIDGET_GRID_SPECS
 } from '../extension/js/features/widget-drag.js';
 import { setEditMode } from '../extension/js/features/edit-mode.js';
 import { store } from '../extension/js/core/state.js';
@@ -268,14 +273,99 @@ test('16.1 initWidgetDrag keyboard shortcuts (R reset, Delete hide, arrows)', ()
   let s = store.get().settings.hero.widgets.clock;
   assert.equal(s.x, 36);
 
+  // Press + to increase width by 20px
+  onKeyDown({ key: '+', shiftKey: false, preventDefault: () => {} });
+  s = store.get().settings.hero.widgets.clock;
+  assert.equal(s.w, 320);
+
+  // Press - to decrease width by 20px
+  onKeyDown({ key: '-', shiftKey: false, preventDefault: () => {} });
+  s = store.get().settings.hero.widgets.clock;
+  assert.equal(s.w, 300);
+
+  // Press [ to decrease height by 20px (from offsetHeight 100 down to 80)
+  onKeyDown({ key: '[', shiftKey: false, preventDefault: () => {} });
+  s = store.get().settings.hero.widgets.clock;
+  assert.equal(s.h, 80);
+
+  // Press ] to increase height by 20px (from 80 up to 100)
+  onKeyDown({ key: ']', shiftKey: false, preventDefault: () => {} });
+  s = store.get().settings.hero.widgets.clock;
+  assert.equal(s.h, 100);
+
   // Press R (reset)
   onKeyDown({ key: 'r', preventDefault: () => {} });
   s = store.get().settings.hero.widgets.clock;
   assert.equal(s.x, null);
   assert.equal(s.y, null);
+  assert.equal(s.w, null);
+  assert.equal(s.h, null);
 
   // Press Delete (hide)
   onKeyDown({ key: 'Delete', preventDefault: () => {} });
   s = store.get().settings.hero.widgets.clock;
   assert.equal(s.hidden, true);
 });
+
+test('16.1 Android grid dimension calculations and snapping', () => {
+  // Test snapToGridDimension
+  assert.equal(snapToGridDimension(118, 60, 60, 600), 120);
+  assert.equal(snapToGridDimension(135, 60, 60, 600), 120);
+  assert.equal(snapToGridDimension(155, 60, 60, 600), 180);
+  assert.equal(snapToGridDimension(20, 60, 100, 600), 100); // clamped to min
+  assert.equal(snapToGridDimension(800, 60, 100, 600), 600); // clamped to max
+
+  // Disabled snap (Alt key)
+  assert.equal(snapToGridDimension(137, 60, 60, 600, true), 137);
+
+  // Test getGridUnits
+  const units = getGridUnits(420, 160, GRID_CELL_WIDTH, GRID_CELL_HEIGHT);
+  assert.equal(units.cols, 7); // 420 / 60
+  assert.equal(units.rows, 4); // 160 / 40
+
+  // Test widget specs
+  assert.equal(WIDGET_GRID_SPECS.search.resizeMode, 'horizontal');
+  assert.equal(WIDGET_GRID_SPECS.clock.resizeMode, 'both');
+  assert.equal(WIDGET_GRID_SPECS.speeddial.resizeMode, 'both');
+  assert.equal(WIDGET_GRID_SPECS.timer.resizeMode, 'both');
+});
+
+test('16.1 applyWidgetPositions applies width, height, and clock font scaling', () => {
+  const clockEl = {
+    style: {
+      setProperty: (k, v) => { clockEl.style[k] = v; },
+      removeProperty: (k) => { delete clockEl.style[k]; }
+    },
+    dataset: {}
+  };
+
+  const heroPanel = {
+    querySelector: (sel) => {
+      if (sel === '.dashboard-header') return clockEl;
+      return null;
+    }
+  };
+
+  const widgetsConfig = {
+    clock: { x: 50, y: 30, w: 600, h: 200, hidden: false }
+  };
+
+  // @ts-ignore
+  applyWidgetPositions(heroPanel, widgetsConfig);
+
+  assert.equal(clockEl.style.width, '600px');
+  assert.equal(clockEl.style.height, '200px');
+  assert.ok(clockEl.style['--hero-clock-size'], 'Dynamic clock font size must be set');
+
+  // Reset
+  const resetConfig = {
+    clock: { x: null, y: null, w: null, h: null, hidden: false }
+  };
+  // @ts-ignore
+  applyWidgetPositions(heroPanel, resetConfig);
+
+  assert.equal(clockEl.style.width, '');
+  assert.equal(clockEl.style.height, '');
+  assert.equal(clockEl.style['--hero-clock-size'], undefined);
+});
+

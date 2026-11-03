@@ -1,6 +1,7 @@
 // @ts-check
 import { el } from '../utils/dom.js';
 import { t } from '../utils/i18n.js';
+import { ICON_NOTES, getIconSvg } from '../ui/icons.js';
 
 let saveTimeout = null;
 
@@ -27,7 +28,9 @@ export function renderNotesWidget(container, state, onSave) {
   if (!isEnabled) {
     container.hidden = true;
     if (typeof container.replaceChildren === 'function') {
+      const existingFrame = container.querySelector ? container.querySelector('.widget-drag-frame') : null;
       container.replaceChildren();
+      if (existingFrame) container.appendChild(existingFrame);
     }
     return;
   }
@@ -37,7 +40,7 @@ export function renderNotesWidget(container, state, onSave) {
   const activeSpace = state?.spaces?.find(s => s.id === state.activeSpaceId) || state?.spaces?.[0];
   const currentNote = activeSpace?.note || '';
   const spaceName = activeSpace?.name || 'Space';
-  const spaceIcon = activeSpace?.icon || '📁';
+  const spaceIcon = activeSpace?.icon || 'folder';
 
   // Check if existing card and textarea already exist
   const existingCard = container.querySelector ? container.querySelector('.widget-notes') : null;
@@ -48,7 +51,7 @@ export function renderNotesWidget(container, state, onSave) {
     if (typeof document !== 'undefined' && document.activeElement === existingTextarea) {
       const spaceBadge = existingCard.querySelector ? existingCard.querySelector('.widget-space-badge') : null;
       if (spaceBadge) {
-        spaceBadge.textContent = `${spaceIcon} ${spaceName}`;
+        spaceBadge.innerHTML = `${getIconSvg(spaceIcon, 12)}<span>${spaceName}</span>`;
       }
       return;
     }
@@ -59,7 +62,7 @@ export function renderNotesWidget(container, state, onSave) {
     }
     const spaceBadge = existingCard.querySelector ? existingCard.querySelector('.widget-space-badge') : null;
     if (spaceBadge) {
-      spaceBadge.textContent = `${spaceIcon} ${spaceName}`;
+      spaceBadge.innerHTML = `${getIconSvg(spaceIcon, 12)}<span>${spaceName}</span>`;
     }
     return;
   }
@@ -72,8 +75,8 @@ export function renderNotesWidget(container, state, onSave) {
 
   const header = el('div', { className: 'widget-header' }, [
     el('div', { className: 'widget-title-group' }, [
-      el('span', { className: 'widget-title', text: titleText }),
-      el('span', { className: 'widget-space-badge', text: `${spaceIcon} ${spaceName}` })
+      el('span', { className: 'widget-title', text: titleText, html: `${ICON_NOTES}<span>${titleText}</span>` }),
+      el('span', { className: 'widget-space-badge', text: spaceName, html: `${getIconSvg(spaceIcon, 12)}<span>${spaceName}</span>` })
     ]),
     statusEl
   ]);
@@ -121,9 +124,14 @@ export function renderNotesWidget(container, state, onSave) {
     textarea
   ]);
 
+  const existingFrame = container.querySelector ? container.querySelector('.widget-drag-frame') : null;
   if (typeof container.replaceChildren === 'function') {
     container.replaceChildren(card);
   } else {
+    container.textContent = '';
     container.appendChild(card);
+  }
+  if (existingFrame) {
+    container.appendChild(existingFrame);
   }
 }

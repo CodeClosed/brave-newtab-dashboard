@@ -210,6 +210,9 @@ test('15.4 Three Glass Theme Presets exist and apply bundled wallpapers, hero, a
 test('15.3 Wallpaper Tuner popover opens, renders thumbnails and sliders, and supports undo', () => {
   const initial = createDefaultDashboardData();
   initial.settings.background.dim = 0.35;
+  initial.settings.background.dayId = 'wp_day';
+  initial.settings.background.nightId = 'wp_night';
+  initial.settings.background.rotation = 'hourly';
   initial.settings.glass.opacity = 0.62;
   store.replaceData(initial);
 
@@ -223,7 +226,51 @@ test('15.3 Wallpaper Tuner popover opens, renders thumbnails and sliders, and su
   // Click second thumbnail (violet-dusk)
   thumbs[1].dispatchEvent({ type: 'click' });
   assert.equal(store.get().settings.background.activeId, 'bundled:violet-dusk');
+  assert.equal(store.get().settings.background.dayId, null, 'Must clear dayId on preset select');
+  assert.equal(store.get().settings.background.nightId, null, 'Must clear nightId on preset select');
+  assert.equal(store.get().settings.background.rotation, 'off', 'Must turn rotation off on preset select');
+
+  // Test sliders
+  const sliders = popover.querySelectorAll('.wallpaper-tuner-slider');
+  assert.equal(sliders.length, 3, 'Must render 3 sliders (dim, blur, glass)');
+
+  const dimSlider = sliders[0];
+  dimSlider.value = '25';
+  dimSlider.dispatchEvent({ type: 'input' });
+  assert.equal(store.get().settings.background.dim, 0.25);
+  assert.equal(store.get().settings.background.autoReadability, false, 'Manual dim must disable autoReadability');
+
+  const blurSlider = sliders[1];
+  blurSlider.value = '8';
+  blurSlider.dispatchEvent({ type: 'input' });
+  assert.equal(store.get().settings.background.blur, 8);
+
+  const glassSlider = sliders[2];
+  glassSlider.value = '85';
+  glassSlider.dispatchEvent({ type: 'input' });
+  assert.equal(store.get().settings.glass.opacity, 0.85);
+  assert.equal(store.get().settings.background.autoReadability, false, 'Manual glass opacity must disable autoReadability');
 
   // Close tuner
   closeWallpaperTuner();
+});
+
+test('15.5 applyGlassSettings applies --glass-opacity and --glass-blur-px to root element', async () => {
+  const { applyGlassSettings } = await import('../extension/js/features/theme.js');
+
+  const props = {};
+  const mockRoot = {
+    style: {
+      setProperty: (k, v) => { props[k] = v; },
+      removeProperty: (k) => { delete props[k]; }
+    }
+  };
+
+  applyGlassSettings({
+    glass: { opacity: 0.78, blur: 12 },
+    background: { autoReadability: false }
+  }, mockRoot);
+
+  assert.equal(props['--glass-opacity'], '0.78');
+  assert.equal(props['--glass-blur-px'], '12px');
 });

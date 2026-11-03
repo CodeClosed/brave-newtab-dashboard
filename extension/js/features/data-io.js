@@ -479,7 +479,7 @@ export async function importFromBrowserBookmarks() {
               newCategories.push({
                 id: generateId(),
                 name: node.title,
-                icon: '🔖',
+                icon: 'bookmark',
                 order: newCategories.length,
                 collapsed: false,
                 bookmarks

@@ -110,6 +110,7 @@ export async function applyBackground(bgConfig, force = false) {
     value: bgConfig?.value,
     dim: bgConfig?.dim,
     activeId: targetWallpaperId,
+    autoReadability: bgConfig?.autoReadability,
     blur: bgConfig?.blur,
     fit: bgConfig?.fit,
     focal: bgConfig?.focal,
@@ -574,5 +575,31 @@ export function applyTypography(settings, rootElement) {
     root.style.setProperty('--font-scale', String(scale));
   }
 }
+
+/**
+ * Applies glass settings (opacity, blur) to root element CSS variables.
+ * @param {import('../core/schema.js').DashboardData['settings']} settings
+ * @param {HTMLElement | { style: { setProperty: Function, removeProperty?: Function } }} [rootElement]
+ */
+export function applyGlassSettings(settings, rootElement) {
+  const root = rootElement || (typeof document !== 'undefined' ? document.documentElement : null);
+  if (!root || !root.style || typeof root.style.setProperty !== 'function') return;
+
+  const glass = settings?.glass;
+  const isImageWithAutoReadability = settings?.background?.type === 'image' && settings?.background?.autoReadability;
+
+  if (glass && typeof glass.opacity === 'number') {
+    if (!isImageWithAutoReadability) {
+      root.style.setProperty('--glass-opacity', String(glass.opacity));
+    }
+  } else if (!isImageWithAutoReadability) {
+    root.style.setProperty('--glass-opacity', '0.62');
+  }
+
+  if (glass && typeof glass.blur === 'number') {
+    root.style.setProperty('--glass-blur-px', `${glass.blur}px`);
+  }
+}
+
 
 
