@@ -177,12 +177,12 @@ async function initApp() {
     upgrades.hero = { ...(data.settings?.hero || {}), layout: 'studio' };
     data.settings.hero = upgrades.hero;
   }
-  if (!data.settings?.weather?.enabled) {
+  if (!data.settings?.weather) {
     upgrades.weather = {
-      enabled: true,
-      city: 'London',
-      lat: 51.5074,
-      lon: -0.1278,
+      enabled: false,
+      city: '',
+      lat: null,
+      lon: null,
       unit: 'c'
     };
     data.settings.weather = upgrades.weather;
@@ -465,9 +465,71 @@ async function initApp() {
   try { initDropAndPaste(); } catch (e) { console.error('[NTD] initDropAndPaste error:', e); }
   try { initBulkOperations(); } catch (e) { console.error('[NTD] initBulkOperations error:', e); }
 
+  let lastSettingsKey = '';
+  let lastClockKey = '';
+  let lastSpacesKey = '';
+  let lastPinnedStripKey = '';
   let lastPinnedKey = '';
   let lastDockSettingsKey = '';
   let lastSpaceId = '';
+  let lastWidgetsVisKey = '';
+  let lastNotesKey = '';
+  let lastTodoKey = '';
+  let lastTimerKey = '';
+  let lastSpeedDialKey = '';
+  let lastQuoteKey = '';
+  let lastHubKey = '';
+
+  const shouldRenderSettings = (settings) => {
+    const key = JSON.stringify({
+      theme: settings?.theme,
+      accent: settings?.accent,
+      background: settings?.background,
+      glass: settings?.glass,
+      typography: settings?.typography,
+      cards: settings?.cards,
+      display: settings?.display,
+      layout: settings?.layout,
+      page: settings?.page,
+      hero: settings?.hero
+    });
+    if (key !== lastSettingsKey) {
+      lastSettingsKey = key;
+      return true;
+    }
+    return false;
+  };
+
+  const shouldRenderClock = (settings) => {
+    const key = JSON.stringify({
+      clock: settings?.clock,
+      greeting: settings?.greeting
+    });
+    if (key !== lastClockKey) {
+      lastClockKey = key;
+      return true;
+    }
+    return false;
+  };
+
+  const shouldRenderSpaces = (state) => {
+    const key = (state.activeSpaceId || '') + ':' + (state.spaces || []).map(s => s.id + s.name).join('|');
+    if (key !== lastSpacesKey) {
+      lastSpacesKey = key;
+      return true;
+    }
+    return false;
+  };
+
+  const shouldRenderPinnedStrip = (state) => {
+    const activeSpace = state.spaces?.find(s => s.id === state.activeSpaceId) || state.spaces?.[0];
+    const key = (state.activeSpaceId || '') + ':' + (activeSpace?.pinned || []).join(',');
+    if (key !== lastPinnedStripKey) {
+      lastPinnedStripKey = key;
+      return true;
+    }
+    return false;
+  };
 
   const shouldRenderDock = (state) => {
     const activeSpace = state.spaces?.find(s => s.id === state.activeSpaceId) || state.spaces?.[0];
@@ -484,24 +546,130 @@ async function initApp() {
     return false;
   };
 
-  // React to store mutations
+  const shouldUpdateWidgetsVis = (settings) => {
+    const key = JSON.stringify(settings?.widgets || {});
+    if (key !== lastWidgetsVisKey) {
+      lastWidgetsVisKey = key;
+      return true;
+    }
+    return false;
+  };
+
+  const shouldRenderNotes = (state) => {
+    const activeSpace = state.spaces?.find(s => s.id === state.activeSpaceId) || state.spaces?.[0];
+    const key = (state.activeSpaceId || '') + ':' + (activeSpace?.note || '') + ':' + (state.settings?.widgets?.notes !== false);
+    if (key !== lastNotesKey) {
+      lastNotesKey = key;
+      return true;
+    }
+    return false;
+  };
+
+  const shouldRenderTodo = (state) => {
+    const activeSpace = state.spaces?.find(s => s.id === state.activeSpaceId) || state.spaces?.[0];
+    const todos = activeSpace?.todos || [];
+    const key = (state.activeSpaceId || '') + ':' + (state.settings?.widgets?.todo !== false) + ':' + todos.map(t => t.id + ':' + t.done + ':' + t.text).join('|');
+    if (key !== lastTodoKey) {
+      lastTodoKey = key;
+      return true;
+    }
+    return false;
+  };
+
+  const shouldRenderTimer = (state) => {
+    const key = JSON.stringify({
+      enabled: state.settings?.widgets?.timer,
+      hidden: state.settings?.hero?.widgets?.timer?.hidden
+    });
+    if (key !== lastTimerKey) {
+      lastTimerKey = key;
+      return true;
+    }
+    return false;
+  };
+
+  const shouldRenderSpeedDial = (state) => {
+    const activeSpace = state.spaces?.find(s => s.id === state.activeSpaceId) || state.spaces?.[0];
+    const key = JSON.stringify({
+      enabled: state.settings?.widgets?.speeddial,
+      hidden: state.settings?.hero?.widgets?.speeddial?.hidden,
+      pinned: activeSpace?.pinned || [],
+      cats: (activeSpace?.categoryIds || []).length
+    });
+    if (key !== lastSpeedDialKey) {
+      lastSpeedDialKey = key;
+      return true;
+    }
+    return false;
+  };
+
+  const shouldRenderQuote = (state) => {
+    const key = JSON.stringify({
+      enabled: state.settings?.widgets?.quote,
+      hidden: state.settings?.hero?.widgets?.quote?.hidden,
+      customQuote: state.settings?.quote
+    });
+    if (key !== lastQuoteKey) {
+      lastQuoteKey = key;
+      return true;
+    }
+    return false;
+  };
+
+  const shouldRenderHub = (state) => {
+    const activeSpace = state.spaces?.find(s => s.id === state.activeSpaceId) || state.spaces?.[0];
+    const catIds = activeSpace?.categoryIds || [];
+    const catsSummary = (state.categories || [])
+      .filter(c => catIds.includes(c.id))
+      .map(c => c.id + ':' + c.title + ':' + (c.bookmarks || []).length + ':' + (c.color || ''))
+      .join('|');
+    const key = (state.activeSpaceId || '') + ':' + (state.settings?.hub?.view || '') + ':' + JSON.stringify(state.settings?.cards || {}) + ':' + catsSummary;
+    if (key !== lastHubKey) {
+      lastHubKey = key;
+      return true;
+    }
+    return false;
+  };
+
+  // React to store mutations with selective dirty checks
   store.subscribe((state) => {
-    try { applySettings(state.settings); } catch (e) { console.error('[NTD] Sub applySettings error:', e); }
-    try { renderClockAndGreeting(state.settings); } catch (e) { console.error('[NTD] Sub clock error:', e); }
-    try { renderSpaceSwitcher(spaceSwitcherContainer); } catch (e) { console.error('[NTD] Sub spaces error:', e); }
-    try { renderPinnedStrip(pinnedStripContainer); } catch (e) { console.error('[NTD] Sub pinned error:', e); }
-    try {
-      if (appDockEl && shouldRenderDock(state)) {
-        renderDock(appDockEl, state);
-      }
-    } catch (e) { console.error('[NTD] Sub dock error:', e); }
-    try { updateWidgetsVisibility(state.settings); } catch (e) { console.error('[NTD] Sub widgets error:', e); }
-    try { renderNotesWidget(notesWidgetContainer, state, (note) => store.updateSpaceNote(state.activeSpaceId, note, true)); } catch (e) { console.error('[NTD] Sub notes error:', e); }
-    try { renderTodoWidget(todoWidgetContainer, state); } catch (e) { console.error('[NTD] Sub todo error:', e); }
-    try { renderTimerWidget(timerWidgetContainer, state); } catch (e) { console.error('[NTD] Sub timer error:', e); }
-    try { renderSpeedDialWidget(speedDialWidgetContainer, state); } catch (e) { console.error('[NTD] Sub speeddial error:', e); }
-    try { renderQuoteWidget(quoteWidgetContainer, state); } catch (e) { console.error('[NTD] Sub quote error:', e); }
-    try { renderHubCollections(state); } catch (e) { console.error('[NTD] Sub hub error:', e); }
+    if (shouldRenderSettings(state.settings)) {
+      try { applySettings(state.settings); } catch (e) { console.error('[NTD] Sub applySettings error:', e); }
+      try { applyHeroLayout(state.settings); } catch (e) { console.error('[NTD] Sub hero error:', e); }
+    }
+    if (shouldRenderClock(state.settings)) {
+      try { renderClockAndGreeting(state.settings); } catch (e) { console.error('[NTD] Sub clock error:', e); }
+    }
+    if (shouldRenderSpaces(state)) {
+      try { renderSpaceSwitcher(spaceSwitcherContainer); } catch (e) { console.error('[NTD] Sub spaces error:', e); }
+    }
+    if (shouldRenderPinnedStrip(state)) {
+      try { renderPinnedStrip(pinnedStripContainer); } catch (e) { console.error('[NTD] Sub pinned error:', e); }
+    }
+    if (appDockEl && shouldRenderDock(state)) {
+      try { renderDock(appDockEl, state); } catch (e) { console.error('[NTD] Sub dock error:', e); }
+    }
+    if (shouldUpdateWidgetsVis(state.settings)) {
+      try { updateWidgetsVisibility(state.settings); } catch (e) { console.error('[NTD] Sub widgets error:', e); }
+    }
+    if (shouldRenderNotes(state)) {
+      try { renderNotesWidget(notesWidgetContainer, state, (note) => store.updateSpaceNote(state.activeSpaceId, note, true)); } catch (e) { console.error('[NTD] Sub notes error:', e); }
+    }
+    if (shouldRenderTodo(state)) {
+      try { renderTodoWidget(todoWidgetContainer, state); } catch (e) { console.error('[NTD] Sub todo error:', e); }
+    }
+    if (shouldRenderTimer(state)) {
+      try { renderTimerWidget(timerWidgetContainer, state); } catch (e) { console.error('[NTD] Sub timer error:', e); }
+    }
+    if (shouldRenderSpeedDial(state)) {
+      try { renderSpeedDialWidget(speedDialWidgetContainer, state); } catch (e) { console.error('[NTD] Sub speeddial error:', e); }
+    }
+    if (shouldRenderQuote(state)) {
+      try { renderQuoteWidget(quoteWidgetContainer, state); } catch (e) { console.error('[NTD] Sub quote error:', e); }
+    }
+    if (shouldRenderHub(state)) {
+      try { renderHubCollections(state); } catch (e) { console.error('[NTD] Sub hub error:', e); }
+    }
   });
 }
 

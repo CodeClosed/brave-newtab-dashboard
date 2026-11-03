@@ -82,3 +82,52 @@ test('Benchmark - 12 categories & 150 bookmarks validation and processing under 
   assert.equal(importResult.summary?.bookmarkCount, 150);
   assert.equal(importDuration < 40, true, `Import parse took ${importDuration}ms (expected < 40ms)`);
 });
+
+import { matchAndRankBookmarks } from '../extension/js/features/search.js';
+
+test('Benchmark - 1,000 & 5,000 bookmarks search ranking and throughput under budget', () => {
+  // Generate 50 categories with 100 bookmarks each = 5,000 bookmarks
+  const largeCategories = [];
+  let idCounter = 0;
+  for (let c = 0; c < 50; c++) {
+    const bms = [];
+    for (let b = 0; b < 100; b++) {
+      idCounter++;
+      bms.push({
+        id: 'bm_' + idCounter,
+        name: `Resource Developer Docs ${idCounter} ${b % 2 === 0 ? 'React GitHub' : 'TypeScript Node'}`,
+        url: `https://devdocs${idCounter}.example.org/api/ref`,
+        order: b
+      });
+    }
+    largeCategories.push({
+      id: 'cat_' + c,
+      name: `Collection ${c}`,
+      icon: '📁',
+      order: c,
+      collapsed: false,
+      bookmarks: bms
+    });
+  }
+
+  // 1. Benchmark 1,000 bookmarks search (first 10 categories)
+  const subset1000 = largeCategories.slice(0, 10);
+  const t0 = performance.now();
+  for (let q = 0; q < 5; q++) {
+    const results = matchAndRankBookmarks('React GitHub', subset1000);
+    assert.ok(results.length > 0);
+  }
+  const dur1000 = (performance.now() - t0) / 5;
+  // Searching 1,000 bookmarks must complete within 15ms per search query
+  assert.ok(dur1000 < 15, `1,000-bookmark search took ${dur1000}ms (expected < 15ms)`);
+
+  // 2. Benchmark 5,000 bookmarks search
+  const t1 = performance.now();
+  for (let q = 0; q < 5; q++) {
+    const results = matchAndRankBookmarks('TypeScript', largeCategories);
+    assert.ok(results.length > 0);
+  }
+  const dur5000 = (performance.now() - t1) / 5;
+  // Searching 5,000 bookmarks must complete within 45ms per search query
+  assert.ok(dur5000 < 45, `5,000-bookmark search took ${dur5000}ms (expected < 45ms)`);
+});

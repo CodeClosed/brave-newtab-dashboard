@@ -96,7 +96,9 @@ A local-first, customizable New Tab extension for Chromium browsers that transfo
 
 ## Technical Architecture & Privacy
 
-- **Manifest V3:** Complies strictly with Chromium extension security guidelines. Zero inline scripts, zero remote code execution, zero external CDNs, zero `eval`, zero `innerHTML`.
+- **Manifest V3:** Complies strictly with Chromium extension security guidelines. Zero remote code execution, zero external CDNs, and zero `eval()`.
+- **Safe DOM Construction:** All user-controlled and untrusted strings (bookmark titles, URLs, collection names, notes, and task items) are strictly rendered using safe DOM APIs (`document.createElement`, `textContent`, `setAttribute`). Static, trusted internal SVGs are isolated to immutable code templates (`ui/icons.js`).
+- **Strict Content Security Policy:** Script execution is locked to `'self'`. Inline styles (`style-src 'self' 'unsafe-inline'`) are utilized solely for dynamic CSS custom property tokens (`--glass-opacity`, `--accent-color`, etc.). Network requests are strictly disabled by default; opt-in weather communicates exclusively with Open-Meteo.
 - **Permissions Audit:**
   - `storage`: Required for local dashboard preferences and collections via `chrome.storage.local`.
   - `favicon`: Required for internal cached favicon resolution via `chrome.runtime.getURL('/_favicon/')`.
@@ -116,4 +118,4 @@ Run the full automated test suite using Node.js:
 npm test
 ```
 
-Currently contains **315 unit and integration tests** verifying all schemas, migrations, security validations, UI components, search ranking, calculator, wallpaper processing, dock, tab groups, weather, widget dragging, and accessibility features.
+Currently contains **329 automated unit, integration, and benchmark tests** (with automated GitHub Actions CI) verifying all schemas, migrations, security validations, UI components, search ranking, calculator, wallpaper processing, dock, tab groups, weather, widget dragging, and accessibility features.
