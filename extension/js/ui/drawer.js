@@ -51,15 +51,15 @@ let lastRenderedTab = null;
 let lastSearchQuery = '';
 
 const TABS = [
-  { id: 'appearance', label: 'Appearance', icon: ICON_PALETTE },
-  { id: 'layout', label: 'Layout', icon: ICON_LAYOUT },
-  { id: 'clock', label: 'Clock & Date', icon: ICON_CLOCK },
-  { id: 'search', label: 'Search', icon: ICON_SEARCH },
-  { id: 'widgets', label: 'Widget Editor', icon: ICON_WIDGETS },
-  { id: 'spaces', label: 'Spaces', icon: ICON_SPACES },
-  { id: 'categories', label: 'Collections', icon: ICON_COLLECTIONS },
-  { id: 'accessibility', label: 'Accessibility', icon: ICON_ACCESSIBILITY },
-  { id: 'data', label: 'Backup & Data', icon: ICON_DATA }
+  { id: 'appearance', label: 'Appearance', icon: ICON_PALETTE, group: 'Core' },
+  { id: 'layout', label: 'Layout', icon: ICON_LAYOUT, group: 'Core' },
+  { id: 'widgets', label: 'Widget Editor', icon: ICON_WIDGETS, group: 'Core' },
+  { id: 'categories', label: 'Collections', icon: ICON_COLLECTIONS, group: 'Core' },
+  { id: 'spaces', label: 'Spaces', icon: ICON_SPACES, group: 'Productivity' },
+  { id: 'clock', label: 'Clock & Date', icon: ICON_CLOCK, group: 'Productivity' },
+  { id: 'search', label: 'Search', icon: ICON_SEARCH, group: 'Productivity' },
+  { id: 'accessibility', label: 'Accessibility', icon: ICON_ACCESSIBILITY, group: 'System' },
+  { id: 'data', label: 'Backup & Data', icon: ICON_DATA, group: 'System' }
 ];
 
 const ACCENTS = [
@@ -364,7 +364,25 @@ function renderDrawerContent() {
 
   // Tab Nav (hidden if actively searching)
   const nav = el('nav', { className: 'drawer-nav', 'aria-label': 'Settings sections' });
+  let currentGroup = '';
   for (const tab of TABS) {
+    if (tab.group && tab.group !== currentGroup) {
+      currentGroup = tab.group;
+      const groupHeader = el('div', {
+        className: 'drawer-nav-group-header',
+        style: {
+          fontSize: '11px',
+          fontWeight: '600',
+          textTransform: 'uppercase',
+          letterSpacing: '0.06em',
+          color: 'var(--text-muted, #94a3b8)',
+          padding: '12px 14px 4px',
+          opacity: '0.75'
+        },
+        text: currentGroup
+      });
+      nav.appendChild(groupHeader);
+    }
     const isSvg = typeof tab.icon === 'string' && tab.icon.includes('<svg');
     const tabBtn = el('button', {
       className: `drawer-tab-btn${activeTab === tab.id ? ' active' : ''}`,

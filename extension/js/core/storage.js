@@ -1,10 +1,11 @@
 // @ts-check
-import { createDefaultDashboardData, CURRENT_SCHEMA_VERSION } from './schema.js';
+import { createDefaultDashboardData, CURRENT_SCHEMA_VERSION, validateDashboardData } from './schema.js';
 import { migrate } from './migrate.js';
 import { createSnapshot, checkAndTriggerDailySnapshot } from './snapshots.js';
 
 const STORAGE_KEY = 'dashboard';
 const RECOVERY_KEY = 'dashboard:recovery';
+export const EMERGENCY_RECOVERY_KEY = 'dashboard:emergency_recovery';
 const BOOT_CACHE_KEY = 'ntd:boot';
 const DEBOUNCE_DELAY_MS = 300;
 
@@ -45,6 +46,28 @@ function hasChromeStorage() {
 export async function loadDashboardData() {
   try {
     let raw = null;
+    // Check if an emergency recovery backup exists from an abrupt tab termination
+    let emergencyData = null;
+    try {
+      if (typeof localStorage !== 'undefined') {
+        const rawEmergency = localStorage.getItem(EMERGENCY_RECOVERY_KEY);
+        if (rawEmergency) {
+          const parsed = JSON.parse(rawEmergency);
+          if (parsed && parsed.data && validateDashboardData(parsed.data).valid) {
+            emergencyData = parsed.data;
+          }
+          localStorage.removeItem(EMERGENCY_RECOVERY_KEY);
+        }
+      }
+    } catch (e) {}
+
+    if (emergencyData) {
+      console.warn('[NTD Storage] Recovered unsaved dashboard state from emergency recovery slot');
+      await saveDashboardDataImmediately(emergencyData);
+      checkAndTriggerDailySnapshot(emergencyData).catch(() => {});
+      return migrate(emergencyData);
+    }
+
     if (hasChromeStorage()) {
       const result = await chrome.storage.local.get([STORAGE_KEY]);
       raw = result[STORAGE_KEY];
@@ -100,7 +123,9 @@ export async function loadDashboardData() {
       }
     }
 
-    return migrate(raw);
+    const migratedData = migrate(raw);
+    checkAndTriggerDailySnapshot(migratedData).catch(() => {});
+    return migratedData;
   } catch (err) {
     console.error('Failed to load dashboard data from storage:', err);
     return createDefaultDashboardData();
@@ -158,7 +183,6 @@ export function queueSaveDashboardData(data) {
   pendingData = data;
   updateBootCache(data);
 
-  checkAndTriggerDailySnapshot().catch(() => {});
 
   if (saveTimeout) {
     clearTimeout(saveTimeout);
@@ -179,16 +203,28 @@ export function flushPendingSave() {
     updateBootCache(pendingData);
     const serialized = JSON.stringify(pendingData);
     lastSerializedWrite = serialized;
+
+    // Synchronously mirror to localStorage emergency recovery slot
+    try {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(EMERGENCY_RECOVERY_KEY, JSON.stringify({
+          timestamp: Date.now(),
+          data: pendingData
+        }));
+      }
+    } catch (e) {}
+
     if (hasChromeStorage()) {
-      chrome.storage.local.set({ [STORAGE_KEY]: pendingData });
+      chrome.storage.local.set({ [STORAGE_KEY]: pendingData }, () => {
+        try {
+          if (typeof localStorage !== 'undefined') {
+            localStorage.removeItem(EMERGENCY_RECOVERY_KEY);
+          }
+        } catch (e) {}
+      });
     } else if (typeof localStorage !== 'undefined') {
       localStorage.setItem(STORAGE_KEY, serialized);
     }
-    pendingData = null;
-  }
-  if (saveTimeout) {
-    clearTimeout(saveTimeout);
-    saveTimeout = null;
   }
 }
 

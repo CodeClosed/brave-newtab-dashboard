@@ -146,18 +146,15 @@ export async function deleteBackgroundImage() {
  * @returns {Promise<any>}
  */
 export async function saveSnapshotRecord(snapshot) {
-  try {
-    const db = await getDB();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(SNAPSHOTS_STORE, 'readwrite');
-      const store = tx.objectStore(SNAPSHOTS_STORE);
-      const req = store.put(snapshot);
-      req.onsuccess = () => resolve(snapshot);
-      req.onerror = () => reject(req.error);
-    });
-  } catch (err) {
-    return snapshot;
-  }
+  const db = await getDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(SNAPSHOTS_STORE, 'readwrite');
+    const store = tx.objectStore(SNAPSHOTS_STORE);
+    const req = store.put(snapshot);
+    req.onsuccess = () => resolve(snapshot);
+    req.onerror = () => reject(req.error || new Error('Failed to save snapshot to IndexedDB'));
+    tx.onerror = () => reject(tx.error || new Error('Transaction error saving snapshot'));
+  });
 }
 
 /**
@@ -209,18 +206,15 @@ export async function getSnapshotRecord(id) {
  * @returns {Promise<void>}
  */
 export async function deleteSnapshotRecord(id) {
-  try {
-    const db = await getDB();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(SNAPSHOTS_STORE, 'readwrite');
-      const store = tx.objectStore(SNAPSHOTS_STORE);
-      const req = store.delete(id);
-      req.onsuccess = () => resolve();
-      req.onerror = () => reject(req.error);
-    });
-  } catch (err) {
-    // Ignore error
-  }
+  const db = await getDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(SNAPSHOTS_STORE, 'readwrite');
+    const store = tx.objectStore(SNAPSHOTS_STORE);
+    const req = store.delete(id);
+    req.onsuccess = () => resolve();
+    req.onerror = () => reject(req.error || new Error('Failed to delete snapshot'));
+    tx.onerror = () => reject(tx.error || new Error('Transaction error deleting snapshot'));
+  });
 }
 
 /**

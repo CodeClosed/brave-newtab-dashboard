@@ -118,4 +118,4 @@ Run the full automated test suite using Node.js:
 npm test
 ```
 
-Currently contains **329 automated unit, integration, and benchmark tests** (with automated GitHub Actions CI) verifying all schemas, migrations, security validations, UI components, search ranking, calculator, wallpaper processing, dock, tab groups, weather, widget dragging, and accessibility features.
+Currently contains **336 automated unit, integration, and benchmark tests** (with automated GitHub Actions CI) verifying all schemas, migrations, security validations, UI components, search ranking, calculator, wallpaper processing, dock, tab groups, weather, widget dragging, and accessibility features.

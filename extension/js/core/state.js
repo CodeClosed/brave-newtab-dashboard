@@ -47,6 +47,15 @@ class StateStore {
   }
 
   /**
+   * Returns a deep clone of current state for isolated/defensive reads.
+   * Guarantees external callers cannot accidentally mutate internal store state.
+   * @returns {import('./schema.js').DashboardData}
+   */
+  getCopy() {
+    return JSON.parse(JSON.stringify(this._data));
+  }
+
+  /**
    * Takes a deep copy snapshot of current state for undo operations.
    * @private
    * @returns {import('./schema.js').DashboardData}

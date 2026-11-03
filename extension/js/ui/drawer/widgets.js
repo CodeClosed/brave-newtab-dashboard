@@ -250,6 +250,22 @@ export function renderWidgetsSection(settings, { renderDrawerContent = () => {},
       unitSelect
     );
     section.appendChild(unitGroup);
+
+    const privacyNotice = el('div', {
+      className: 'setting-hint',
+      style: {
+        fontSize: '12px',
+        lineHeight: '1.4',
+        padding: '10px 14px',
+        borderRadius: '8px',
+        background: 'rgba(255, 255, 255, 0.04)',
+        border: '1px solid rgba(255, 255, 255, 0.08)',
+        marginBottom: '16px',
+        color: 'var(--text-muted, #94a3b8)'
+      },
+      text: 'Privacy Notice: Enabling weather transmits your chosen city coordinates directly to Open-Meteo (api.open-meteo.com) for temperature and forecast data. Results are cached locally for 30 minutes. No personal identity, IP, or browsing history is tracked or retained.'
+    });
+    section.appendChild(privacyNotice);
   }
 
   // 5. Notes Widget
