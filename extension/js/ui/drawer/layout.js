@@ -4,8 +4,24 @@ import { el } from '../../utils/dom.js';
 import { showToast } from '../toasts.js';
 import { renderRadioCard, renderToggleRow } from './common.js';
 
+const ICON_REFRESH = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>`;
+
 export function renderLayoutSection(settings, { renderDrawerContent = () => {}, resetSettingsSection = () => {} } = {}) {
   const section = el('div', { className: 'settings-section' });
+
+  const secHeader = el('div', { className: 'settings-section-header' }, [
+    el('div', {}, [
+      el('h3', { className: 'settings-section-headline', text: 'Layout & Navigation' }),
+      el('p', { className: 'settings-section-subtitle', text: 'Configure collection cards, grid columns, and the omnidirectional floating dock' })
+    ]),
+    el('button', {
+      className: 'section-reset-btn',
+      type: 'button',
+      html: `${ICON_REFRESH}<span>Reset section</span>`,
+      onclick: () => resetSettingsSection('layout')
+    })
+  ]);
+  section.appendChild(secHeader);
 
   const layoutGroup = el('div', { className: 'setting-item' },
     el('div', { className: 'setting-item-header' },

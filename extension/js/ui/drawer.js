@@ -30,6 +30,8 @@ import {
   ICON_COLLECTIONS,
   ICON_ACCESSIBILITY,
   ICON_DATA,
+  ICON_SETTINGS,
+  ICON_REFRESH,
   ICON_CHECK,
   ICON_WARNING,
   ICON_SUN,
@@ -319,11 +321,16 @@ function renderDrawerContent() {
 
   const state = store.get();
   const settings = state.settings;
+  const activeTabObj = TABS.find(t => t.id === activeTab) || TABS[0];
 
   // Header with stable ID for aria-labelledby, Cancel and Done buttons
   const header = el('header', { className: 'drawer-header' },
     el('div', { className: 'drawer-header-left' }, [
-      el('h2', { className: 'drawer-title', id: 'settings-drawer-title', text: 'Customize Dashboard' })
+      el('span', { className: 'drawer-header-icon-badge', html: ICON_SETTINGS }),
+      el('h2', { className: 'drawer-title', id: 'settings-drawer-title' }, [
+        el('span', { text: 'Settings' }),
+        el('span', { className: 'drawer-header-badge', text: activeTabObj.label })
+      ])
     ]),
     el('div', { className: 'drawer-header-actions' }, [
       el('button', {
@@ -339,12 +346,21 @@ function renderDrawerContent() {
         text: 'Done',
         title: 'Keep changes and close',
         onclick: () => closeDrawer(false)
+      }),
+      el('button', {
+        className: 'drawer-close-btn',
+        type: 'button',
+        'aria-label': 'Close settings',
+        title: 'Close (Esc)',
+        html: ICON_CLOSE,
+        onclick: () => closeDrawer(false)
       })
     ])
   );
 
   // Search box
   const searchWrapper = el('div', { className: 'drawer-search-wrapper' });
+  const searchIcon = el('span', { className: 'drawer-search-icon', html: ICON_SEARCH });
   const searchInput = el('input', {
     type: 'search',
     className: 'drawer-search-input',
@@ -360,6 +376,7 @@ function renderDrawerContent() {
       nextInput.focus();
     }
   });
+  searchWrapper.appendChild(searchIcon);
   searchWrapper.appendChild(searchInput);
 
   // Tab Nav (hidden if actively searching)
@@ -464,8 +481,15 @@ function renderDrawerContent() {
     }
   }
 
+  const sidebarFooter = el('div', { className: 'drawer-sidebar-footer' }, [
+    el('div', { className: 'drawer-version-chip' }, [
+      el('span', { className: 'drawer-pulse-dot' }),
+      el('span', { text: 'v0.3.0 · Local-First' })
+    ])
+  ]);
+
   const modalBody = el('div', { className: 'settings-modal-body' }, [
-    el('aside', { className: 'settings-sidebar' }, [searchWrapper, nav]),
+    el('aside', { className: 'settings-sidebar' }, [searchWrapper, nav, sidebarFooter]),
     content
   ]);
 
@@ -495,6 +519,20 @@ function renderDrawerContent() {
 function renderClockSection(settings) {
   const section = el('div', { className: 'settings-section' });
   const clockConf = settings.clock || {};
+
+  const secHeader = el('div', { className: 'settings-section-header' }, [
+    el('div', {}, [
+      el('h3', { className: 'settings-section-headline', text: 'Clock, Date & Greeting' }),
+      el('p', { className: 'settings-section-subtitle', text: 'Configure clock typography, seconds counter, secondary world clock, and countdown' })
+    ]),
+    el('button', {
+      className: 'section-reset-btn',
+      type: 'button',
+      html: `${ICON_REFRESH}<span>Reset section</span>`,
+      onclick: () => resetSettingsSection('clock')
+    })
+  ]);
+  section.appendChild(secHeader);
 
   // Clock toggle
   section.appendChild(renderToggleRow('Show Clock', 'Display current time', settings.showClock, (val) => {
@@ -760,6 +798,20 @@ function renderClockSection(settings) {
 function renderAccessibilitySection(settings) {
   const section = el('div', { className: 'settings-section' });
 
+  const secHeader = el('div', { className: 'settings-section-header' }, [
+    el('div', {}, [
+      el('h3', { className: 'settings-section-headline', text: 'Accessibility & Motion' }),
+      el('p', { className: 'settings-section-subtitle', text: 'Motion reduction preferences, enlarged touch targets, and high contrast mode' })
+    ]),
+    el('button', {
+      className: 'section-reset-btn',
+      type: 'button',
+      html: `${ICON_REFRESH}<span>Reset section</span>`,
+      onclick: () => resetSettingsSection('accessibility')
+    })
+  ]);
+  section.appendChild(secHeader);
+
   // Motion Preference (System vs Reduce)
   const currentMotion = settings.motion === 'reduce' ? 'reduce' : 'system';
   const motionGroup = el('div', { className: 'setting-item' },
@@ -827,6 +879,20 @@ function renderAccessibilitySection(settings) {
 function renderSearchSection(settings) {
   const section = el('div', { className: 'settings-section' });
 
+  const secHeader = el('div', { className: 'settings-section-header' }, [
+    el('div', {}, [
+      el('h3', { className: 'settings-section-headline', text: 'Search & Link Behavior' }),
+      el('p', { className: 'settings-section-subtitle', text: 'Default web search engine, link navigation targets, and idle auto-hide' })
+    ]),
+    el('button', {
+      className: 'section-reset-btn',
+      type: 'button',
+      html: `${ICON_REFRESH}<span>Reset section</span>`,
+      onclick: () => resetSettingsSection('search')
+    })
+  ]);
+  section.appendChild(secHeader);
+
   const select = /** @type {HTMLSelectElement} */ (el('select', { className: 'form-select' },
     el('option', { value: 'google', text: 'Google' }),
     el('option', { value: 'brave', text: 'Brave Search' }),
@@ -892,6 +958,14 @@ function renderSearchSection(settings) {
 function renderSpacesSection(state) {
   const section = el('div', { className: 'settings-section' });
   const spaces = [...(state.spaces || [])].sort((a, b) => a.order - b.order);
+
+  const secHeader = el('div', { className: 'settings-section-header' }, [
+    el('div', {}, [
+      el('h3', { className: 'settings-section-headline', text: 'Spaces & Workspaces' }),
+      el('p', { className: 'settings-section-subtitle', text: 'Separate browsing contexts for work, personal, and research activities' })
+    ])
+  ]);
+  section.appendChild(secHeader);
 
   const list = el('div', { className: 'cat-mgmt-list' });
 
@@ -975,6 +1049,14 @@ function renderSpacesSection(state) {
 
 function renderCategoriesSection(categories) {
   const section = el('div', { className: 'settings-section' });
+
+  const secHeader = el('div', { className: 'settings-section-header' }, [
+    el('div', {}, [
+      el('h3', { className: 'settings-section-headline', text: 'Collections & Bookmarks' }),
+      el('p', { className: 'settings-section-subtitle', text: 'Organize bookmark folders, change icons and names, or reorder collections' })
+    ])
+  ]);
+  section.appendChild(secHeader);
 
   const list = el('div', { className: 'cat-mgmt-list' });
 

@@ -16,6 +16,14 @@ const ICON_CLOSE = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" 
 export function renderDataSection(onCloseDrawer) {
   const section = el('div', { className: 'settings-section' });
 
+  const secHeader = el('div', { className: 'settings-section-header' }, [
+    el('div', {}, [
+      el('h3', { className: 'settings-section-headline', text: 'Backup, Export & Snapshots' }),
+      el('p', { className: 'settings-section-subtitle', text: 'Manage automated point-in-time snapshots and export/import full JSON backups' })
+    ])
+  ]);
+  section.appendChild(secHeader);
+
   // Export JSON
   const exportBtn = el('button', {
     className: 'btn-secondary',

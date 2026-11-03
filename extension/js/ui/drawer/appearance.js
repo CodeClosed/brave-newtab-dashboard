@@ -43,8 +43,24 @@ const ICON_MOON = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" s
 const ICON_WARNING = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>`;
 const ICON_CHECK = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
 
+const ICON_REFRESH = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>`;
+
 export function renderAppearanceSection(settings, { renderDrawerContent = () => {}, resetSettingsSection = () => {} } = {}) {
   const section = el('div', { className: 'settings-section' });
+
+  const secHeader = el('div', { className: 'settings-section-header' }, [
+    el('div', {}, [
+      el('h3', { className: 'settings-section-headline', text: 'Appearance & Themes' }),
+      el('p', { className: 'settings-section-subtitle', text: 'Curated presets, custom accents, wallpapers, and frosted glass opacity' })
+    ]),
+    el('button', {
+      className: 'section-reset-btn',
+      type: 'button',
+      html: `${ICON_REFRESH}<span>Reset section</span>`,
+      onclick: () => resetSettingsSection('appearance')
+    })
+  ]);
+  section.appendChild(secHeader);
 
   // 4.5 Curated Theme Presets
   const presetsGroup = el('div', { className: 'setting-item' },
