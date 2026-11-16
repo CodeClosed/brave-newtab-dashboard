@@ -6,16 +6,167 @@ import { showToast } from '../ui/toasts.js';
 import { announceReorder } from './dnd.js';
 import { getPinnedBookmarks, reorderPinnedBookmark, togglePinBookmark, moveDockItem, pinBookmark } from './pinned.js';
 import { toggleAppLauncher } from '../ui/launcher.js';
-import { openDrawer } from '../ui/drawer.js';
-import { toggleEditMode } from './edit-mode.js';
-import { toggleWallpaperTuner } from './wallpaper-tuner.js';
-import { ICON_SLIDERS, ICON_EDIT, ICON_SETTINGS } from '../ui/icons.js';
+import { openBookmarkDialog } from '../ui/dialogs.js';
+import { ICON_EXTERNAL_LINK, ICON_EDIT, ICON_PIN } from '../ui/icons.js';
 
 export const VALID_DOCK_POSITIONS = ['top', 'left', 'bottom', 'right', 'off'];
 const DOCK_AUTOHIDE_DELAY_MS = 1800;
 
 let autoHideTimer = null;
 let draggedDockIndex = null;
+let activeDockContextMenu = null;
+
+/**
+ * Closes any currently open dock context menu.
+ */
+export function closeDockContextMenu() {
+  if (activeDockContextMenu) {
+    if (typeof activeDockContextMenu.remove === 'function') {
+      activeDockContextMenu.remove();
+    }
+    activeDockContextMenu = null;
+  }
+}
+
+/**
+ * Displays a sleek glass context menu for a pinned dock app.
+ * @param {MouseEvent} e
+ * @param {import('../core/schema.js').Bookmark} bookmark
+ * @param {HTMLElement} itemEl
+ * @param {HTMLElement} container
+ */
+function showDockContextMenu(e, bookmark, itemEl, container) {
+  closeDockContextMenu();
+
+  if (typeof document === 'undefined' || !document.body) return;
+
+  const menu = el('div', {
+    className: 'dock-context-menu',
+    role: 'menu',
+    'aria-label': `${bookmark.name} actions`
+  });
+
+  const header = el('div', { className: 'dock-context-header' },
+    createFaviconElement(bookmark.url, bookmark.name),
+    el('span', { className: 'dock-context-title', text: bookmark.name })
+  );
+  menu.appendChild(header);
+  menu.appendChild(el('div', { className: 'dock-context-divider' }));
+
+  // 1. Open in new tab
+  const openNewTabBtn = el('button', {
+    type: 'button',
+    className: 'dock-context-item',
+    role: 'menuitem',
+    html: `${ICON_EXTERNAL_LINK}<span>Open in New Tab</span>`,
+    onclick: (evt) => {
+      evt.preventDefault();
+      evt.stopPropagation();
+      closeDockContextMenu();
+      if (typeof window !== 'undefined' && typeof window.open === 'function') {
+        window.open(bookmark.url, '_blank', 'noopener,noreferrer');
+      }
+    }
+  });
+  menu.appendChild(openNewTabBtn);
+
+  // 2. Edit Bookmark / App
+  const editBtn = el('button', {
+    type: 'button',
+    className: 'dock-context-item',
+    role: 'menuitem',
+    html: `${ICON_EDIT}<span>Edit Shortcut</span>`,
+    onclick: (evt) => {
+      evt.preventDefault();
+      evt.stopPropagation();
+      closeDockContextMenu();
+      const state = store.getState ? store.getState() : store.get();
+      const cat = (state.categories || []).find((c) => c.bookmarks?.some((b) => b.id === bookmark.id));
+      openBookmarkDialog({
+        mode: 'edit',
+        categoryId: cat ? cat.id : '',
+        bookmark,
+        onSave: (updated) => {
+          store.updateBookmark(bookmark.id, updated);
+          showToast(`Updated "${updated.name}"`);
+        }
+      });
+    }
+  });
+  menu.appendChild(editBtn);
+
+  menu.appendChild(el('div', { className: 'dock-context-divider' }));
+
+  // 3. Unpin from Dock
+  const unpinBtn = el('button', {
+    type: 'button',
+    className: 'dock-context-item dock-context-danger',
+    role: 'menuitem',
+    html: `${ICON_PIN}<span>Unpin from Dock</span>`,
+    onclick: (evt) => {
+      evt.preventDefault();
+      evt.stopPropagation();
+      closeDockContextMenu();
+      const res = togglePinBookmark(bookmark.id);
+      if (res.success && !res.pinned) {
+        showToast(`Unpinned "${bookmark.name}" from dock`, () => {
+          togglePinBookmark(bookmark.id);
+        });
+      }
+    }
+  });
+  menu.appendChild(unpinBtn);
+
+  document.body.appendChild(menu);
+  activeDockContextMenu = menu;
+
+  // Positioning relative to viewport and dock
+  const itemRect = itemEl.getBoundingClientRect ? itemEl.getBoundingClientRect() : { top: 0, left: 0, width: 36, height: 36, bottom: 36, right: 36 };
+  const menuWidth = 190;
+  const menuHeight = 145;
+  const pad = 10;
+  const dockPos = container.dataset?.position || 'bottom';
+
+  let top = itemRect.top - menuHeight - pad;
+  let left = itemRect.left + (itemRect.width - menuWidth) / 2;
+
+  if (dockPos === 'top') {
+    top = itemRect.bottom + pad;
+  } else if (dockPos === 'left') {
+    top = itemRect.top;
+    left = itemRect.right + pad;
+  } else if (dockPos === 'right') {
+    top = itemRect.top;
+    left = itemRect.left - menuWidth - pad;
+  }
+
+  const winW = typeof window !== 'undefined' ? window.innerWidth : 1200;
+  const winH = typeof window !== 'undefined' ? window.innerHeight : 800;
+
+  if (left < pad) left = pad;
+  if (left + menuWidth > winW - pad) left = winW - menuWidth - pad;
+  if (top < pad) top = pad;
+  if (top + menuHeight > winH - pad) top = winH - menuHeight - pad;
+
+  menu.style.position = 'fixed';
+  menu.style.top = `${top}px`;
+  menu.style.left = `${left}px`;
+}
+
+// Global click & Escape dismissal for dock context menu
+if (typeof document !== 'undefined' && !document.__dockContextMenuWired) {
+  document.__dockContextMenuWired = true;
+  document.addEventListener('click', (e) => {
+    if (!e.target || typeof e.target.closest !== 'function' || !e.target.closest('.dock-context-menu')) {
+      closeDockContextMenu();
+    }
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      closeDockContextMenu();
+    }
+  });
+}
 
 /**
  * Applies the dock position attribute to the dock element and document.body.
@@ -74,15 +225,15 @@ export function renderDock(container, state) {
   container.dataset.autohide = isAutoHide ? 'true' : 'false';
   container.setAttribute('data-autohide', isAutoHide ? 'true' : 'false');
 
-  // 1. App Launcher Trigger Button (Lucide layout-grid / 9-dot launcher icon)
+  // 1. Unified Platform Launcher Button (Lucide layout-grid / 9-dot launcher icon)
   const launcherSvg = `<svg class="app-dock-launcher-svg svg-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="7" height="7" x="3" y="3" rx="1.5"></rect><rect width="7" height="7" x="14" y="3" rx="1.5"></rect><rect width="7" height="7" x="14" y="14" rx="1.5"></rect><rect width="7" height="7" x="3" y="14" rx="1.5"></rect></svg>`;
   const launcherBtn = el('button', {
     type: 'button',
     className: 'app-dock-launcher-btn',
     id: 'dock-launcher-btn',
-    title: 'Show Applications & Collections (\\)',
-    'aria-label': 'Show Applications and Collections',
-    dataset: { tooltip: 'Apps & Folders (\\)' },
+    title: 'Unified Platform: Apps, Widgets & Settings (\\)',
+    'aria-label': 'Open Unified Platform (Applications, Widgets and Settings)',
+    dataset: { tooltip: 'Unified Platform (\\)' },
     html: launcherSvg,
     onclick: (e) => {
       e.preventDefault();
@@ -108,7 +259,7 @@ export function renderDock(container, state) {
       href: bookmark.url,
       target: openIn === 'new' ? '_blank' : '_self',
       rel: openIn === 'new' ? 'noopener noreferrer' : undefined,
-      title: `${bookmark.name} (Right-click to unpin)`,
+      title: `${bookmark.name} (Right-click for options)`,
       'aria-label': `${bookmark.name} (pinned in dock)`,
       draggable: 'true',
       tabIndex: 0,
@@ -119,16 +270,11 @@ export function renderDock(container, state) {
       }
     }, favicon);
 
-    // Right-click context menu to unpin
+    // Right-click context menu (Open in new tab, Edit, Unpin)
     item.addEventListener('contextmenu', (e) => {
       e.preventDefault();
       e.stopPropagation();
-      const res = togglePinBookmark(bookmark.id);
-      if (res.success && !res.pinned) {
-        showToast(`Unpinned "${bookmark.name}" from dock`, () => {
-          togglePinBookmark(bookmark.id);
-        });
-      }
+      showDockContextMenu(e, bookmark, item, container);
     });
 
     // Keyboard accessibility: Shift+Arrow reorders, Delete/Backspace unpins
@@ -234,62 +380,6 @@ export function renderDock(container, state) {
 
     container.appendChild(item);
   });
-
-  // Divider before system utility actions
-  container.appendChild(el('span', { className: 'app-dock-divider', 'aria-hidden': 'true' }));
-
-  // 2. Wallpaper & Glass Tuner Trigger Button
-  const tunerBtn = el('button', {
-    type: 'button',
-    className: 'app-dock-action-btn app-dock-tuner-btn',
-    id: 'dock-tuner-btn',
-    title: 'Wallpaper & Glass Tuner',
-    'aria-label': 'Open Wallpaper and Glass Tuner',
-    dataset: { tooltip: 'Wallpaper & Glass' },
-    html: ICON_SLIDERS,
-    onclick: (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      toggleWallpaperTuner(tunerBtn, store);
-    }
-  });
-  container.appendChild(tunerBtn);
-
-  // 3. Edit Mode / Customize Widgets Trigger Button
-  const isEditing = typeof document !== 'undefined' && document.body?.getAttribute('data-edit-mode') === 'true';
-  const editWidgetsBtn = el('button', {
-    type: 'button',
-    className: `app-dock-action-btn app-dock-edit-btn${isEditing ? ' is-active' : ''}`,
-    id: 'dock-edit-btn',
-    title: 'Customize & Drag Widgets (E)',
-    'aria-label': 'Toggle Edit and Drag Widgets Mode',
-    dataset: { tooltip: isEditing ? 'Done Editing (E)' : 'Edit Widgets (E)' },
-    html: ICON_EDIT,
-    onclick: (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      toggleEditMode();
-      renderDock(container);
-    }
-  });
-  container.appendChild(editWidgetsBtn);
-
-  // 4. Settings Modal Trigger Button
-  const settingsBtn = el('button', {
-    type: 'button',
-    className: 'app-dock-action-btn app-dock-settings-btn',
-    id: 'dock-settings-btn',
-    title: 'Dashboard Settings',
-    'aria-label': 'Open Dashboard Settings',
-    dataset: { tooltip: 'Settings' },
-    html: ICON_SETTINGS,
-    onclick: (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      openDrawer();
-    }
-  });
-  container.appendChild(settingsBtn);
 
   // Also allow dropping a bookmark directly onto the dock container
   if (!container.dataset.dropBound) {

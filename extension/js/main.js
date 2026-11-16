@@ -1,6 +1,7 @@
 // @ts-check
 import { el, clearChildren } from './utils/dom.js';
 import { store } from './core/state.js';
+import { createDefaultSettings } from './core/schema.js';
 import { renderCategoriesGrid } from './ui/components.js';
 import { openCategoryDialog } from './ui/dialogs.js';
 import { showToast } from './ui/toasts.js';
@@ -26,6 +27,7 @@ import { renderTodoWidget } from './features/todo.js';
 import { renderTimerWidget } from './features/timer.js';
 import { renderSpeedDialWidget } from './features/speeddial.js';
 import { renderQuoteWidget } from './features/quote.js';
+import { renderAndroidWidgets, ANDROID_WIDGET_KEYS } from './features/android-widgets.js';
 import { applyPageMode, applyLanding, initPageShell, scrollToHero } from './features/page-shell.js';
 import { applyHeroLayout, initHero } from './features/hero.js';
 import { renderDock, initDock } from './features/dock.js';
@@ -129,18 +131,238 @@ async function loadAndRenderWeather(weatherSettings, bypassCache = false) {
   }
 }
 
+const DEFAULT_SEED_CATEGORY_NAMES = new Set([
+  'Development',
+  'Professional',
+  'Media & Reading',
+  'Reference & Tools'
+]);
+
+/**
+ * Checks whether categories are empty or match only the initial default seed categories.
+ * @param {import('./core/schema.js').Category[] | undefined} categories
+ * @returns {boolean}
+ */
+function isDefaultOrEmptyCategories(categories) {
+  if (!Array.isArray(categories) || categories.length === 0) {
+    return true;
+  }
+  return categories.every((cat) => DEFAULT_SEED_CATEGORY_NAMES.has(cat?.name));
+}
+
+/**
+ * Builds the restored user dashboard document (collections, bookmarks, dock pins, and settings).
+ * @param {Partial<import('./core/schema.js').DashboardData['settings']>} [baseSettings]
+ * @returns {import('./core/schema.js').DashboardData}
+ */
+export function createRestoredUserDashboardData(baseSettings = {}) {
+  const defaults = createDefaultSettings();
+  return {
+    version: 3,
+    activeSpaceId: 'space_home',
+    spaces: [
+      {
+        id: 'space_home',
+        name: 'Home',
+        icon: 'home',
+        order: 0,
+        pinned: [
+          'bm_reddit',
+          'bm_reanime',
+          'bm_chatgpt',
+          'bm_vtop',
+          'bm_pyq',
+          'bm_calendar',
+          'bm_youtube'
+        ],
+        note: '',
+        todos: []
+      }
+    ],
+    settings: {
+      ...defaults,
+      ...(baseSettings || {}),
+      hero: {
+        ...defaults.hero,
+        ...(baseSettings?.hero || {}),
+        layout: 'studio',
+        widgets: {
+          ...defaults.hero.widgets,
+          ...(baseSettings?.hero?.widgets || {}),
+          timer: { ...(defaults.hero.widgets.timer || {}), ...(baseSettings?.hero?.widgets?.timer || {}), hidden: false },
+          speeddial: { ...(defaults.hero.widgets.speeddial || {}), ...(baseSettings?.hero?.widgets?.speeddial || {}), hidden: false },
+          quote: { ...(defaults.hero.widgets.quote || {}), ...(baseSettings?.hero?.widgets?.quote || {}), hidden: false }
+        }
+      },
+      dock: {
+        ...defaults.dock,
+        ...(baseSettings?.dock || {}),
+        position: 'top',
+        autoHide: false,
+        maxItems: 12
+      },
+      dockMigrated: true,
+      clock: {
+        ...defaults.clock,
+        ...(baseSettings?.clock || {}),
+        style: 'hero',
+        showSeconds: true
+      },
+      weather: {
+        ...defaults.weather,
+        enabled: true,
+        city: 'Ghaziabad',
+        lat: 28.6692,
+        lon: 77.4538,
+        unit: 'c'
+      },
+      background: {
+        ...defaults.background,
+        type: 'image',
+        value: 'bundled:misty-forest',
+        activeId: 'bundled:misty-forest',
+        dim: 0.25,
+        blur: 0,
+        autoReadability: true,
+        fit: 'cover',
+        focal: { x: 0.5, y: 0.5 },
+        wallpapers: Array.isArray(baseSettings?.background?.wallpapers) ? baseSettings.background.wallpapers : [],
+        dayId: null,
+        nightId: null,
+        rotation: 'off'
+      },
+      cards: {
+        ...defaults.cards,
+        ...(baseSettings?.cards || {}),
+        style: 'glass',
+        translucent: true
+      },
+      firstRunDone: true,
+      newWidgetsV2Activated: true,
+      userBookmarksRestoredV1: true
+    },
+    categories: [
+      {
+        id: 'cat_social',
+        spaceId: 'space_home',
+        name: 'Social',
+        icon: 'bulb',
+        order: 0,
+        collapsed: false,
+        displayMode: null,
+        accent: null,
+        color: null,
+        source: null,
+        savedAt: null,
+        bookmarks: [
+          { id: 'bm_reddit', name: 'Reddit', url: 'https://www.reddit.com', order: 0, icon: null },
+          { id: 'bm_gmail_personal', name: 'Personal', url: 'https://mail.google.com/mail/u/0/', order: 1, icon: null },
+          { id: 'bm_gmail_college', name: 'College', url: 'https://mail.google.com/mail/u/1/', order: 2, icon: null },
+          { id: 'bm_whatsapp', name: 'Whatsapp', url: 'https://web.whatsapp.com', order: 3, icon: null },
+          { id: 'bm_twitter', name: 'Twitter', url: 'https://x.com', order: 4, icon: null },
+          { id: 'bm_linkedin', name: 'Linkedin', url: 'https://www.linkedin.com', order: 5, icon: null }
+        ]
+      },
+      {
+        id: 'cat_ai',
+        spaceId: 'space_home',
+        name: 'AI',
+        icon: 'code',
+        order: 1,
+        collapsed: false,
+        displayMode: null,
+        accent: null,
+        color: 'orange',
+        source: null,
+        savedAt: null,
+        bookmarks: [
+          { id: 'bm_claude', name: 'Claude', url: 'https://claude.ai', order: 0, icon: null },
+          { id: 'bm_chatgpt', name: 'chatgpt', url: 'https://chatgpt.com', order: 1, icon: null },
+          { id: 'bm_gemini', name: 'gemini', url: 'https://gemini.google.com', order: 2, icon: null },
+          { id: 'bm_deepseek', name: 'deepseek', url: 'https://chat.deepseek.com', order: 3, icon: null }
+        ]
+      },
+      {
+        id: 'cat_work',
+        spaceId: 'space_home',
+        name: 'Work',
+        icon: 'layers',
+        order: 2,
+        collapsed: false,
+        displayMode: null,
+        accent: null,
+        color: null,
+        source: null,
+        savedAt: null,
+        bookmarks: [
+          { id: 'bm_calendar', name: 'calendar', url: 'https://calendar.google.com', order: 0, icon: null },
+          { id: 'bm_pyq', name: 'PYQ', url: 'https://papers.codechefvit.com', order: 1, icon: null },
+          { id: 'bm_mysite', name: 'MySite', url: 'https://vit.ac.in', order: 2, icon: null },
+          { id: 'bm_github', name: 'github', url: 'https://github.com', order: 3, icon: null },
+          { id: 'bm_udemy', name: 'udemy', url: 'https://www.udemy.com', order: 4, icon: null },
+          { id: 'bm_vtop', name: 'vtop', url: 'https://vtop.vit.ac.in', order: 5, icon: null }
+        ]
+      },
+      {
+        id: 'cat_fun',
+        spaceId: 'space_home',
+        name: 'Fun',
+        icon: 'game',
+        order: 3,
+        collapsed: false,
+        displayMode: null,
+        accent: null,
+        color: 'green',
+        source: null,
+        savedAt: null,
+        bookmarks: [
+          { id: 'bm_rivestream', name: 'rivestream', url: 'https://rivestream.live', order: 0, icon: null },
+          { id: 'bm_reanime', name: 'reanime', url: 'https://reanime.art', order: 1, icon: null },
+          { id: 'bm_fluxtv', name: 'Fluxtv', url: 'https://fluxtv.live', order: 2, icon: null },
+          { id: 'bm_crazygames', name: 'crazygames', url: 'https://www.crazygames.com', order: 3, icon: null },
+          { id: 'bm_youtube_fun', name: 'Youtube', url: 'https://www.youtube.com', order: 4, icon: null }
+        ]
+      },
+      {
+        id: 'quick-apps-category',
+        spaceId: 'space_home',
+        name: 'Quick Apps',
+        icon: 'zap',
+        order: 4,
+        collapsed: false,
+        displayMode: null,
+        accent: null,
+        color: null,
+        source: null,
+        savedAt: null,
+        bookmarks: [
+          { id: 'bm_youtube', name: 'Youtube', url: 'https://www.youtube.com', order: 0, icon: null }
+        ]
+      }
+    ]
+  };
+}
+
 /**
  * Application bootstrapper.
  */
 async function initApp() {
-  const data = await store.init();
+  let data = await store.init();
+
+  const isNodeRuntime = typeof process !== 'undefined' && Boolean(process.versions?.node);
+  if (
+    !isNodeRuntime &&
+    !data.settings?.userBookmarksRestoredV1 &&
+    isDefaultOrEmptyCategories(data.categories)
+  ) {
+    await store.replaceData(createRestoredUserDashboardData(data.settings), true);
+    data = store.get();
+  }
 
   // Glass v2: Seamless upgrade for existing installs so they immediately experience the overhaul
   const upgrades = {};
-  if (data.settings?.page !== 'two-stage' || data.settings?.optedInClassic) {
-    delete data.settings.optedInClassic;
+  if (data.settings?.page !== 'two-stage') {
     upgrades.page = 'two-stage';
-    data.settings.page = 'two-stage';
   }
   if (!data.settings?.background) {
     upgrades.background = {
@@ -155,27 +377,18 @@ async function initApp() {
       wallpapers: [],
       rotation: 'off'
     };
-    data.settings.background = upgrades.background;
-  }
-  if (!data.settings?.cards?.style || data.settings?.cards?.style === 'filled') {
-    upgrades.cards = { ...(data.settings?.cards || {}), style: 'glass', translucent: true };
-    data.settings.cards = upgrades.cards;
   }
   if (!data.settings?.dockMigrated) {
     if (!data.settings?.dock?.position || data.settings?.dock?.position === 'top') {
       upgrades.dock = { ...(data.settings?.dock || {}), position: 'bottom' };
-      data.settings.dock = upgrades.dock;
     }
     upgrades.dockMigrated = true;
-    data.settings.dockMigrated = true;
   }
   if (!data.settings?.clock?.style || data.settings?.clock?.style === 'large') {
     upgrades.clock = { ...(data.settings?.clock || {}), style: 'hero' };
-    data.settings.clock = upgrades.clock;
   }
   if (data.settings?.hero?.layout !== 'studio') {
     upgrades.hero = { ...(data.settings?.hero || {}), layout: 'studio' };
-    data.settings.hero = upgrades.hero;
   }
   if (!data.settings?.weather) {
     upgrades.weather = {
@@ -185,7 +398,6 @@ async function initApp() {
       lon: null,
       unit: 'c'
     };
-    data.settings.weather = upgrades.weather;
   }
   if (!data.settings?.newWidgetsV2Activated) {
     const curWidgets = data.settings?.widgets || {};
@@ -196,7 +408,6 @@ async function initApp() {
       speeddial: curWidgets.speeddial !== false,
       quote: curWidgets.quote !== false
     };
-    data.settings.widgets = upgrades.widgets;
 
     const heroWidgets = {
       ...curHeroWidgets,
@@ -204,14 +415,12 @@ async function initApp() {
       speeddial: { ...(curHeroWidgets.speeddial || {}), hidden: false },
       quote: { ...(curHeroWidgets.quote || {}), hidden: false }
     };
-    upgrades.hero = { ...(data.settings?.hero || {}), widgets: heroWidgets };
-    data.settings.hero = upgrades.hero;
-
+    upgrades.hero = { ...(upgrades.hero || data.settings?.hero || {}), widgets: heroWidgets };
     upgrades.newWidgetsV2Activated = true;
-    data.settings.newWidgetsV2Activated = true;
   }
   if (Object.keys(upgrades).length > 0) {
     store.updateSettings(upgrades);
+    data = store.get();
   }
 
   // Glass v2: Auto-populate pinned items for dock if active space has none
@@ -227,8 +436,8 @@ async function initApp() {
         if (initialPinned.length >= 5) break;
       }
       if (initialPinned.length > 0) {
-        activeSpace.pinned = initialPinned;
         store.updateSpace(activeSpace.id, { pinned: initialPinned });
+        data = store.get();
       }
     }
   } catch (err) {
@@ -249,10 +458,10 @@ async function initApp() {
   if (bg && bg.type === 'image' && bg.rotation && bg.rotation !== 'off') {
     const nextWpId = resolveRotatedWallpaperId(bg, bg.activeId);
     if (nextWpId && nextWpId !== bg.activeId) {
-      bg.activeId = nextWpId;
       store.updateSettings({
         background: { ...bg, activeId: nextWpId }
       });
+      data = store.get();
     }
   }
 
@@ -357,6 +566,7 @@ async function initApp() {
   try { renderTimerWidget(timerWidgetContainer, data); } catch (e) { console.error('[NTD] timer error:', e); }
   try { renderSpeedDialWidget(speedDialWidgetContainer, data); } catch (e) { console.error('[NTD] speeddial error:', e); }
   try { renderQuoteWidget(quoteWidgetContainer, data); } catch (e) { console.error('[NTD] quote error:', e); }
+  try { renderAndroidWidgets(data); } catch (e) { console.error('[NTD] android widgets error:', e); }
   try { renderHubCollections(data); } catch (e) { console.error('[NTD] hub error:', e); }
 
   if (typeof window !== 'undefined' && /** @type {any} */ (window).__ntd_data_unreadable_warning) {
@@ -557,7 +767,9 @@ async function initApp() {
 
   const shouldRenderNotes = (state) => {
     const activeSpace = state.spaces?.find(s => s.id === state.activeSpaceId) || state.spaces?.[0];
-    const key = (state.activeSpaceId || '') + ':' + (activeSpace?.note || '') + ':' + (state.settings?.widgets?.notes !== false);
+    const enabled = Boolean(state.settings?.widgets?.notes);
+    const hidden = Boolean(state.settings?.hero?.widgets?.notes?.hidden);
+    const key = (state.activeSpaceId || '') + ':' + (activeSpace?.note || '') + ':' + enabled + ':' + hidden;
     if (key !== lastNotesKey) {
       lastNotesKey = key;
       return true;
@@ -568,7 +780,9 @@ async function initApp() {
   const shouldRenderTodo = (state) => {
     const activeSpace = state.spaces?.find(s => s.id === state.activeSpaceId) || state.spaces?.[0];
     const todos = activeSpace?.todos || [];
-    const key = (state.activeSpaceId || '') + ':' + (state.settings?.widgets?.todo !== false) + ':' + todos.map(t => t.id + ':' + t.done + ':' + t.text).join('|');
+    const enabled = Boolean(state.settings?.widgets?.todo);
+    const hidden = Boolean(state.settings?.hero?.widgets?.tasks?.hidden);
+    const key = (state.activeSpaceId || '') + ':' + enabled + ':' + hidden + ':' + todos.map(t => t.id + ':' + t.done + ':' + t.text).join('|');
     if (key !== lastTodoKey) {
       lastTodoKey = key;
       return true;
@@ -606,8 +820,7 @@ async function initApp() {
   const shouldRenderQuote = (state) => {
     const key = JSON.stringify({
       enabled: state.settings?.widgets?.quote,
-      hidden: state.settings?.hero?.widgets?.quote?.hidden,
-      customQuote: state.settings?.quote
+      hidden: state.settings?.hero?.widgets?.quote?.hidden
     });
     if (key !== lastQuoteKey) {
       lastQuoteKey = key;
@@ -635,7 +848,7 @@ async function initApp() {
   store.subscribe((state) => {
     if (shouldRenderSettings(state.settings)) {
       try { applySettings(state.settings); } catch (e) { console.error('[NTD] Sub applySettings error:', e); }
-      try { applyHeroLayout(state.settings); } catch (e) { console.error('[NTD] Sub hero error:', e); }
+      try { applyHeroLayout(state.settings?.hero); } catch (e) { console.error('[NTD] Sub hero error:', e); }
     }
     if (shouldRenderClock(state.settings)) {
       try { renderClockAndGreeting(state.settings); } catch (e) { console.error('[NTD] Sub clock error:', e); }
@@ -667,6 +880,7 @@ async function initApp() {
     if (shouldRenderQuote(state)) {
       try { renderQuoteWidget(quoteWidgetContainer, state); } catch (e) { console.error('[NTD] Sub quote error:', e); }
     }
+    try { renderAndroidWidgets(state); } catch (e) { console.error('[NTD] Sub android widgets error:', e); }
     if (shouldRenderHub(state)) {
       try { renderHubCollections(state); } catch (e) { console.error('[NTD] Sub hub error:', e); }
     }

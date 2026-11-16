@@ -13,8 +13,8 @@ dialog.settings-drawer {
   max-height: min(88vh, 700px);
   background: var(--bg-surface, #1e2229);
   background: color-mix(in srgb, var(--bg-surface, #1e2229) 88%, transparent);
-  backdrop-filter: var(--glass-blur, blur(28px)) saturate(160%);
-  -webkit-backdrop-filter: var(--glass-blur, blur(28px)) saturate(160%);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
   border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.12));
   border-radius: var(--glass-radius, 16px);
   box-shadow: 0 32px 80px -16px rgba(0, 0, 0, 0.55),
@@ -344,7 +344,6 @@ dialog.settings-drawer::backdrop {
   border-radius: 50%;
   background: var(--accent-base, #10b981);
   display: inline-block;
-  box-shadow: 0 0 6px var(--accent-base, #10b981);
 }
 
 /* ==========================================================================
@@ -530,6 +529,22 @@ dialog.settings-drawer::backdrop {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 8px;
+}
+
+.radio-group-2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.radio-group-4 {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.radio-group-5 {
+  grid-template-columns: repeat(5, 1fr);
+}
+
+.radio-group-auto {
+  grid-template-columns: repeat(auto-fit, minmax(104px, 1fr));
 }
 
 .radio-card {
@@ -719,14 +734,270 @@ dialog.settings-drawer::backdrop {
   border-color: rgba(239, 68, 68, 0.2);
 }
 
-/* Snapshots in Drawer */
+/* ==========================================================================
+   Backup, Export, Import, Snapshots & Danger Zone (Data Section)
+   ========================================================================== */
+
+.backup-card {
+  gap: 12px;
+}
+
+.backup-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.backup-summary-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+  background: var(--bg-surface-active, rgba(255, 255, 255, 0.08));
+  border: 1px solid var(--border-subtle);
+  white-space: nowrap;
+}
+
+.backup-format-hint {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.backup-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.settings-drawer .btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 6px 14px;
+  font-size: 12.5px;
+  font-weight: 500;
+  border-radius: 8px;
+  color: var(--text-primary);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  cursor: pointer;
+  transition: background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.settings-drawer .btn-secondary:hover:not(:disabled) {
+  background: var(--bg-surface-hover);
+  border-color: var(--border-strong, var(--border-focus));
+}
+
+.settings-drawer .btn-secondary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.settings-drawer .btn-secondary:focus-visible,
+.settings-drawer .icon-action-btn:focus-visible {
+  outline: 2px solid var(--accent-base);
+  outline-offset: 2px;
+}
+
+.settings-drawer .btn-secondary.btn-sm {
+  min-height: 28px;
+  padding: 4px 10px;
+  font-size: 12px;
+  border-radius: 8px;
+}
+
+.settings-drawer .btn-secondary.btn-danger {
+  background: #dc2626;
+  border-color: #dc2626;
+  color: #ffffff;
+}
+
+.settings-drawer .btn-secondary.btn-danger:hover:not(:disabled) {
+  background: #b91c1c;
+  border-color: #b91c1c;
+  color: #ffffff;
+}
+
+/* Dropzone */
+.backup-dropzone {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 20px 16px;
+  border: 1.5px dashed var(--border-default);
+  border-radius: 8px;
+  background: var(--bg-surface-subtle);
+  color: var(--text-primary);
+  text-align: center;
+  cursor: pointer;
+  box-sizing: border-box;
+  transition: border-color var(--transition-fast), background-color var(--transition-fast);
+}
+
+.backup-dropzone:hover,
+.backup-dropzone.is-dragover {
+  border-color: var(--accent-base);
+  background: var(--accent-tint);
+}
+
+.backup-dropzone.is-parsing {
+  opacity: 0.65;
+  pointer-events: none;
+  cursor: wait;
+}
+
+.backup-dropzone:focus-visible {
+  outline: 2px solid var(--accent-base);
+  outline-offset: 2px;
+}
+
+.backup-dropzone-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  color: var(--accent-base);
+  margin-bottom: 2px;
+}
+
+.backup-dropzone-title {
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.backup-dropzone-sub {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* Inline Validation Error Banner */
+.backup-inline-error {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.28);
+  color: #b91c1c;
+}
+
+:root.dark .backup-inline-error,
+:root[data-theme="dark"] .backup-inline-error {
+  background: rgba(239, 68, 68, 0.12);
+  color: #fca5a5;
+}
+
+.backup-inline-error[hidden] {
+  display: none;
+}
+
+.backup-inline-error-text {
+  font-size: 12.5px;
+  line-height: 1.4;
+  flex: 1;
+}
+
+.backup-inline-error-dismiss {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: inherit;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background-color var(--transition-fast);
+}
+
+.backup-inline-error-dismiss:hover {
+  background: rgba(239, 68, 68, 0.15);
+}
+
+.backup-inline-error-dismiss:focus-visible {
+  outline: 2px solid var(--accent-base);
+  outline-offset: 2px;
+}
+
+/* Secondary Import Row (Browser Bookmarks) */
+.backup-secondary-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-subtle);
+  flex-wrap: wrap;
+}
+
+.backup-secondary-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+/* Snapshots Card in Drawer */
 .snapshots-section {
   display: flex;
   flex-direction: column;
+  gap: 12px;
+  padding: 16px 18px;
+  background: var(--bg-surface-subtle);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  box-sizing: border-box;
+}
+
+.snapshots-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.snapshots-title-group {
+  display: inline-flex;
+  align-items: center;
   gap: 8px;
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid var(--border-subtle);
+}
+
+.snapshot-capacity-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+  background: var(--bg-surface-active, rgba(255, 255, 255, 0.08));
+  border: 1px solid var(--border-subtle);
 }
 
 .snapshots-list {
@@ -736,16 +1007,19 @@ dialog.settings-drawer::backdrop {
   max-height: 240px;
   overflow-y: auto;
   border: 1px solid var(--border-subtle);
-  border-radius: 10px;
+  border-radius: 8px;
   padding: 6px;
-  background: var(--bg-surface-subtle);
+  background: var(--bg-surface);
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-subtle) transparent;
 }
 
 .snapshot-empty-hint {
-  font-size: 12px;
-  color: var(--text-muted);
+  font-size: 12.5px;
+  color: var(--text-secondary);
   text-align: center;
-  padding: 16px 0;
+  padding: 16px 12px;
+  line-height: 1.45;
 }
 
 .snapshot-item {
@@ -754,9 +1028,14 @@ dialog.settings-drawer::backdrop {
   justify-content: space-between;
   padding: 8px 12px;
   border-radius: 8px;
-  background: var(--bg-surface);
+  background: var(--bg-surface-subtle);
   border: 1px solid var(--border-subtle);
   gap: 8px;
+  transition: border-color var(--transition-fast), background-color var(--transition-fast);
+}
+
+.snapshot-item:hover {
+  border-color: var(--border-default);
 }
 
 .snapshot-info {
@@ -764,20 +1043,60 @@ dialog.settings-drawer::backdrop {
   flex-direction: column;
   gap: 2px;
   min-width: 0;
-}
-
-.snapshot-reason {
-  font-size: 12.5px;
-  font-weight: 500;
-  color: var(--text-primary);
+  flex: 1;
 }
 
 .snapshot-meta {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
+}
+
+.snapshot-reason {
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.snapshot-date {
   font-size: 11px;
-  color: var(--text-muted);
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.snapshot-counts {
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.snapshot-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* Danger Zone Card */
+.danger-zone-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 18px;
+  border-radius: 12px;
+  background: rgba(239, 68, 68, 0.04);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  box-sizing: border-box;
+}
+
+.text-danger {
+  color: #dc2626;
+}
+
+:root.dark .text-danger,
+:root[data-theme="dark"] .text-danger {
+  color: #f87171;
 }
 
 /* Search results in drawer */
@@ -964,10 +1283,326 @@ dialog.settings-drawer::backdrop {
   font-weight: 600;
 }
 
-/* Reduced Motion Override */
+/* Reduced Motion & Reduced Transparency Overrides */
 @media (prefers-reduced-motion: reduce) {
   dialog.settings-drawer,
-  dialog.settings-drawer::backdrop {
+  dialog.settings-drawer::backdrop,
+  .drawer-done-btn,
+  .backup-dropzone,
+  .backup-inline-error-dismiss,
+  .snapshot-item,
+  .settings-drawer .btn-secondary,
+  .settings-drawer .icon-action-btn {
     transition: none !important;
+  }
+
+  .drawer-done-btn:hover {
+    transform: none !important;
+  }
+}
+
+:root[data-motion="reduce"] dialog.settings-drawer,
+:root[data-motion="reduce"] dialog.settings-drawer::backdrop,
+:root[data-motion="reduce"] .drawer-done-btn,
+:root[data-motion="reduce"] .backup-dropzone,
+:root[data-motion="reduce"] .backup-inline-error-dismiss,
+:root[data-motion="reduce"] .snapshot-item,
+:root[data-motion="reduce"] .settings-drawer .btn-secondary,
+:root[data-motion="reduce"] .settings-drawer .icon-action-btn {
+  transition: none !important;
+}
+
+:root[data-motion="reduce"] .drawer-done-btn:hover {
+  transform: none !important;
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  dialog.settings-drawer {
+    background: var(--bg-surface);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  dialog.settings-drawer::backdrop {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
+:root[data-glass="off"] dialog.settings-drawer {
+  background: var(--bg-surface);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+:root[data-glass="off"] dialog.settings-drawer::backdrop {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+/* ==========================================================================
+   Unified Setting Cards, Grouped Rows & Widget Controls
+   ========================================================================== */
+
+.setting-toggle-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.setting-toggle-card {
+  padding: 14px 18px;
+}
+
+.setting-grouped-card {
+  gap: 0;
+  padding: 4px 18px;
+}
+
+.setting-grouped-card > .setting-toggle-row,
+.setting-grouped-card > .setting-sub-field,
+.setting-grouped-card > .setting-sub-slider {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+}
+
+.setting-grouped-card > *:last-child {
+  border-bottom: none;
+}
+
+.setting-sub-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.setting-sub-slider {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+}
+
+.setting-inline-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* Search results clickable card */
+.drawer-search-result-btn {
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  border: 1px solid var(--border-subtle);
+  font: inherit;
+}
+
+.search-result-go {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--accent-base, #3b82f6);
+  flex-shrink: 0;
+}
+
+/* Widgets Tab: Live Editor Banner, Filter Bar & Unified Cards */
+.widget-editor-banner {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  background: var(--accent-tint, rgba(59, 130, 246, 0.1));
+  border-color: var(--glass-border, rgba(255, 255, 255, 0.14));
+}
+
+.widget-editor-banner-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 200px;
+}
+
+.widget-editor-banner-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.widget-editor-banner-actions .btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 6px 12px;
+  font-size: 12.5px;
+  border-radius: 8px;
+}
+
+.widget-filter-pills {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 10px;
+  background: var(--bg-surface-subtle, rgba(255, 255, 255, 0.03));
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+  align-self: flex-start;
+  flex-wrap: wrap;
+}
+
+.widget-filter-pill {
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background-color var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.widget-filter-pill:hover {
+  color: var(--text-primary);
+  background: var(--bg-surface-hover, rgba(255, 255, 255, 0.06));
+}
+
+.widget-filter-pill.active {
+  color: var(--text-primary);
+  background: var(--accent-tint, rgba(59, 130, 246, 0.14));
+  border-color: var(--accent-base, #3b82f6);
+  font-weight: 600;
+}
+
+.widgets-settings-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.widget-setting-card {
+  padding: 14px 18px;
+  gap: 10px;
+}
+
+.widget-setting-card.is-enabled {
+  border-color: var(--border-default, rgba(255, 255, 255, 0.14));
+  box-shadow: inset 3px 0 0 var(--accent-base, #3b82f6);
+}
+
+.widget-active-badge {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--accent-base, #3b82f6);
+  background: var(--accent-tint, rgba(59, 130, 246, 0.12));
+  border: 1px solid var(--border-subtle);
+  padding: 2px 8px;
+  border-radius: 8px;
+  white-space: nowrap;
+}
+
+.widget-card-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+}
+
+.widget-size-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.widget-size-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.widget-size-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.widget-size-pills {
+  width: 150px;
+}
+
+.widget-size-pills .radio-card {
+  padding: 5px 8px;
+}
+
+.widget-adjust-btn {
+  min-height: 28px !important;
+  padding: 4px 10px !important;
+  font-size: 11.5px !important;
+  white-space: nowrap;
+}
+
+.widget-weather-fields {
+  display: grid;
+  grid-template-columns: 1fr 150px;
+  gap: 8px;
+}
+
+/* Responsive Settings Modal for narrow viewports */
+@media (max-width: 720px) {
+  dialog.settings-drawer {
+    width: 96vw;
+    height: 90vh;
+    max-height: 90vh;
+  }
+
+  .settings-modal-body {
+    flex-direction: column;
+  }
+
+  .settings-sidebar {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+  }
+
+  .drawer-nav {
+    flex-direction: row;
+    overflow-x: auto;
+    padding: 6px 10px;
+    gap: 4px;
+  }
+
+  .drawer-nav-group-header,
+  .drawer-sidebar-footer {
+    display: none;
+  }
+
+  .drawer-tab-btn {
+    width: auto;
+    flex-shrink: 0;
+    padding: 6px 10px;
+  }
+
+  .drawer-tab-btn.active {
+    box-shadow: inset 0 -2px 0 var(--accent-base, #3b82f6);
+  }
+
+  .drawer-content {
+    padding: 16px;
+  }
+
+  .radio-group-4,
+  .radio-group-5,
+  .widget-weather-fields {
+    grid-template-columns: repeat(2, 1fr);
   }
 }

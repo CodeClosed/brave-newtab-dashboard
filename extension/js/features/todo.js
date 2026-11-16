@@ -13,8 +13,10 @@ export function renderTodoWidget(container, state) {
   if (!container) return;
 
   const isEnabled = Boolean(state?.settings?.widgets?.todo);
-  if (!isEnabled) {
+  const isHiddenByHero = Boolean(state?.settings?.hero?.widgets?.tasks?.hidden);
+  if (!isEnabled || isHiddenByHero) {
     container.hidden = true;
+    if (container.style) container.style.display = 'none';
     if (typeof container.replaceChildren === 'function') {
       const existingFrame = container.querySelector ? container.querySelector('.widget-drag-frame') : null;
       container.replaceChildren();
@@ -24,6 +26,9 @@ export function renderTodoWidget(container, state) {
   }
 
   container.hidden = false;
+  if (container.style && !container.dataset?.freeDrag) {
+    container.style.display = '';
+  }
 
   const activeSpace = state?.spaces?.find(s => s.id === state.activeSpaceId) || state?.spaces?.[0];
   const todos = Array.isArray(activeSpace?.todos) ? activeSpace.todos : [];

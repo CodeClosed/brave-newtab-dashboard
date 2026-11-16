@@ -246,7 +246,17 @@ export function repairSettings(settings) {
     todo: Boolean(w.todo),
     timer: w.timer !== undefined ? Boolean(w.timer) : true,
     speeddial: w.speeddial !== undefined ? Boolean(w.speeddial) : true,
-    quote: w.quote !== undefined ? Boolean(w.quote) : true
+    quote: w.quote !== undefined ? Boolean(w.quote) : true,
+    glance: Boolean(w.glance),
+    habits: Boolean(w.habits),
+    worldclock: Boolean(w.worldclock),
+    countdown: Boolean(w.countdown),
+    soundscapes: Boolean(w.soundscapes),
+    voicememo: Boolean(w.voicememo),
+    pulse: Boolean(w.pulse),
+    clipboard: Boolean(w.clipboard),
+    calculator: Boolean(w.calculator),
+    readlater: Boolean(w.readlater)
   };
 
   // hero
@@ -291,7 +301,17 @@ export function repairSettings(settings) {
       notes: repairWidgetSlot(hw.notes, !s.widgets.notes),
       timer: repairWidgetSlot(hw.timer, !s.widgets.timer),
       speeddial: repairWidgetSlot(hw.speeddial, !s.widgets.speeddial),
-      quote: repairWidgetSlot(hw.quote, !s.widgets.quote)
+      quote: repairWidgetSlot(hw.quote, !s.widgets.quote),
+      glance: repairWidgetSlot(hw.glance, !s.widgets.glance),
+      habits: repairWidgetSlot(hw.habits, !s.widgets.habits),
+      worldclock: repairWidgetSlot(hw.worldclock, !s.widgets.worldclock),
+      countdown: repairWidgetSlot(hw.countdown, !s.widgets.countdown),
+      soundscapes: repairWidgetSlot(hw.soundscapes, !s.widgets.soundscapes),
+      voicememo: repairWidgetSlot(hw.voicememo, !s.widgets.voicememo),
+      pulse: repairWidgetSlot(hw.pulse, !s.widgets.pulse),
+      clipboard: repairWidgetSlot(hw.clipboard, !s.widgets.clipboard),
+      calculator: repairWidgetSlot(hw.calculator, !s.widgets.calculator),
+      readlater: repairWidgetSlot(hw.readlater, !s.widgets.readlater)
     }
   };
 

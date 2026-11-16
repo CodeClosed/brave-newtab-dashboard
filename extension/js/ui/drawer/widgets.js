@@ -1,71 +1,165 @@
 // @ts-check
 import { store } from '../../core/state.js';
 import { el } from '../../utils/dom.js';
-import { showToast } from '../toasts.js';
-import { fetchWeatherData } from '../../features/weather.js';
-import { renderRadioCard, renderToggleRow } from './common.js';
+import { renderRadioCard, renderToggleRow, renderSectionHeader } from './common.js';
+import { WIDGET_GRID_SPECS, GRID_CELL_WIDTH, GRID_CELL_HEIGHT, pxToPct } from '../../features/widget-drag.js';
+import { findFreeSpot } from '../../features/home-editor.js';
+import { focusWidgetInEditor, setReturnToMenuTab } from '../../features/edit-mode.js';
 
-const ICON_REFRESH = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>`;
+let widgetFilter = 'all'; // 'all' | 'active' | 'core' | 'pack'
+
+function presetDims(key, sizeName) {
+  const spec = WIDGET_GRID_SPECS[key];
+  const preset = spec?.presets?.[sizeName];
+  if (!preset) return null;
+  return {
+    w: preset[0] * GRID_CELL_WIDTH,
+    h: preset[1] * GRID_CELL_HEIGHT
+  };
+}
+
+function computeAutoSpotForWidget(heroKey, settings) {
+  const curWidgets = settings?.hero?.widgets || {};
+  const hasPinnedLayout = Object.values(curWidgets).some((c) => typeof c?.x === 'number' && typeof c?.y === 'number');
+  if (!hasPinnedLayout || typeof document === 'undefined') return {};
+
+  const heroPanel = document.getElementById('hero-panel');
+  if (!heroPanel) return {};
+
+  const spec = WIDGET_GRID_SPECS[heroKey] || { defaultCols: 6, defaultRows: 4, minW: 220, maxW: 800, minH: 120, maxH: 500 };
+  const w = Math.max(spec.minW || 220, Math.min(spec.maxW || 800, (spec.defaultCols || 6) * GRID_CELL_WIDTH));
+  const h = Math.max(spec.minH || 120, Math.min(spec.maxH || 500, (spec.defaultRows || 4) * GRID_CELL_HEIGHT));
+
+  const p = heroPanel.getBoundingClientRect();
+  if (p.width < 100 || p.height < 100) return {};
+
+  const dock = settings?.dock?.position || 'off';
+  const bounds = {
+    left: 12 + (dock === 'left' ? 76 : 0),
+    top: 12 + (dock === 'top' ? 76 : 0),
+    right: p.width - 12 - (dock === 'right' ? 76 : 0),
+    bottom: p.height - 12 - (dock === 'bottom' ? 76 : 0)
+  };
+
+  const selectors = {
+    clock: '.dashboard-header', search: '.search-container', weather: '#hero-weather-slot',
+    tasks: '#hero-tasks-slot', notes: '#hero-notes-slot', timer: '#hero-timer-slot',
+    speeddial: '#hero-speeddial-slot', quote: '#hero-quote-slot', glance: '#hero-glance-slot',
+    habits: '#hero-habits-slot', worldclock: '#hero-worldclock-slot', countdown: '#hero-countdown-slot',
+    soundscapes: '#hero-soundscapes-slot', voicememo: '#hero-voicememo-slot', pulse: '#hero-pulse-slot',
+    clipboard: '#hero-clipboard-slot', calculator: '#hero-calculator-slot', readlater: '#hero-readlater-slot'
+  };
+
+  const others = [];
+  for (const [k, sel] of Object.entries(selectors)) {
+    if (k === heroKey) continue;
+    const node = heroPanel.querySelector(sel);
+    if (!node || /** @type {HTMLElement} */ (node).hidden || /** @type {HTMLElement} */ (node).style.display === 'none') continue;
+    const r = node.getBoundingClientRect();
+    if (r.width >= 20 && r.height >= 10) {
+      others.push({ left: r.left - p.left, top: r.top - p.top, width: r.width, height: r.height });
+    }
+  }
+
+  const spot = findFreeSpot(
+    { left: p.width / 2 - w / 2, top: p.height / 2 - h / 2, width: w, height: h },
+    others,
+    bounds
+  );
+  if (!spot) return { w, h };
+
+  return {
+    x: Math.round(pxToPct(spot.left + spot.width / 2, p.width) * 100) / 100,
+    y: Math.round(pxToPct(spot.top + spot.height / 2, p.height) * 100) / 100,
+    w: Math.round(spot.width),
+    ...(spec.resizeMode === 'horizontal' ? {} : { h: Math.round(spot.height) })
+  };
+}
+
+function renderSizePills(key, heroWidgetConf, settings, renderDrawerContent, closeDrawer) {
+  const s = presetDims(key, 'S');
+  const m = presetDims(key, 'M');
+  const l = presetDims(key, 'L');
+  if (!s || !m || !l) return null;
+
+  const currentW = heroWidgetConf?.w;
+  const isSmall = typeof currentW === 'number' && currentW <= s.w + 30;
+  const isLarge = typeof currentW === 'number' && currentW >= l.w - 30;
+  const isMed = !isSmall && !isLarge;
+
+  const applySize = (dims) => {
+    const curHero = { ...(settings.hero?.widgets || {}) };
+    curHero[key] = {
+      ...(curHero[key] || {}),
+      w: dims.w,
+      ...(WIDGET_GRID_SPECS[key]?.resizeMode === 'horizontal' ? {} : { h: dims.h })
+    };
+    store.updateSettings({ hero: { ...(settings.hero || {}), widgets: curHero } });
+    renderDrawerContent();
+  };
+
+  return el('div', { className: 'widget-size-row' }, [
+    el('div', { className: 'widget-size-group' }, [
+      el('span', { className: 'widget-size-label', text: 'Size' }),
+      el('div', { className: 'radio-group-cards widget-size-pills' }, [
+        renderRadioCard('S', isSmall, () => applySize(s)),
+        renderRadioCard('M', isMed, () => applySize(m)),
+        renderRadioCard('L', isLarge, () => applySize(l))
+      ])
+    ]),
+    el('button', {
+      type: 'button',
+      className: 'btn-secondary btn-sm widget-adjust-btn',
+      text: 'Adjust on screen →',
+      title: 'Open live editor with this widget selected',
+      onclick: () => {
+        closeDrawer(false);
+        focusWidgetInEditor(key);
+      }
+    })
+  ]);
+}
 
 export function renderWidgetsSection(settings, { renderDrawerContent = () => {}, resetSettingsSection = () => {}, closeDrawer = () => {} } = {}) {
   const section = el('div', { className: 'settings-section' });
 
-  const secHeader = el('div', { className: 'settings-section-header' }, [
-    el('div', {}, [
-      el('h3', { className: 'settings-section-headline', text: 'Lightweight Widgets' }),
-      el('p', { className: 'settings-section-subtitle', text: 'Toggle productivity tools: notes, to-do list, weather forecast, timer, and quote' })
-    ]),
-    el('button', {
-      className: 'section-reset-btn',
-      type: 'button',
-      html: `${ICON_REFRESH}<span>Reset section</span>`,
-      onclick: () => resetSettingsSection('widgets')
-    })
-  ]);
-  section.appendChild(secHeader);
+  section.appendChild(renderSectionHeader(
+    'Widgets',
+    'Toggle widgets on your home screen, pick a size, or arrange them in the live editor',
+    () => resetSettingsSection('widgets')
+  ));
+
   const widgets = settings.widgets || { notes: false, todo: false };
   const weather = settings.weather || { enabled: false, city: '', lat: null, lon: null, unit: 'c' };
-  const clockConf = settings.clock || {};
   const heroWidgets = settings.hero?.widgets || {};
 
-  // 1. Live Interactive Desktop Editor Action Banner
-  const editorCallout = el('div', {
-    className: 'setting-item',
-    style: {
-      padding: '16px',
-      borderRadius: '12px',
-      background: 'var(--accent-tint, rgba(59, 130, 246, 0.1))',
-      border: '1px solid var(--accent-base, #3b82f6)',
-      marginBottom: '20px',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '12px'
-    }
-  },
-    el('div', { className: 'setting-item-header' },
-      el('span', { className: 'setting-label', style: { fontSize: '15px', fontWeight: '600' }, text: 'Visual Desktop Editor' }),
-      el('span', { className: 'setting-desc', text: 'Drag to position widgets freely on your wallpaper and use corner handles to make them small or big.' })
-    ),
-    el('div', { style: { display: 'flex', gap: '8px', flexWrap: 'wrap' } },
+  // 1. Live Interactive Desktop Editor Banner (Glass v2)
+  const editorCallout = el('div', { className: 'setting-item widget-editor-banner' }, [
+    el('div', { className: 'widget-editor-banner-copy' }, [
+      el('span', { className: 'setting-label', text: 'Live Desktop Editor' }),
+      el('span', { className: 'setting-desc', text: 'Drag widgets anywhere on your wallpaper and pull edges or corners to resize.' })
+    ]),
+    el('div', { className: 'widget-editor-banner-actions' }, [
       el('button', {
-        className: 'btn-primary',
+        className: 'btn-primary btn-sm',
         type: 'button',
-        style: { display: 'inline-flex', alignItems: 'center', gap: '6px' },
-        html: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg><span>Open Live Desktop Editor</span>`,
+        html: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg><span>Open Live Editor</span>`,
         onclick: () => {
-          closeDrawer();
-          import('../features/edit-mode.js').then(m => m.setEditMode(true)).catch(() => {});
+          closeDrawer(false);
+          setReturnToMenuTab('widgets');
+          import('../../features/edit-mode.js')
+            .then((m) => m.setEditMode(true))
+            .catch((err) => console.error('Failed to open widget editor', err));
         }
       }),
       el('button', {
-        className: 'btn-secondary',
+        className: 'btn-secondary btn-sm',
         type: 'button',
-        text: 'Reset Layout & Sizes',
+        text: 'Reset Positions',
         onclick: () => {
           const s = store.getState ? store.getState() : store.get();
           const cleanWidgets = {};
-          const widgetKeys = ['clock', 'search', 'weather', 'tasks', 'notes', 'timer', 'speeddial', 'quote'];
-          for (const k of widgetKeys) {
+          for (const k of Object.keys(WIDGET_GRID_SPECS)) {
             cleanWidgets[k] = { x: null, y: null, w: null, h: null, hidden: s.hero?.widgets?.[k]?.hidden || false };
           }
           store.updateSettings({
@@ -75,402 +169,183 @@ export function renderWidgetsSection(settings, { renderDrawerContent = () => {},
           renderDrawerContent();
         }
       })
-    )
-  );
+    ])
+  ]);
   section.appendChild(editorCallout);
 
-  // Helper for sizing cards
-  function renderSizeSelector(currentW, smallW, smallH, medW, medH, largeW, largeH, onSelect) {
-    const isSmall = currentW && currentW <= (smallW + 35);
-    const isLarge = currentW && currentW >= (largeW - 35);
-    const isMed = !isSmall && !isLarge;
-
-    return el('div', { className: 'radio-group-cards', style: { gridTemplateColumns: 'repeat(3, 1fr)', marginTop: '8px', marginBottom: '8px' } },
-      renderRadioCard('Small', isSmall, () => onSelect(smallW, smallH, 'small')),
-      renderRadioCard('Medium', isMed, () => onSelect(medW, medH, 'medium')),
-      renderRadioCard('Large', isLarge, () => onSelect(largeW, largeH, 'large'))
-    );
-  }
-
-  // 2. Clock Widget Size & Formatting
-  const currentClockSize = clockConf.size || (clockConf.style === 'small' ? 'small' : (clockConf.style === 'large' ? 'large' : (clockConf.style === 'medium' ? 'medium' : 'huge')));
-
-  const clockGroup = el('div', { className: 'setting-item', style: { marginBottom: '20px' } },
-    el('div', { className: 'setting-item-header' },
-      el('span', { className: 'setting-label', text: 'Clock Size & Formatting' }),
-      el('span', { className: 'setting-desc', text: 'Choose clock size (Small, Medium, Large, Huge) and display format' })
-    ),
-    el('div', { className: 'radio-group-cards', style: { gridTemplateColumns: 'repeat(4, 1fr)', marginBottom: '10px' } },
-      renderRadioCard('Small', currentClockSize === 'small', () => {
+  // Build unified catalog of widget entries
+  const coreWidgets = [
+    {
+      key: 'weather',
+      heroKey: 'weather',
+      group: 'core',
+      title: 'Weather Capsule',
+      desc: 'Local conditions from Open-Meteo with offline caching',
+      enabled: Boolean(weather.enabled),
+      onToggle: (checked) => {
         const curHero = { ...(settings.hero?.widgets || {}) };
-        curHero.clock = { ...(curHero.clock || {}), w: 300, h: 80 };
+        const existing = curHero.weather || {};
+        const autoSpot = checked && typeof existing.x !== 'number' ? computeAutoSpotForWidget('weather', settings) : {};
+        curHero.weather = { ...existing, ...autoSpot, hidden: !checked };
         store.updateSettings({
-          clock: { ...clockConf, style: 'small', size: 'small' },
+          weather: { ...weather, enabled: checked },
           hero: { ...(settings.hero || {}), widgets: curHero }
         });
         renderDrawerContent();
-      }),
-      renderRadioCard('Medium', currentClockSize === 'medium', () => {
-        const curHero = { ...(settings.hero?.widgets || {}) };
-        curHero.clock = { ...(curHero.clock || {}), w: 480, h: 120 };
-        store.updateSettings({
-          clock: { ...clockConf, style: 'large', size: 'medium' },
-          hero: { ...(settings.hero || {}), widgets: curHero }
+      },
+      renderExtra: () => {
+        const cityInput = /** @type {HTMLInputElement} */ (el('input', {
+          type: 'text',
+          className: 'form-input',
+          placeholder: 'City (e.g. London, Tokyo)',
+          value: weather.city || '',
+          'aria-label': 'Weather city name'
+        }));
+        cityInput.addEventListener('change', () => {
+          store.updateSettings({
+            weather: { ...weather, city: cityInput.value.trim(), lat: null, lon: null }
+          });
         });
-        renderDrawerContent();
-      }),
-      renderRadioCard('Large', currentClockSize === 'large', () => {
-        const curHero = { ...(settings.hero?.widgets || {}) };
-        curHero.clock = { ...(curHero.clock || {}), w: 680, h: 160 };
-        store.updateSettings({
-          clock: { ...clockConf, style: 'large', size: 'large' },
-          hero: { ...(settings.hero || {}), widgets: curHero }
+
+        const unitSelect = /** @type {HTMLSelectElement} */ (el('select', {
+          className: 'form-select',
+          'aria-label': 'Temperature unit'
+        },
+          el('option', { value: 'c', text: '°C (Celsius)' }),
+          el('option', { value: 'f', text: '°F (Fahrenheit)' })
+        ));
+        unitSelect.value = weather.unit === 'f' ? 'f' : 'c';
+        unitSelect.addEventListener('change', () => {
+          store.updateSettings({ weather: { ...weather, unit: unitSelect.value } });
         });
-        renderDrawerContent();
-      }),
-      renderRadioCard('Huge (Hero)', currentClockSize === 'huge' || currentClockSize === 'hero', () => {
+
+        return [
+          el('div', { className: 'widget-weather-fields' }, [cityInput, unitSelect]),
+          el('span', {
+            className: 'setting-hint',
+            text: 'Sends chosen city coordinates to api.open-meteo.com (cached 30 min locally, zero tracking).'
+          })
+        ];
+      }
+    },
+    { key: 'timer', heroKey: 'timer', group: 'core', title: 'Focus Timer', desc: 'Pomodoro focus & break intervals with chime alerts' },
+    { key: 'speeddial', heroKey: 'speeddial', group: 'core', title: 'Speed Dial', desc: 'Quick-access tiles for your top pinned sites' },
+    { key: 'quote', heroKey: 'quote', group: 'core', title: 'Daily Focus & Quote', desc: 'Daily inspiration plus an editable priority goal' },
+    { key: 'notes', heroKey: 'notes', group: 'core', title: 'Notes', desc: 'Plain-text scratchpad synced per space' },
+    { key: 'todo', heroKey: 'tasks', group: 'core', title: 'To-do Tasks', desc: 'Lightweight checklist for daily reminders' }
+  ];
+
+  const packWidgets = [
+    { key: 'glance', heroKey: 'glance', group: 'pack', title: 'At a Glance', desc: 'Day & year progress bars with your next task' },
+    { key: 'habits', heroKey: 'habits', group: 'pack', title: 'Habit Grid', desc: '7-day habit tracker matrix with streak counts' },
+    { key: 'worldclock', heroKey: 'worldclock', group: 'pack', title: 'World Clock', desc: 'Multi-timezone city cards with day/night badges' },
+    { key: 'countdown', heroKey: 'countdown', group: 'pack', title: 'Countdowns', desc: 'Days remaining toward launches, trips, or exams' },
+    { key: 'soundscapes', heroKey: 'soundscapes', group: 'pack', title: 'Soundscapes', desc: 'Offline ambient mixer: Rain, Brown Noise, Wind, Pad' },
+    { key: 'voicememo', heroKey: 'voicememo', group: 'pack', title: 'Voice & Scratch', desc: 'Timestamped thought capture and mic dictation' },
+    { key: 'pulse', heroKey: 'pulse', group: 'pack', title: 'Device Pulse', desc: 'Battery level, network speed, cores, and stats' },
+    { key: 'clipboard', heroKey: 'clipboard', group: 'pack', title: 'Clipboard Pins', desc: 'One-click copy chips for snippets and hex colors' },
+    { key: 'calculator', heroKey: 'calculator', group: 'pack', title: 'Calculator', desc: 'Quick math keypad and unit conversions' },
+    { key: 'readlater', heroKey: 'readlater', group: 'pack', title: 'Reading Queue', desc: 'Save links and open tabs to read later' }
+  ];
+
+  const allToggleWidgets = [...coreWidgets, ...packWidgets].map((def) => {
+    const enabled = def.enabled !== undefined ? def.enabled : Boolean(widgets[def.key]);
+    return {
+      ...def,
+      enabled,
+      onToggle: def.onToggle || ((checked) => {
         const curHero = { ...(settings.hero?.widgets || {}) };
-        curHero.clock = { ...(curHero.clock || {}), w: null, h: null };
+        const existing = curHero[def.heroKey] || {};
+        const autoSpot = checked && typeof existing.x !== 'number' ? computeAutoSpotForWidget(def.heroKey, settings) : {};
+        curHero[def.heroKey] = { ...existing, ...autoSpot, hidden: !checked };
         store.updateSettings({
-          clock: { ...clockConf, style: 'hero', size: 'huge' },
+          widgets: { ...widgets, [def.key]: checked },
           hero: { ...(settings.hero || {}), widgets: curHero }
         });
         renderDrawerContent();
       })
-    ),
-    el('div', { className: 'radio-group-cards', style: { gridTemplateColumns: 'repeat(2, 1fr)', marginBottom: '8px' } },
-      renderRadioCard('12-Hour (AM/PM)', settings.timeFormat === '12h', () => {
-        store.updateSettings({ timeFormat: '12h' });
-        renderDrawerContent();
-      }),
-      renderRadioCard('24-Hour', settings.timeFormat === '24h', () => {
-        store.updateSettings({ timeFormat: '24h' });
-        renderDrawerContent();
-      })
-    ),
-    renderToggleRow('Show Seconds', 'Display running seconds counter', Boolean(clockConf.showSeconds), (val) => {
-      store.updateSettings({ clock: { ...clockConf, showSeconds: val } });
-      renderDrawerContent();
-    }),
-    renderToggleRow('Show Greeting', 'Show personalized greeting below clock', settings.showGreeting !== false, (val) => {
-      store.updateSettings({ showGreeting: val });
-      renderDrawerContent();
-    }),
-    renderToggleRow('Show Date', 'Show calendar date below clock', settings.showDate !== false, (val) => {
-      store.updateSettings({ showDate: val });
-      renderDrawerContent();
-    })
-  );
-  section.appendChild(clockGroup);
-
-  // 3. Search Bar Widget Size & Engine
-  const currentSearchWidth = heroWidgets.search?.w;
-  const searchSizeLabel = currentSearchWidth && currentSearchWidth <= 420 ? 'small' : (currentSearchWidth && currentSearchWidth >= 750 ? 'large' : 'medium');
-
-  const searchEngineSelect = /** @type {HTMLSelectElement} */ (el('select', { className: 'form-select', style: { marginTop: '8px' } },
-    el('option', { value: 'google', text: 'Google' }),
-    el('option', { value: 'duckduckgo', text: 'DuckDuckGo' }),
-    el('option', { value: 'brave', text: 'Brave Search' }),
-    el('option', { value: 'bing', text: 'Bing' }),
-    el('option', { value: 'ecosia', text: 'Ecosia' })
-  ));
-  searchEngineSelect.value = settings.searchEngine || 'google';
-  searchEngineSelect.addEventListener('change', () => {
-    store.updateSettings({ searchEngine: searchEngineSelect.value });
+    };
   });
 
-  const searchGroup = el('div', { className: 'setting-item', style: { marginBottom: '20px' } },
-    el('div', { className: 'setting-item-header' },
-      el('span', { className: 'setting-label', text: 'Search Bar Size & Engine' }),
-      el('span', { className: 'setting-desc', text: 'Select search bar width (Small, Medium, Wide) and default provider' })
-    ),
-    el('div', { className: 'radio-group-cards', style: { gridTemplateColumns: 'repeat(3, 1fr)', marginBottom: '8px' } },
-      renderRadioCard('Small (Compact)', searchSizeLabel === 'small', () => {
-        const curHero = { ...(settings.hero?.widgets || {}) };
-        curHero.search = { ...(curHero.search || {}), w: 380 };
-        store.updateSettings({ hero: { ...(settings.hero || {}), widgets: curHero } });
-        renderDrawerContent();
-      }),
-      renderRadioCard('Medium (Standard)', searchSizeLabel === 'medium', () => {
-        const curHero = { ...(settings.hero?.widgets || {}) };
-        curHero.search = { ...(curHero.search || {}), w: 560 };
-        store.updateSettings({ hero: { ...(settings.hero || {}), widgets: curHero } });
-        renderDrawerContent();
-      }),
-      renderRadioCard('Large (Wide)', searchSizeLabel === 'large', () => {
-        const curHero = { ...(settings.hero?.widgets || {}) };
-        curHero.search = { ...(curHero.search || {}), w: 800 };
-        store.updateSettings({ hero: { ...(settings.hero || {}), widgets: curHero } });
-        renderDrawerContent();
-      })
-    ),
-    el('div', { className: 'setting-item-header', style: { marginTop: '10px' } },
-      el('span', { className: 'setting-label', style: { fontSize: '13px' }, text: 'Search Provider' })
-    ),
-    searchEngineSelect
-  );
-  section.appendChild(searchGroup);
+  const activeCount = allToggleWidgets.filter((w) => w.enabled).length + 1; // +1 for Search Bar
 
-  // 4. Weather Widget (Opt-in)
-  const weatherToggleRow = renderToggleRow(
-    'Weather Capsule',
-    'Live local weather from Open-Meteo with offline caching. Zero tracking, zero API key.',
-    Boolean(weather.enabled),
-    (checked) => {
-      store.updateSettings({
-        weather: { ...weather, enabled: checked }
-      });
-      renderDrawerContent();
-    }
-  );
-  section.appendChild(weatherToggleRow);
+  // Filter Bar
+  const filterTabs = [
+    { id: 'all', label: `All (${allToggleWidgets.length + 1})` },
+    { id: 'active', label: `Active (${activeCount})` },
+    { id: 'core', label: 'Core' },
+    { id: 'pack', label: 'Utility Pack' }
+  ];
 
-  if (weather.enabled) {
-    const cityInput = /** @type {HTMLInputElement} */ (el('input', {
-      type: 'text',
-      className: 'form-input',
-      placeholder: 'e.g. London or Tokyo (optional)',
-      value: weather.city || ''
+  const filterBar = el('div', { className: 'widget-filter-pills', role: 'tablist', 'aria-label': 'Filter widgets' },
+    filterTabs.map((t) => el('button', {
+      type: 'button',
+      role: 'tab',
+      'aria-selected': String(widgetFilter === t.id),
+      className: `widget-filter-pill${widgetFilter === t.id ? ' active' : ''}`,
+      text: t.label,
+      onclick: () => {
+        widgetFilter = t.id;
+        renderDrawerContent();
+      }
+    }))
+  );
+  section.appendChild(filterBar);
+
+  // Search Bar Size Card (always active, shown under All / Active / Core)
+  if (widgetFilter === 'all' || widgetFilter === 'active' || widgetFilter === 'core') {
+    const searchSizeRow = renderSizePills('search', heroWidgets.search, settings, renderDrawerContent, closeDrawer);
+    const searchCard = el('div', { className: 'setting-item widget-setting-card is-enabled' }, [
+      el('div', { className: 'setting-item-header' }, [
+        el('div', { className: 'setting-toggle-info' }, [
+          el('span', { className: 'setting-label', text: 'Search Bar' }),
+          el('span', { className: 'setting-desc', text: 'Adjust the width of the main search pill' })
+        ]),
+        el('span', { className: 'widget-active-badge', text: 'Always on' })
+      ]),
+      el('div', { className: 'widget-card-controls' }, [searchSizeRow])
+    ]);
+    section.appendChild(searchCard);
+  }
+
+  const filtered = allToggleWidgets.filter((w) => {
+    if (widgetFilter === 'active') return w.enabled;
+    if (widgetFilter === 'core') return w.group === 'core';
+    if (widgetFilter === 'pack') return w.group === 'pack';
+    return true;
+  });
+
+  if (filtered.length === 0) {
+    section.appendChild(el('div', {
+      className: 'snapshot-empty-hint',
+      text: 'No widgets match this filter.'
     }));
-    cityInput.addEventListener('change', () => {
-      const val = cityInput.value.trim();
-      store.updateSettings({
-        weather: { ...weather, city: val, lat: null, lon: null }
-      });
+    return section;
+  }
+
+  const grid = el('div', { className: 'widgets-settings-grid' });
+  for (const def of filtered) {
+    const card = el('div', {
+      className: `setting-item widget-setting-card${def.enabled ? ' is-enabled' : ''}`
     });
 
-    const cityGroup = el('div', { className: 'setting-item', style: { marginBottom: '8px' } },
-      el('div', { className: 'setting-item-header' },
-        el('span', { className: 'setting-label', text: 'Location / City Name' }),
-        el('span', { className: 'setting-desc', text: 'Geocoded via Open-Meteo or leave blank' })
-      ),
-      cityInput
-    );
-    section.appendChild(cityGroup);
+    card.appendChild(renderToggleRow(def.title, def.desc, def.enabled, def.onToggle, { flat: true }));
 
-    const unitSelect = /** @type {HTMLSelectElement} */ (el('select', { className: 'form-select' },
-      el('option', { value: 'c', text: 'Celsius (°C)' }),
-      el('option', { value: 'f', text: 'Fahrenheit (°F)' })
-    ));
-    unitSelect.value = weather.unit === 'f' ? 'f' : 'c';
-    unitSelect.addEventListener('change', () => {
-      store.updateSettings({
-        weather: { ...weather, unit: unitSelect.value }
-      });
-    });
+    if (def.enabled) {
+      const controls = el('div', { className: 'widget-card-controls' });
+      const sizeRow = renderSizePills(def.heroKey, heroWidgets[def.heroKey], settings, renderDrawerContent, closeDrawer);
+      if (sizeRow) controls.appendChild(sizeRow);
+      if (typeof def.renderExtra === 'function') {
+        for (const extraNode of def.renderExtra()) {
+          if (extraNode) controls.appendChild(extraNode);
+        }
+      }
+      card.appendChild(controls);
+    }
 
-    const unitGroup = el('div', { className: 'setting-item', style: { marginBottom: '16px' } },
-      el('div', { className: 'setting-item-header' },
-        el('span', { className: 'setting-label', text: 'Temperature Unit' })
-      ),
-      unitSelect
-    );
-    section.appendChild(unitGroup);
-
-    const privacyNotice = el('div', {
-      className: 'setting-hint',
-      style: {
-        fontSize: '12px',
-        lineHeight: '1.4',
-        padding: '10px 14px',
-        borderRadius: '8px',
-        background: 'rgba(255, 255, 255, 0.04)',
-        border: '1px solid rgba(255, 255, 255, 0.08)',
-        marginBottom: '16px',
-        color: 'var(--text-muted, #94a3b8)'
-      },
-      text: 'Privacy Notice: Enabling weather transmits your chosen city coordinates directly to Open-Meteo (api.open-meteo.com) for temperature and forecast data. Results are cached locally for 30 minutes. No personal identity, IP, or browsing history is tracked or retained.'
-    });
-    section.appendChild(privacyNotice);
+    grid.appendChild(card);
   }
-
-  // 5. Notes Widget
-  const notesSizeSelector = renderSizeSelector(
-    heroWidgets.notes?.w,
-    280, 180,
-    380, 260,
-    520, 360,
-    (w, h) => {
-      const curHero = { ...(settings.hero?.widgets || {}) };
-      curHero.notes = { ...(curHero.notes || {}), w, h };
-      store.updateSettings({ hero: { ...(settings.hero || {}), widgets: curHero } });
-      renderDrawerContent();
-    }
-  );
-
-  const notesToggleRow = renderToggleRow(
-    'Notes Widget',
-    'Plain-text scratchpad with automatic debounced saving',
-    Boolean(widgets.notes),
-    (checked) => {
-      const curHero = { ...(settings.hero?.widgets || {}) };
-      curHero.notes = { ...(curHero.notes || {}), hidden: !checked };
-      store.updateSettings({
-        widgets: { ...widgets, notes: checked },
-        hero: { ...(settings.hero || {}), widgets: curHero }
-      });
-      renderDrawerContent();
-    }
-  );
-  section.appendChild(notesToggleRow);
-  if (widgets.notes) {
-    section.appendChild(el('div', { className: 'setting-item', style: { marginBottom: '16px' } },
-      el('div', { className: 'setting-item-header' }, el('span', { className: 'setting-label', text: 'Notes Card Size' })),
-      notesSizeSelector
-    ));
-  }
-
-  // 6. To-do / Tasks Widget
-  const todoSizeSelector = renderSizeSelector(
-    heroWidgets.tasks?.w,
-    280, 200,
-    380, 300,
-    520, 420,
-    (w, h) => {
-      const curHero = { ...(settings.hero?.widgets || {}) };
-      curHero.tasks = { ...(curHero.tasks || {}), w, h };
-      store.updateSettings({ hero: { ...(settings.hero || {}), widgets: curHero } });
-      renderDrawerContent();
-    }
-  );
-
-  const todoToggleRow = renderToggleRow(
-    'To-do / Tasks Widget',
-    'Simple checklist for daily tasks and reminders',
-    Boolean(widgets.todo),
-    (checked) => {
-      const curHero = { ...(settings.hero?.widgets || {}) };
-      curHero.tasks = { ...(curHero.tasks || {}), hidden: !checked };
-      store.updateSettings({
-        widgets: { ...widgets, todo: checked },
-        hero: { ...(settings.hero || {}), widgets: curHero }
-      });
-      renderDrawerContent();
-    }
-  );
-  section.appendChild(todoToggleRow);
-  if (widgets.todo) {
-    section.appendChild(el('div', { className: 'setting-item', style: { marginBottom: '16px' } },
-      el('div', { className: 'setting-item-header' }, el('span', { className: 'setting-label', text: 'To-do Card Size' })),
-      todoSizeSelector
-    ));
-  }
-
-  // 7. Focus / Pomodoro Timer Widget
-  const timerSizeSelector = renderSizeSelector(
-    heroWidgets.timer?.w,
-    240, 130,
-    320, 180,
-    420, 240,
-    (w, h) => {
-      const curHero = { ...(settings.hero?.widgets || {}) };
-      curHero.timer = { ...(curHero.timer || {}), w, h };
-      store.updateSettings({ hero: { ...(settings.hero || {}), widgets: curHero } });
-      renderDrawerContent();
-    }
-  );
-
-  const timerToggleRow = renderToggleRow(
-    'Focus / Pomodoro Timer',
-    '25-minute focus and 5-minute break interval timer with visual alerts',
-    Boolean(widgets.timer),
-    (checked) => {
-      const curHero = { ...(settings.hero?.widgets || {}) };
-      curHero.timer = { ...(curHero.timer || {}), hidden: !checked };
-      store.updateSettings({
-        widgets: { ...widgets, timer: checked },
-        hero: { ...(settings.hero || {}), widgets: curHero }
-      });
-      renderDrawerContent();
-    }
-  );
-  section.appendChild(timerToggleRow);
-  if (widgets.timer) {
-    section.appendChild(el('div', { className: 'setting-item', style: { marginBottom: '16px' } },
-      el('div', { className: 'setting-item-header' }, el('span', { className: 'setting-label', text: 'Timer Card Size' })),
-      timerSizeSelector
-    ));
-  }
-
-  // 8. Speed Dial Widget
-  const speeddialSizeSelector = renderSizeSelector(
-    heroWidgets.speeddial?.w,
-    320, 140,
-    480, 200,
-    680, 280,
-    (w, h) => {
-      const curHero = { ...(settings.hero?.widgets || {}) };
-      curHero.speeddial = { ...(curHero.speeddial || {}), w, h };
-      store.updateSettings({ hero: { ...(settings.hero || {}), widgets: curHero } });
-      renderDrawerContent();
-    }
-  );
-
-  const speeddialToggleRow = renderToggleRow(
-    'Speed Dial Strip',
-    'Quick-access pill strip for your top apps and pinned sites',
-    Boolean(widgets.speeddial),
-    (checked) => {
-      const curHero = { ...(settings.hero?.widgets || {}) };
-      curHero.speeddial = { ...(curHero.speeddial || {}), hidden: !checked };
-      store.updateSettings({
-        widgets: { ...widgets, speeddial: checked },
-        hero: { ...(settings.hero || {}), widgets: curHero }
-      });
-      renderDrawerContent();
-    }
-  );
-  section.appendChild(speeddialToggleRow);
-  if (widgets.speeddial) {
-    section.appendChild(el('div', { className: 'setting-item', style: { marginBottom: '16px' } },
-      el('div', { className: 'setting-item-header' }, el('span', { className: 'setting-label', text: 'Speed Dial Size' })),
-      speeddialSizeSelector
-    ));
-  }
-
-  // 9. Daily Focus & Quote Widget
-  const quoteSizeSelector = renderSizeSelector(
-    heroWidgets.quote?.w,
-    280, 120,
-    420, 160,
-    580, 220,
-    (w, h) => {
-      const curHero = { ...(settings.hero?.widgets || {}) };
-      curHero.quote = { ...(curHero.quote || {}), w, h };
-      store.updateSettings({ hero: { ...(settings.hero || {}), widgets: curHero } });
-      renderDrawerContent();
-    }
-  );
-
-  const quoteToggleRow = renderToggleRow(
-    'Daily Focus & Quote',
-    'Curated daily inspiration and an editable priority goal for today',
-    Boolean(widgets.quote),
-    (checked) => {
-      const curHero = { ...(settings.hero?.widgets || {}) };
-      curHero.quote = { ...(curHero.quote || {}), hidden: !checked };
-      store.updateSettings({
-        widgets: { ...widgets, quote: checked },
-        hero: { ...(settings.hero || {}), widgets: curHero }
-      });
-      renderDrawerContent();
-    }
-  );
-  section.appendChild(quoteToggleRow);
-  if (widgets.quote) {
-    section.appendChild(el('div', { className: 'setting-item', style: { marginBottom: '16px' } },
-      el('div', { className: 'setting-item-header' }, el('span', { className: 'setting-label', text: 'Quote Card Size' })),
-      quoteSizeSelector
-    ));
-  }
-
-  // Reset Widgets to Defaults
-  section.appendChild(el('button', {
-    className: 'btn-secondary section-reset-btn',
-    type: 'button',
-    text: 'Reset Widgets to Defaults',
-    onclick: () => resetSettingsSection('widgets')
-  }));
+  section.appendChild(grid);
 
   return section;
 }

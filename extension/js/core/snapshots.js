@@ -18,7 +18,7 @@ export function registerSnapshotStore(storeInstance) {
   activeStore = storeInstance;
 }
 
-const MAX_SNAPSHOTS = 10;
+export const MAX_SNAPSHOTS = 10;
 const DAILY_SNAPSHOT_INTERVAL_MS = 24 * 60 * 60 * 1000;
 const STORAGE_KEY_LAST_DAILY = 'ntd_last_daily_snapshot';
 

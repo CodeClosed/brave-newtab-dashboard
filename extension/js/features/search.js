@@ -251,22 +251,90 @@ export function evaluateArithmeticExpression(expr) {
   };
 }
 
+export const BUILTIN_BANGS = [
+  { key: 'g', name: 'Google', url: 'https://www.google.com/search?q=%s' },
+  { key: 'google', name: 'Google', url: 'https://www.google.com/search?q=%s' },
+  { key: 'b', name: 'Brave Search', url: 'https://search.brave.com/search?q=%s' },
+  { key: 'brave', name: 'Brave Search', url: 'https://search.brave.com/search?q=%s' },
+  { key: 'd', name: 'DuckDuckGo', url: 'https://duckduckgo.com/?q=%s' },
+  { key: 'ddg', name: 'DuckDuckGo', url: 'https://duckduckgo.com/?q=%s' },
+  { key: 'yt', name: 'YouTube', url: 'https://www.youtube.com/results?search_query=%s' },
+  { key: 'gh', name: 'GitHub', url: 'https://github.com/search?q=%s' },
+  { key: 'w', name: 'Wikipedia', url: 'https://en.wikipedia.org/wiki/Special:Search?search=%s' },
+  { key: 'wiki', name: 'Wikipedia', url: 'https://en.wikipedia.org/wiki/Special:Search?search=%s' },
+  { key: 'r', name: 'Reddit', url: 'https://www.reddit.com/search/?q=%s' },
+  { key: 'so', name: 'Stack Overflow', url: 'https://stackoverflow.com/search?q=%s' },
+  { key: 'm', name: 'Google Maps', url: 'https://www.google.com/maps/search/%s' },
+  { key: 'maps', name: 'Google Maps', url: 'https://www.google.com/maps/search/%s' },
+  { key: 'a', name: 'Amazon', url: 'https://www.amazon.com/s?k=%s' },
+  { key: 'amz', name: 'Amazon', url: 'https://www.amazon.com/s?k=%s' },
+  { key: 'x', name: 'X / Twitter', url: 'https://x.com/search?q=%s' }
+];
+
 /**
- * Expands a registered shortcut key into a search URL if the input matches.
+ * Expands a registered shortcut or built-in search bang (!yt, !gh, !w, etc.)
+ * into a full search destination URL. Supports both leading bangs (!yt cats, yt cats)
+ * and trailing bangs (cats !yt).
+ *
  * @param {string} input
- * @param {Array<{ key: string, name?: string, url: string }>} shortcuts
+ * @param {Array<{ key: string, name?: string, url: string }>} [shortcuts]
  * @returns {{ matched: boolean, key: string, name?: string, query: string, url: string } | null}
  */
-export function expandSearchShortcut(input, shortcuts) {
-  if (!input || typeof input !== 'string' || !Array.isArray(shortcuts)) {
+export function expandSearchShortcut(input, shortcuts = []) {
+  if (!input || typeof input !== 'string') {
     return null;
   }
   const trimmed = input.trim();
-  const match = trimmed.match(/^([^\s]+)\s+(.+)$/);
-  if (!match) return null;
+  if (!trimmed) return null;
 
-  const [, key, query] = match;
-  const shortcut = shortcuts.find((s) => s && s.key && s.key.toLowerCase() === key.toLowerCase());
+  const userList = Array.isArray(shortcuts) ? shortcuts : [];
+
+  // 1. Check for trailing bang: "query !bang"
+  const trailingMatch = trimmed.match(/^(.*?)\s+!([a-zA-Z0-9_-]+)$/);
+  if (trailingMatch) {
+    const rawQuery = trailingMatch[1].trim();
+    const bangKey = trailingMatch[2].toLowerCase();
+    if (rawQuery) {
+      const match = userList.find((s) => s && s.key && s.key.toLowerCase().replace(/^!/, '') === bangKey)
+        || BUILTIN_BANGS.find((b) => b.key.toLowerCase() === bangKey);
+      if (match && match.url && match.url.includes('%s')) {
+        return {
+          matched: true,
+          key: match.key,
+          name: match.name,
+          query: rawQuery,
+          url: match.url.replace('%s', encodeURIComponent(rawQuery))
+        };
+      }
+    }
+  }
+
+  // 2. Check for leading bang or shortcut: "!bang query" or "bang query"
+  const leadingMatch = trimmed.match(/^([^\s]+)\s+(.+)$/);
+  if (!leadingMatch) return null;
+
+  const [, rawKey, query] = leadingMatch;
+  const isExplicitBang = rawKey.startsWith('!');
+  const cleanKey = rawKey.replace(/^!/, '').toLowerCase();
+
+  // If explicit bang (!yt ...), match user shortcuts or BUILTIN_BANGS
+  if (isExplicitBang) {
+    const match = userList.find((s) => s && s.key && s.key.toLowerCase().replace(/^!/, '') === cleanKey)
+      || BUILTIN_BANGS.find((b) => b.key.toLowerCase() === cleanKey);
+    if (match && match.url && match.url.includes('%s')) {
+      return {
+        matched: true,
+        key: match.key,
+        name: match.name,
+        query,
+        url: match.url.replace('%s', encodeURIComponent(query))
+      };
+    }
+    return null;
+  }
+
+  // If not explicit bang, check userList only (retaining backwards compatibility)
+  const shortcut = userList.find((s) => s && s.key && s.key.toLowerCase() === rawKey.toLowerCase());
   if (!shortcut || !shortcut.url || !shortcut.url.includes('%s')) {
     return null;
   }
@@ -279,6 +347,79 @@ export function expandSearchShortcut(input, shortcuts) {
     query,
     url
   };
+}
+
+/**
+ * Detects whether the current search input contains an active search bang.
+ * @param {string} input
+ * @param {Array<{ key: string, name?: string, url: string }>} [shortcuts]
+ * @returns {{ isHelp: boolean, bangs?: Array<any>, key?: string, name?: string, query?: string, url?: string } | null}
+ */
+export function detectBangQuery(input, shortcuts = []) {
+  if (!input || typeof input !== 'string') return null;
+  const trimmed = input.trim();
+  if (!trimmed.startsWith('!') && !trimmed.includes(' !')) return null;
+
+  const userList = Array.isArray(shortcuts) ? shortcuts : [];
+  const allBangs = [...userList, ...BUILTIN_BANGS];
+
+  // If user just typed "!"
+  if (trimmed === '!' || trimmed === '!help') {
+    const unique = [];
+    const seen = new Set();
+    for (const b of BUILTIN_BANGS) {
+      if (!seen.has(b.name)) {
+        seen.add(b.name);
+        unique.push(b);
+      }
+    }
+    return {
+      isHelp: true,
+      bangs: unique
+    };
+  }
+
+  // Check trailing bang: "query !bang"
+  const trailingMatch = trimmed.match(/^(.*?)\s+!([a-zA-Z0-9_-]+)$/);
+  if (trailingMatch) {
+    const rawQuery = trailingMatch[1].trim();
+    const bangKey = trailingMatch[2].toLowerCase();
+    const match = allBangs.find((b) => b && b.key && b.key.toLowerCase().replace(/^!/, '') === bangKey);
+    if (match) {
+      const url = match.url && match.url.includes('%s') && rawQuery
+        ? match.url.replace('%s', encodeURIComponent(rawQuery))
+        : '';
+      return {
+        isHelp: false,
+        key: match.key,
+        name: match.name,
+        query: rawQuery,
+        url
+      };
+    }
+  }
+
+  // Check leading bang: "!bang [query]"
+  const leadMatch = trimmed.match(/^!([a-zA-Z0-9_-]+)(?:\s+(.*))?$/);
+  if (leadMatch) {
+    const key = leadMatch[1].toLowerCase();
+    const query = (leadMatch[2] || '').trim();
+    const match = allBangs.find((b) => b && b.key && b.key.toLowerCase().replace(/^!/, '') === key);
+    if (match) {
+      const url = match.url && match.url.includes('%s') && query
+        ? match.url.replace('%s', encodeURIComponent(query))
+        : '';
+      return {
+        isHelp: false,
+        key: match.key,
+        name: match.name,
+        query,
+        url
+      };
+    }
+  }
+
+  return null;
 }
 
 /**
@@ -443,8 +584,20 @@ export function initUnifiedSearch() {
       shortcuts: []
     };
 
-    /** @type {Array<{ type: 'calc' | 'bookmark', data: any, strongMatch?: boolean }>} */
+    /** @type {Array<{ type: 'calc' | 'bookmark' | 'bang' | 'bang-help', data: any, strongMatch?: boolean }>} */
     const items = [];
+
+    // Check Bang Query (e.g. !yt lo-fi, !gh react, lo-fi !yt, or just !)
+    const bang = detectBangQuery(query, searchConfig.shortcuts);
+    if (bang) {
+      if (bang.isHelp && Array.isArray(bang.bangs)) {
+        for (const b of bang.bangs.slice(0, 6)) {
+          items.push({ type: 'bang-help', data: b, strongMatch: false });
+        }
+      } else {
+        items.push({ type: 'bang', data: bang, strongMatch: true });
+      }
+    }
 
     // Check Calculator
     if (searchConfig.calculator !== false) {
@@ -454,8 +607,8 @@ export function initUnifiedSearch() {
       }
     }
 
-    // Check Bookmarks
-    if (searchConfig.filterBookmarks !== false) {
+    // Check Bookmarks (skip if query starts with '!')
+    if (searchConfig.filterBookmarks !== false && !query.startsWith('!')) {
       const ranked = matchAndRankBookmarks(query, state.categories || [], {
         activeSpaceId: state.activeSpaceId,
         searchAllSpaces
@@ -482,7 +635,39 @@ export function initUnifiedSearch() {
         'aria-selected': 'false'
       });
 
-      if (item.type === 'calc') {
+      if (item.type === 'bang') {
+        const row = el('div', { className: 'search-result-bang' }, [
+          el('span', { className: 'bang-badge', text: `!${item.data.key}` }),
+          el('span', { className: 'bang-title', text: item.data.query ? `Search ${item.data.name}` : `Search with ${item.data.name}` }),
+          el('span', { className: 'bang-query', text: item.data.query ? `"${item.data.query}"` : 'Type query...' }),
+          el('span', { className: 'calc-hint bang-hint', text: item.data.query ? 'Enter ↵' : 'Add query' })
+        ]);
+        li.appendChild(row);
+
+        li.addEventListener('click', () => {
+          if (item.data.url) {
+            closeDropdown();
+            window.location.href = item.data.url;
+          } else {
+            input.value = `!${item.data.key} `;
+            input.focus();
+            renderDropdown();
+          }
+        });
+      } else if (item.type === 'bang-help') {
+        const row = el('div', { className: 'search-result-bang search-result-bang-help' }, [
+          el('span', { className: 'bang-badge', text: `!${item.data.key}` }),
+          el('span', { className: 'bang-title', text: item.data.name }),
+          el('span', { className: 'calc-hint bang-hint', text: `!${item.data.key} <query>` })
+        ]);
+        li.appendChild(row);
+
+        li.addEventListener('click', () => {
+          input.value = `!${item.data.key} `;
+          input.focus();
+          renderDropdown();
+        });
+      } else if (item.type === 'calc') {
         const row = el('div', { className: 'search-result-calc' }, [
           el('span', { className: 'calc-icon' }, '='),
           el('span', { className: 'calc-val' }, String(item.data.result)),
@@ -612,7 +797,20 @@ export function initUnifiedSearch() {
       if (selectedIndex >= 0 && selectedIndex < currentItems.length) {
         e.preventDefault();
         const selected = currentItems[selectedIndex];
-        if (selected.type === 'calc') {
+        if (selected.type === 'bang') {
+          closeDropdown();
+          if (selected.data.url) {
+            window.location.href = selected.data.url;
+          } else {
+            input.value = `!${selected.data.key} `;
+            input.focus();
+            renderDropdown();
+          }
+        } else if (selected.type === 'bang-help') {
+          input.value = `!${selected.data.key} `;
+          input.focus();
+          renderDropdown();
+        } else if (selected.type === 'calc') {
           navigator.clipboard?.writeText(String(selected.data.result));
           showToast(`Copied ${selected.data.result} to clipboard`);
           closeDropdown();

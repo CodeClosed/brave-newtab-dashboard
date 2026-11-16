@@ -68,7 +68,7 @@ export function ensureLauncherDOM() {
   const dialog = /** @type {HTMLDialogElement} */ (el('dialog', {
     className: 'app-launcher-modal',
     id: 'app-launcher-modal',
-    'aria-label': 'Applications and Collections'
+    'aria-label': 'Unified Platform: Applications, Widgets and Settings'
   }));
 
   // Close on backdrop click
@@ -230,7 +230,7 @@ export function renderLauncherContent() {
   const settingsBtn = el('button', {
     className: 'launcher-btn-subtle',
     type: 'button',
-    title: 'Open Settings (Appearance, Layout, Dock, Clock)',
+    title: 'Open Settings (Appearance, Wallpapers, Widgets, Layout, Clock)',
     html: `${ICON_SETTINGS}<span>Settings</span>`,
     onclick: () => {
       closeAppLauncher();
@@ -241,8 +241,8 @@ export function renderLauncherContent() {
   const closeBtn = el('button', {
     className: 'launcher-close-btn',
     type: 'button',
-    'aria-label': 'Close App Launcher',
-    title: 'Close launcher (Esc)',
+    'aria-label': 'Close Unified Platform',
+    title: 'Close platform (Esc)',
     html: ICON_CLOSE,
     onclick: () => closeAppLauncher()
   });

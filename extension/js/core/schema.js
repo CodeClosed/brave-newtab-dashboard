@@ -51,7 +51,17 @@ export function createDefaultSettings() {
         notes:     { x: null, y: null, w: null, h: null, hidden: true },
         timer:     { x: null, y: null, w: null, h: null, hidden: false },
         speeddial: { x: null, y: null, w: null, h: null, hidden: false },
-        quote:     { x: null, y: null, w: null, h: null, hidden: false }
+        quote:       { x: null, y: null, w: null, h: null, hidden: false },
+        glance:      { x: null, y: null, w: null, h: null, hidden: true },
+        habits:      { x: null, y: null, w: null, h: null, hidden: true },
+        worldclock:  { x: null, y: null, w: null, h: null, hidden: true },
+        countdown:   { x: null, y: null, w: null, h: null, hidden: true },
+        soundscapes: { x: null, y: null, w: null, h: null, hidden: true },
+        voicememo:   { x: null, y: null, w: null, h: null, hidden: true },
+        pulse:       { x: null, y: null, w: null, h: null, hidden: true },
+        clipboard:   { x: null, y: null, w: null, h: null, hidden: true },
+        calculator:  { x: null, y: null, w: null, h: null, hidden: true },
+        readlater:   { x: null, y: null, w: null, h: null, hidden: true }
       }
     },
     dock: {
@@ -130,7 +140,23 @@ export function createDefaultSettings() {
       nightId: null,
       rotation: 'off'
     },
-    widgets: { notes: false, todo: false, timer: true, speeddial: true, quote: true },
+    widgets: {
+      notes: false,
+      todo: false,
+      timer: true,
+      speeddial: true,
+      quote: true,
+      glance: false,
+      habits: false,
+      worldclock: false,
+      countdown: false,
+      soundscapes: false,
+      voicememo: false,
+      pulse: false,
+      clipboard: false,
+      calculator: false,
+      readlater: false
+    },
     firstRunDone: false
   };
 }

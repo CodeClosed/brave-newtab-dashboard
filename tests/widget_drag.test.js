@@ -7,14 +7,12 @@ import {
   snapToGuides,
   clampPosition,
   applyWidgetPositions,
-  initWidgetDrag,
   snapToGridDimension,
   getGridUnits,
   GRID_CELL_WIDTH,
   GRID_CELL_HEIGHT,
   WIDGET_GRID_SPECS
 } from '../extension/js/features/widget-drag.js';
-import { setEditMode } from '../extension/js/features/edit-mode.js';
 import { store } from '../extension/js/core/state.js';
 import { createDefaultDashboardData } from '../extension/js/core/schema.js';
 
@@ -106,7 +104,6 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  setEditMode(false);
   globalThis.document = origDocument;
   globalThis.window = origWindow;
 });
@@ -226,85 +223,6 @@ test('16.1 applyWidgetPositions applies free-drag positioning and width', () => 
   assert.equal(clockEl.dataset.freeDrag, undefined);
   assert.equal(clockEl.style.position, '');
   assert.equal(clockEl.style.left, '');
-});
-
-test('16.1 initWidgetDrag keyboard shortcuts (R reset, Delete hide, arrows)', () => {
-  const initial = createDefaultDashboardData();
-  initial.settings.hero.widgets.clock = { x: 35, y: 45, w: 300, hidden: false };
-  store.replaceData(initial);
-
-  let frameListeners = [];
-  let frameCreated = null;
-
-  const clockEl = {
-    offsetWidth: 300,
-    offsetHeight: 100,
-    style: {},
-    dataset: {},
-    children: [],
-    appendChild: (c) => {
-      frameCreated = c;
-      const origAdd = c.addEventListener;
-      c.addEventListener = (evt, fn) => {
-        if (evt === 'keydown') frameListeners.push(fn);
-        if (origAdd) origAdd.call(c, evt, fn);
-      };
-      return c;
-    },
-    querySelector: (sel) => (sel === '.widget-drag-frame' ? frameCreated : null)
-  };
-
-  const heroPanel = {
-    getBoundingClientRect: () => ({ left: 0, top: 0, width: 1000, height: 800 }),
-    querySelector: (sel) => (sel === '.dashboard-header' ? clockEl : null)
-  };
-
-  // @ts-ignore
-  initWidgetDrag(heroPanel, store);
-
-  // Enter edit mode
-  setEditMode(true);
-
-  assert.ok(frameListeners.length > 0, 'Keydown listener must be attached');
-  const onKeyDown = frameListeners[0];
-
-  // Press ArrowRight (+1%)
-  onKeyDown({ key: 'ArrowRight', shiftKey: false, preventDefault: () => {} });
-  let s = store.get().settings.hero.widgets.clock;
-  assert.equal(s.x, 36);
-
-  // Press + to increase width by 20px
-  onKeyDown({ key: '+', shiftKey: false, preventDefault: () => {} });
-  s = store.get().settings.hero.widgets.clock;
-  assert.equal(s.w, 320);
-
-  // Press - to decrease width by 20px
-  onKeyDown({ key: '-', shiftKey: false, preventDefault: () => {} });
-  s = store.get().settings.hero.widgets.clock;
-  assert.equal(s.w, 300);
-
-  // Press [ to decrease height by 20px (from offsetHeight 100 down to 80)
-  onKeyDown({ key: '[', shiftKey: false, preventDefault: () => {} });
-  s = store.get().settings.hero.widgets.clock;
-  assert.equal(s.h, 80);
-
-  // Press ] to increase height by 20px (from 80 up to 100)
-  onKeyDown({ key: ']', shiftKey: false, preventDefault: () => {} });
-  s = store.get().settings.hero.widgets.clock;
-  assert.equal(s.h, 100);
-
-  // Press R (reset)
-  onKeyDown({ key: 'r', preventDefault: () => {} });
-  s = store.get().settings.hero.widgets.clock;
-  assert.equal(s.x, null);
-  assert.equal(s.y, null);
-  assert.equal(s.w, null);
-  assert.equal(s.h, null);
-
-  // Press Delete (hide)
-  onKeyDown({ key: 'Delete', preventDefault: () => {} });
-  s = store.get().settings.hero.widgets.clock;
-  assert.equal(s.hidden, true);
 });
 
 test('16.1 Android grid dimension calculations and snapping', () => {

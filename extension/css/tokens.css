@@ -220,7 +220,7 @@
   --glass-border: rgba(255, 255, 255, 0.35);
   --glass-blur: blur(var(--glass-blur-px, 16px)) saturate(150%);
   --glass-radius: 16px;
-  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.12);
+  --glass-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.08), 0 8px 32px 0 rgba(0, 0, 0, 0.12);
   --glass-highlight: rgba(255, 255, 255, 0.25);
   --hero-clock-size: clamp(56px, 7vw, 96px);
 }
@@ -229,7 +229,7 @@
 :root[data-theme="dark"] {
   --glass-bg: rgba(18, 21, 26, var(--glass-opacity, 0.62));
   --glass-border: rgba(255, 255, 255, 0.10);
-  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  --glass-shadow: 0 4px 24px -2px rgba(0, 0, 0, 0.30), 0 8px 32px 0 rgba(0, 0, 0, 0.37);
   --glass-highlight: rgba(255, 255, 255, 0.08);
 }
 

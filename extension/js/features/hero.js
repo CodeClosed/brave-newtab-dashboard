@@ -1,5 +1,6 @@
 import { openShortcutsHelpDialog } from './keyboard.js';
-import { applyWidgetPositions, initWidgetDrag } from './widget-drag.js';
+import { applyWidgetPositions } from './widget-drag.js';
+import { initHomeEditor } from './home-editor.js';
 import { showToast } from '../ui/toasts.js';
 import { ICON_LAYOUT, ICON_CLOSE } from '../ui/icons.js';
 
@@ -298,7 +299,7 @@ export async function initHero(store) {
 
   // 10.1 Hero layout
   applyHeroLayout(settings.hero, heroPanel);
-  initWidgetDrag(heroPanel, store);
+  initHomeEditor(heroPanel, store);
 
   if (layoutToggleBtn && store) {
     layoutToggleBtn.addEventListener('click', (e) => {

@@ -1,5 +1,6 @@
 // @ts-check
 import { store } from '../core/state.js';
+import { syncClockBoxScale } from './widget-drag.js';
 
 let clockInterval = null;
 let currentTickerSeconds = null;
@@ -279,6 +280,10 @@ export function renderClockAndGreeting(settings) {
   } else if (countdownEl) {
     countdownEl.style.display = 'none';
     countdownEl.textContent = '';
+  }
+
+  if (headerEl && (headerEl.dataset?.resizedW === 'true' || headerEl.dataset?.resizedH === 'true')) {
+    syncClockBoxScale(headerEl);
   }
 }
 

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { serializeDashboardExport, parseAndValidateImport } from '../extension/js/features/data-io.js';
+import { serializeDashboardExport, parseAndValidateImport, mergeDashboardData } from '../extension/js/features/data-io.js';
 import { store } from '../extension/js/core/state.js';
 import { CURRENT_SCHEMA_VERSION, createDefaultDashboardData } from '../extension/js/core/schema.js';
 
@@ -113,4 +113,86 @@ test('Data IO - Strips dangerous URLs on import', () => {
   // Only the safe link should be imported
   assert.equal(cat?.bookmarks.length, 1);
   assert.equal(cat?.bookmarks[0].name, 'Safe Link');
+});
+
+test('Data IO - mergeDashboardData preserves existing data and merges matching collections without duplicate URLs', () => {
+  const current = createDefaultDashboardData();
+  const activeSpaceId = current.activeSpaceId;
+  current.settings.userName = 'Alice';
+  current.categories = [
+    {
+      id: 'cat-work',
+      spaceId: activeSpaceId,
+      name: 'Work',
+      icon: 'briefcase',
+      order: 0,
+      collapsed: false,
+      bookmarks: [
+        { id: 'bm-1', name: 'GitHub', url: 'https://github.com/', order: 0 }
+      ]
+    }
+  ];
+
+  const incoming = createDefaultDashboardData();
+  incoming.settings.userName = 'Bob';
+  incoming.categories = [
+    {
+      id: 'cat-work', // Collides with existing ID and matches name case-insensitively
+      spaceId: activeSpaceId,
+      name: 'work',
+      icon: 'briefcase',
+      order: 0,
+      collapsed: false,
+      bookmarks: [
+        { id: 'bm-1', name: 'GitHub Dup', url: 'https://github.com/', order: 0 }, // Duplicate URL
+        { id: 'bm-1', name: 'Linear', url: 'https://linear.app/', order: 1 } // Colliding ID, new URL
+      ]
+    },
+    {
+      id: 'cat-work', // Colliding ID, new collection
+      spaceId: 'nonexistent-space',
+      name: 'Reading',
+      icon: 'book',
+      order: 1,
+      collapsed: false,
+      bookmarks: [
+        { id: 'bm-1', name: 'MDN', url: 'https://developer.mozilla.org/', order: 0 }
+      ]
+    }
+  ];
+
+  const currentSnapshot = JSON.stringify(current);
+  const incomingSnapshot = JSON.stringify(incoming);
+
+  const merged = mergeDashboardData(current, incoming);
+
+  // Inputs were not mutated
+  assert.equal(JSON.stringify(current), currentSnapshot);
+  assert.equal(JSON.stringify(incoming), incomingSnapshot);
+
+  // Settings preserved
+  assert.equal(merged.settings.userName, 'Alice');
+
+  // 2 collections total: Work (merged) and Reading (new)
+  assert.equal(merged.categories.length, 2);
+  assert.equal(merged.categories[0].name, 'Work');
+  assert.equal(merged.categories[0].bookmarks.length, 2);
+  assert.equal(merged.categories[0].bookmarks[1].url, 'https://linear.app/');
+  assert.notEqual(merged.categories[0].bookmarks[1].id, 'bm-1');
+
+  assert.equal(merged.categories[1].name, 'Reading');
+  assert.equal(merged.categories[1].spaceId, activeSpaceId);
+  assert.notEqual(merged.categories[1].id, 'cat-work');
+  assert.equal(merged.categories[1].order, 1);
+  assert.equal(merged.categories[1].bookmarks.length, 1);
+  assert.notEqual(merged.categories[1].bookmarks[0].id, 'bm-1');
+});
+
+test('Data IO - mergeDashboardData handles empty incoming categories', () => {
+  const current = createDefaultDashboardData();
+  const initialCount = current.categories.length;
+  const incoming = { ...createDefaultDashboardData(), categories: [] };
+
+  const merged = mergeDashboardData(current, incoming);
+  assert.equal(merged.categories.length, initialCount);
 });

@@ -1,7 +1,8 @@
 // @ts-check
 import { store } from '../core/state.js';
 import { migrate, repairSettings, repairCategories, repairSpaces } from '../core/migrate.js';
-import { CURRENT_SCHEMA_VERSION, validateDashboardData } from '../core/schema.js';
+import { CURRENT_SCHEMA_VERSION, validateDashboardData, generateId } from '../core/schema.js';
+import { normalizeUrl } from '../utils/url.js';
 
 /**
  * Serializes dashboard state into a formatted JSON backup string.
@@ -429,6 +430,105 @@ export function parseAndValidateBookmarksImport(content, format = 'auto') {
   }
 
   return { success: false, error: `Unsupported import format "${resolvedFormat}"` };
+}
+
+/**
+ * Merges validated incoming dashboard data into the current dashboard state
+ * without mutating either input. Matching collection names (case-insensitive
+ * within the target space) merge new non-duplicate bookmarks; new collections
+ * are appended with unique IDs. Existing settings and spaces are preserved.
+ *
+ * @param {import('../core/schema.js').DashboardData} currentData
+ * @param {import('../core/schema.js').DashboardData} incomingData
+ * @returns {import('../core/schema.js').DashboardData}
+ */
+export function mergeDashboardData(currentData, incomingData) {
+  /** @type {import('../core/schema.js').DashboardData} */
+  const merged = JSON.parse(JSON.stringify(currentData));
+  if (!Array.isArray(merged.categories)) merged.categories = [];
+  if (!Array.isArray(merged.spaces)) merged.spaces = [];
+
+  const activeSpaceId = merged.activeSpaceId || merged.spaces[0]?.id || 'default';
+  const existingSpaceIds = new Set(merged.spaces.map(s => s.id));
+
+  /** @type {Set<string>} */
+  const usedCatIds = new Set();
+  /** @type {Set<string>} */
+  const usedBmIds = new Set();
+  /** @type {Map<string, any>} */
+  const catByKey = new Map();
+
+  for (const cat of merged.categories) {
+    if (cat.id) usedCatIds.add(cat.id);
+    if (!Array.isArray(cat.bookmarks)) cat.bookmarks = [];
+    for (const bm of cat.bookmarks) {
+      if (bm.id) usedBmIds.add(bm.id);
+    }
+    const spaceKey = cat.spaceId && existingSpaceIds.has(cat.spaceId) ? cat.spaceId : activeSpaceId;
+    const key = `${spaceKey}::${(cat.name || '').trim().toLowerCase()}`;
+    if (!catByKey.has(key)) {
+      catByKey.set(key, cat);
+    }
+  }
+
+  const incomingCategories = Array.isArray(incomingData?.categories) ? incomingData.categories : [];
+  for (const inCat of incomingCategories) {
+    if (!inCat || typeof inCat !== 'object') continue;
+    const targetSpaceId = inCat.spaceId && existingSpaceIds.has(inCat.spaceId)
+      ? inCat.spaceId
+      : activeSpaceId;
+    const key = `${targetSpaceId}::${(inCat.name || '').trim().toLowerCase()}`;
+    const existingCat = catByKey.get(key);
+    const incomingBms = Array.isArray(inCat.bookmarks) ? inCat.bookmarks : [];
+
+    if (existingCat) {
+      const existingUrls = new Set(existingCat.bookmarks.map((/** @type {any} */ b) => b.url));
+      for (const bm of incomingBms) {
+        if (!bm || !bm.url || existingUrls.has(bm.url)) continue;
+        const bmClone = JSON.parse(JSON.stringify(bm));
+        if (!bmClone.id || usedBmIds.has(bmClone.id)) {
+          bmClone.id = generateId();
+        }
+        usedBmIds.add(bmClone.id);
+        existingUrls.add(bmClone.url);
+        existingCat.bookmarks.push(bmClone);
+      }
+    } else {
+      const catClone = JSON.parse(JSON.stringify(inCat));
+      catClone.spaceId = targetSpaceId;
+      if (!catClone.id || usedCatIds.has(catClone.id)) {
+        catClone.id = generateId();
+      }
+      usedCatIds.add(catClone.id);
+
+      const seenUrls = new Set();
+      const cleanBookmarks = [];
+      for (const bm of incomingBms) {
+        if (!bm || !bm.url || seenUrls.has(bm.url)) continue;
+        const bmClone = JSON.parse(JSON.stringify(bm));
+        if (!bmClone.id || usedBmIds.has(bmClone.id)) {
+          bmClone.id = generateId();
+        }
+        usedBmIds.add(bmClone.id);
+        seenUrls.add(bmClone.url);
+        cleanBookmarks.push(bmClone);
+      }
+      catClone.bookmarks = cleanBookmarks;
+      merged.categories.push(catClone);
+      catByKey.set(key, catClone);
+    }
+  }
+
+  merged.categories.forEach((cat, idx) => {
+    cat.order = idx;
+    if (Array.isArray(cat.bookmarks)) {
+      cat.bookmarks.forEach((bm, bIdx) => {
+        bm.order = bIdx;
+      });
+    }
+  });
+
+  return merged;
 }
 
 /**

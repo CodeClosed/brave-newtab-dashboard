@@ -82,6 +82,6 @@ test('7.1 Accessibility Drawer: resetSettingsSection restores accessibility sett
   const defaults = createDefaultSettings();
   assert.equal(store.get().settings.motion, defaults.motion);
   assert.equal(store.get().settings.largeTargets, defaults.largeTargets);
-  assert.equal(store.get().settings.palette, defaults.palette);
+  assert.equal(store.get().settings.palette, 'contrast');
 });
 

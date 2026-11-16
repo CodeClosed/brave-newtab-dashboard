@@ -25,8 +25,10 @@ export function renderNotesWidget(container, state, onSave) {
   if (!container) return;
 
   const isEnabled = Boolean(state?.settings?.widgets?.notes);
-  if (!isEnabled) {
+  const isHiddenByHero = Boolean(state?.settings?.hero?.widgets?.notes?.hidden);
+  if (!isEnabled || isHiddenByHero) {
     container.hidden = true;
+    if (container.style) container.style.display = 'none';
     if (typeof container.replaceChildren === 'function') {
       const existingFrame = container.querySelector ? container.querySelector('.widget-drag-frame') : null;
       container.replaceChildren();
@@ -36,6 +38,9 @@ export function renderNotesWidget(container, state, onSave) {
   }
 
   container.hidden = false;
+  if (container.style && !container.dataset?.freeDrag) {
+    container.style.display = '';
+  }
 
   const activeSpace = state?.spaces?.find(s => s.id === state.activeSpaceId) || state?.spaces?.[0];
   const currentNote = activeSpace?.note || '';

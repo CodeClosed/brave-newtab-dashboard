@@ -986,13 +986,17 @@ body.is-edit-mode .bookmark-select-checkbox {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: var(--space-2);
 }
 
 .widget-title-group {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: var(--space-2);
+  min-width: 0;
+  flex: 1;
 }
 
 .widget-title {
@@ -1071,6 +1075,7 @@ body.is-edit-mode .bookmark-select-checkbox {
 
 .todo-input {
   flex: 1;
+  min-width: 0;
   background: transparent;
   border: 1px solid var(--border-subtle, var(--border-default));
   border-radius: var(--radius-sm);
@@ -1189,6 +1194,8 @@ body.is-edit-mode .bookmark-select-checkbox {
 .widget-timer {
   text-align: center;
   justify-content: space-between;
+  padding: 12px 16px;
+  gap: 6px;
 }
 
 .timer-digits-display {
@@ -1219,6 +1226,62 @@ body.is-edit-mode .bookmark-select-checkbox {
   transition: width 300ms ease, background-color 200ms ease;
 }
 
+.timer-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.timer-sound-btn {
+  padding: 4px;
+  border-radius: 6px;
+  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 150ms ease, background 150ms ease;
+}
+
+.timer-sound-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg-surface-active, rgba(255, 255, 255, 0.08));
+}
+
+.timer-preset-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+}
+
+.timer-preset-pill {
+  font-size: 11px;
+  font-weight: 500;
+  font-family: var(--font-mono, monospace);
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.1));
+  background: var(--bg-surface-elevated, rgba(255, 255, 255, 0.04));
+  color: var(--text-secondary, #94a3b8);
+  cursor: pointer;
+  transition: all 160ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.timer-preset-pill:hover {
+  color: var(--text-primary, #f8fafc);
+  border-color: var(--border-muted, rgba(255, 255, 255, 0.2));
+  background: var(--bg-surface-active, rgba(255, 255, 255, 0.09));
+}
+
+.timer-preset-pill.is-active {
+  color: var(--accent-base, #3b82f6);
+  background: var(--accent-tint, rgba(59, 130, 246, 0.14));
+  border-color: var(--accent-focus-ring, rgba(59, 130, 246, 0.35));
+  font-weight: 600;
+}
+
 .timer-progress-fill.is-break {
   background: #10b981;
 }
@@ -1227,7 +1290,8 @@ body.is-edit-mode .bookmark-select-checkbox {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--space-2);
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
 .timer-play-btn,
@@ -1302,7 +1366,8 @@ body.is-edit-mode .bookmark-select-checkbox {
 
 /* 10.8 Daily Inspiration & Focus Goal Widget Styles */
 .widget-quote {
-  padding: var(--space-3) var(--space-4);
+  padding: 12px 16px;
+  gap: 6px;
   justify-content: space-between;
 }
 
@@ -1310,8 +1375,11 @@ body.is-edit-mode .bookmark-select-checkbox {
   font-size: var(--text-sm);
   font-style: italic;
   color: var(--text-primary);
-  margin: auto 0 4px 0;
-  line-height: 1.45;
+  margin: auto 0 2px 0;
+  line-height: 1.4;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .quote-author {
@@ -1319,16 +1387,18 @@ body.is-edit-mode .bookmark-select-checkbox {
   color: var(--text-muted);
   display: block;
   text-align: right;
-  margin-bottom: var(--space-2);
+  margin-bottom: 2px;
+  flex-shrink: 0;
 }
 
 .quote-focus-group {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  margin-top: var(--space-2);
-  padding-top: var(--space-2);
+  margin-top: 2px;
+  padding-top: 6px;
   border-top: 1px dashed var(--border-subtle);
+  flex-shrink: 0;
 }
 
 .quote-focus-label {
@@ -1340,6 +1410,7 @@ body.is-edit-mode .bookmark-select-checkbox {
 
 .quote-focus-input {
   flex: 1;
+  min-width: 0;
   background: transparent;
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
@@ -1353,6 +1424,691 @@ body.is-edit-mode .bookmark-select-checkbox {
 .quote-focus-input:focus {
   border-color: var(--accent-base);
 }
+
+/* ==========================================================================
+   10.9 Android Widget Pack Styles (Glass v2)
+   ========================================================================== */
+
+.aw-mono {
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font-mono, monospace);
+}
+
+.aw-progress-track {
+  width: 100%;
+  height: 6px;
+  background: var(--bg-surface-active, rgba(255, 255, 255, 0.1));
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.aw-progress-fill {
+  height: 100%;
+  background: var(--accent-base, #3b82f6);
+  border-radius: 999px;
+  transition: width 220ms ease;
+}
+
+.aw-progress-fill.is-secondary {
+  background: #10b981;
+}
+
+.aw-inline-form {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: auto;
+  padding-top: 6px;
+}
+
+.aw-inline-input,
+.aw-inline-date,
+.aw-mini-select {
+  flex: 1;
+  min-width: 0;
+  background: var(--bg-surface-elevated, rgba(255, 255, 255, 0.04));
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.12));
+  border-radius: 8px;
+  padding: 5px 10px;
+  font-size: 12px;
+  color: var(--text-primary);
+  outline: none;
+  transition: border-color var(--transition-fast);
+}
+
+.aw-inline-date {
+  flex: 0 0 122px;
+  font-size: 11px;
+  padding: 4px 6px;
+}
+
+.aw-mini-select {
+  flex: 0 0 auto;
+  padding: 3px 8px;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.aw-inline-input:focus,
+.aw-inline-date:focus,
+.aw-mini-select:focus {
+  border-color: var(--accent-base, #3b82f6);
+}
+
+.aw-row-del {
+  padding: 3px;
+  opacity: 0.65;
+  flex-shrink: 0;
+}
+
+.aw-row-del:hover {
+  opacity: 1;
+}
+
+/* 1. At a Glance */
+.widget-glance {
+  padding: 12px 16px;
+  gap: 8px;
+}
+
+.aw-glance-bars {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.aw-glance-bar-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.aw-glance-bar-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.aw-glance-agenda {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+}
+
+.aw-glance-check {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  border: 1px solid var(--accent-base, #3b82f6);
+  background: var(--accent-tint, rgba(59, 130, 246, 0.14));
+  color: var(--accent-base, #3b82f6);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.aw-glance-task-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.aw-glance-task-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--accent-base, #60a5fa);
+}
+
+.aw-glance-task-text {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 2. Habit Grid */
+.aw-habits-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.aw-habit-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  border-radius: 8px;
+  background: var(--bg-surface-elevated, rgba(255, 255, 255, 0.03));
+}
+
+.aw-habit-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.aw-habit-dots {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+}
+
+.aw-habit-dot {
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.12));
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.aw-habit-dot.is-today {
+  border-color: var(--accent-base, #3b82f6);
+}
+
+.aw-habit-dot.is-done {
+  background: var(--accent-base, #3b82f6);
+  border-color: var(--accent-base, #3b82f6);
+  color: #ffffff;
+}
+
+.aw-habit-streak {
+  font-size: 11px;
+  color: var(--text-secondary);
+  min-width: 22px;
+  text-align: right;
+}
+
+/* 3. World Clock */
+.aw-worldclock-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(125px, 100%), 1fr));
+  gap: 8px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  align-content: start;
+}
+
+.aw-wc-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 4px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--bg-surface-elevated, rgba(255, 255, 255, 0.05));
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.1));
+}
+
+.aw-wc-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+}
+
+.aw-wc-city {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.aw-wc-offset {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.aw-wc-offset svg {
+  width: 11px;
+  height: 11px;
+}
+
+.aw-wc-remove {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.aw-wc-card:hover .aw-wc-remove {
+  opacity: 0.8;
+}
+
+.aw-wc-time {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+}
+
+/* 4. Countdown */
+.aw-countdown-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.aw-countdown-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: var(--bg-surface-elevated, rgba(255, 255, 255, 0.04));
+}
+
+.aw-countdown-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.aw-countdown-title {
+  flex: 1;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.aw-countdown-badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent-base, #60a5fa);
+  background: var(--accent-tint, rgba(59, 130, 246, 0.14));
+  padding: 1px 7px;
+  border-radius: 999px;
+}
+
+.aw-countdown-badge.is-past {
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.aw-countdown-date {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+/* 5. Soundscapes */
+.widget-soundscapes {
+  padding: 12px 16px;
+  gap: 8px;
+}
+
+.aw-sound-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.aw-sound-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 6px 8px;
+  border-radius: 10px;
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.1));
+  background: var(--bg-surface-elevated, rgba(255, 255, 255, 0.04));
+  color: var(--text-primary);
+  cursor: pointer;
+  text-align: left;
+  transition: all var(--transition-fast);
+}
+
+.aw-sound-tile:hover {
+  border-color: var(--glass-highlight, rgba(255, 255, 255, 0.22));
+}
+
+.aw-sound-tile.is-active {
+  background: var(--accent-tint, rgba(59, 130, 246, 0.18));
+  border-color: var(--accent-base, #3b82f6);
+}
+
+.aw-sound-name {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.aw-sound-desc {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.aw-sound-tile.is-active .aw-sound-desc {
+  color: var(--accent-base, #60a5fa);
+  font-weight: 600;
+}
+
+.aw-sound-footer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: auto;
+}
+
+.aw-sound-vol-label {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.aw-sound-slider {
+  flex: 1;
+  height: 4px;
+  accent-color: var(--accent-base, #3b82f6);
+}
+
+/* 6. Voice & Scratch Memos */
+.aw-mic-btn.is-recording {
+  color: #f87171;
+  border-color: #f87171;
+}
+
+.aw-memo-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.aw-memo-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  background: var(--bg-surface-elevated, rgba(255, 255, 255, 0.03));
+}
+
+.aw-memo-time {
+  font-size: 10px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.aw-memo-text {
+  flex: 1;
+  font-size: 12px;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 7. Device & Browser Pulse */
+.widget-pulse {
+  padding: 12px 16px;
+  gap: 8px;
+}
+
+.aw-pulse-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.aw-pulse-cell {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 6px 8px;
+  border-radius: 10px;
+  background: var(--bg-surface-elevated, rgba(255, 255, 255, 0.04));
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+}
+
+.aw-pulse-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.aw-pulse-val {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 2px 0;
+}
+
+.aw-pulse-sub {
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+
+/* 8. Clipboard Pinboard */
+.aw-clips-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  align-content: flex-start;
+}
+
+.aw-clip-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 6px 3px 8px;
+  border-radius: 8px;
+  background: var(--bg-surface-elevated, rgba(255, 255, 255, 0.06));
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.12));
+  max-width: 100%;
+}
+
+.aw-clip-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  flex-shrink: 0;
+}
+
+.aw-clip-text-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-size: 11px;
+  font-family: var(--font-mono, monospace);
+  cursor: pointer;
+  padding: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 180px;
+}
+
+.aw-clip-text-btn:hover {
+  color: var(--accent-base, #60a5fa);
+}
+
+.aw-clip-del {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0 2px;
+  display: inline-flex;
+  opacity: 0.6;
+}
+
+.aw-clip-del:hover {
+  opacity: 1;
+  color: #f87171;
+}
+
+/* 9. Quick Calculator */
+.widget-calculator {
+  padding: 12px 14px;
+  gap: 6px;
+}
+
+.aw-calc-display {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--bg-surface-elevated, rgba(255, 255, 255, 0.05));
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.12));
+}
+
+.aw-calc-input {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-size: 13px;
+  outline: none;
+}
+
+.aw-calc-result {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--accent-base, #60a5fa);
+  white-space: nowrap;
+}
+
+.aw-calc-units {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.aw-calc-pad {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  flex: 1;
+  min-height: 0;
+}
+
+.aw-calc-key {
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+  background: var(--bg-surface-elevated, rgba(255, 255, 255, 0.04));
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 2px 0;
+  min-height: 0;
+  transition: background var(--transition-fast);
+}
+
+.aw-calc-key:hover {
+  background: var(--bg-surface-hover, rgba(255, 255, 255, 0.12));
+}
+
+.aw-calc-key.is-equals {
+  background: var(--accent-base, #3b82f6);
+  color: #ffffff;
+  border-color: var(--accent-base, #3b82f6);
+}
+
+.aw-calc-key.is-clear {
+  color: #f87171;
+}
+
+/* 10. Reading Queue */
+.aw-readlater-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.aw-rl-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 4px 6px;
+  border-radius: 8px;
+  background: var(--bg-surface-elevated, rgba(255, 255, 255, 0.03));
+}
+
+.aw-rl-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+  text-decoration: none;
+  color: var(--text-primary);
+}
+
+.aw-rl-title {
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.aw-rl-link:hover .aw-rl-title {
+  color: var(--accent-base, #60a5fa);
+}
+
 
 
 

@@ -14,7 +14,7 @@ import {
 import { THEME_PRESETS, applyThemePreset } from '../../features/presets.js';
 import { getSolarTimes } from '../../features/schedule.js';
 import { renderWallpaperLibrary, BUNDLED_WALLPAPERS } from '../../features/wallpaper.js';
-import { renderRadioCard, renderToggleRow } from './common.js';
+import { renderRadioCard, renderToggleRow, renderSliderRow, renderSectionHeader } from './common.js';
 
 
 export const ACCENTS = [
@@ -43,32 +43,24 @@ const ICON_MOON = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" s
 const ICON_WARNING = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>`;
 const ICON_CHECK = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
 
-const ICON_REFRESH = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>`;
-
 export function renderAppearanceSection(settings, { renderDrawerContent = () => {}, resetSettingsSection = () => {} } = {}) {
   const section = el('div', { className: 'settings-section' });
 
-  const secHeader = el('div', { className: 'settings-section-header' }, [
-    el('div', {}, [
-      el('h3', { className: 'settings-section-headline', text: 'Appearance & Themes' }),
-      el('p', { className: 'settings-section-subtitle', text: 'Curated presets, custom accents, wallpapers, and frosted glass opacity' })
-    ]),
-    el('button', {
-      className: 'section-reset-btn',
-      type: 'button',
-      html: `${ICON_REFRESH}<span>Reset section</span>`,
-      onclick: () => resetSettingsSection('appearance')
-    })
-  ]);
-  section.appendChild(secHeader);
+  section.appendChild(renderSectionHeader(
+    'Appearance & Themes',
+    'Curated presets, custom accents, wallpapers, typography, and frosted glass surface',
+    () => resetSettingsSection('appearance')
+  ));
 
   // 4.5 Curated Theme Presets
   const presetsGroup = el('div', { className: 'setting-item' },
     el('div', { className: 'setting-item-header' },
-      el('span', { className: 'setting-label', text: 'Curated Theme Presets' }),
-      el('span', { className: 'setting-desc', text: 'One-click visual bundles with undo' })
+      el('div', { className: 'setting-toggle-info' },
+        el('span', { className: 'setting-label', text: 'Theme Presets' }),
+        el('span', { className: 'setting-desc', text: 'One-click visual bundles with undo' })
+      )
     ),
-    el('div', { className: 'radio-group-cards', style: { gridTemplateColumns: 'repeat(5, 1fr)' } },
+    el('div', { className: 'radio-group-cards radio-group-auto' },
       ...THEME_PRESETS.map(preset => {
         const isSelected = settings.palette === preset.settings.palette &&
           settings.accent === preset.settings.accent &&
@@ -320,7 +312,7 @@ export function renderAppearanceSection(settings, { renderDrawerContent = () => 
       });
 
       const lightLabel = el('label', {
-        style: { display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--text-subtle)' }
+        style: { display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--text-secondary)' }
       }, [
         el('span', { text: 'Light mode from:' }),
         (() => {
@@ -329,7 +321,7 @@ export function renderAppearanceSection(settings, { renderDrawerContent = () => 
             className: 'input-time',
             value: schedule.lightFrom || '07:00',
             'aria-label': 'Light theme start time',
-            style: { padding: '4px 8px', borderRadius: '4px', border: '1px solid var(--border-subtle)', background: 'var(--bg-surface)', color: 'var(--text-main)', fontSize: '13px' }
+            style: { padding: '4px 8px', borderRadius: '6px', border: '1px solid var(--border-default)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontSize: '13px' }
           });
           input.addEventListener('change', (e) => {
             const val = /** @type {HTMLInputElement} */ (e.target).value;
@@ -344,7 +336,7 @@ export function renderAppearanceSection(settings, { renderDrawerContent = () => 
       ]);
 
       const darkLabel = el('label', {
-        style: { display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--text-subtle)' }
+        style: { display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--text-secondary)' }
       }, [
         el('span', { text: 'Dark mode from:' }),
         (() => {
@@ -353,7 +345,7 @@ export function renderAppearanceSection(settings, { renderDrawerContent = () => 
             className: 'input-time',
             value: schedule.darkFrom || '19:00',
             'aria-label': 'Dark theme start time',
-            style: { padding: '4px 8px', borderRadius: '4px', border: '1px solid var(--border-subtle)', background: 'var(--bg-surface)', color: 'var(--text-main)', fontSize: '13px' }
+            style: { padding: '4px 8px', borderRadius: '6px', border: '1px solid var(--border-default)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontSize: '13px' }
           });
           input.addEventListener('change', (e) => {
             const val = /** @type {HTMLInputElement} */ (e.target).value;
@@ -535,41 +527,20 @@ export function renderAppearanceSection(settings, { renderDrawerContent = () => 
     });
 
     // Angle slider
-    const angleSpan = el('span', { text: `${gradConfig.angle}°`, style: { fontSize: '12px' } });
-    const angleSlider = /** @type {HTMLInputElement} */ (el('input', {
-      type: 'range',
-      min: '0',
-      max: '360',
-      step: '5',
-      value: String(gradConfig.angle),
-      style: { width: '100%' }
-    }));
-    angleSlider.addEventListener('input', () => {
-      const a = parseInt(angleSlider.value, 10);
-      angleSpan.textContent = `${a}°`;
-      updateGrad({ ...gradConfig, angle: a });
+    const angleRow = renderSliderRow({
+      label: 'Angle',
+      valueText: `${gradConfig.angle}°`,
+      min: 0,
+      max: 360,
+      step: 5,
+      value: gradConfig.angle,
+      flat: true,
+      onInput: (val, badge) => {
+        const a = Math.round(val);
+        badge.textContent = `${a}°`;
+        updateGrad({ ...gradConfig, angle: a });
+      }
     });
-
-    const stopsRow = el('div', { style: { display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '8px' } }, [
-      el('div', { style: { display: 'flex', alignItems: 'center', gap: '4px' } }, [
-        el('span', { className: 'setting-desc', text: 'From:' }),
-        fromColor,
-        fromHex
-      ]),
-      el('div', { style: { display: 'flex', alignItems: 'center', gap: '4px' } }, [
-        el('span', { className: 'setting-desc', text: 'To:' }),
-        toColor,
-        toHex
-      ])
-    ]);
-
-    const angleRow = el('div', { style: { display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '10px' } }, [
-      el('div', { style: { display: 'flex', justifyContent: 'space-between' } }, [
-        el('span', { className: 'setting-desc', text: 'Angle' }),
-        angleSpan
-      ]),
-      angleSlider
-    ]);
 
     const gradPills = el('div', { style: { display: 'flex', gap: '6px', flexWrap: 'wrap' } });
     for (const preset of GRADIENT_PRESETS) {
@@ -651,74 +622,52 @@ export function renderAppearanceSection(settings, { renderDrawerContent = () => 
 
     // Auto-readability toggle
     const autoReadability = bgConfig.autoReadability !== false;
-    const autoToggleLabel = el('label', {
-      style: { display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px', cursor: 'pointer', fontSize: '12px' }
-    });
-    const autoCheckbox = /** @type {HTMLInputElement} */ (el('input', {
-      type: 'checkbox',
-      checked: autoReadability
-    }));
-    autoCheckbox.addEventListener('change', () => {
-      store.updateSettings({
-        background: { ...bgConfig, autoReadability: autoCheckbox.checked }
-      });
-      renderDrawerContent();
-    });
-    autoToggleLabel.appendChild(autoCheckbox);
-    autoToggleLabel.appendChild(el('span', { text: 'Auto-readability (adjusts dim from wallpaper brightness)' }));
-    bgDetailGroup.appendChild(autoToggleLabel);
+    bgDetailGroup.appendChild(renderToggleRow(
+      'Auto-readability',
+      'Adjusts background dimming automatically based on wallpaper brightness',
+      autoReadability,
+      (checked) => {
+        store.updateSettings({
+          background: { ...bgConfig, autoReadability: checked }
+        });
+        renderDrawerContent();
+      },
+      { flat: true }
+    ));
 
     // Dimming overlay slider
     const dimValue = typeof bgConfig.dim === 'number' ? bgConfig.dim : 0.35;
-    const dimLabelText = autoReadability ? `Auto (${Math.round(dimValue * 100)}%)` : `${Math.round(dimValue * 100)}%`;
-    const dimPercentSpan = el('span', { text: dimLabelText, style: { fontSize: '12px' } });
-
-    const slider = /** @type {HTMLInputElement} */ (el('input', {
-      type: 'range',
-      min: '0',
-      max: '0.8',
-      step: '0.05',
-      value: String(dimValue),
-      style: { width: '100%' }
-    }));
-
-    slider.addEventListener('input', () => {
-      const val = parseFloat(slider.value);
-      dimPercentSpan.textContent = `${Math.round(val * 100)}%`;
-      store.updateSettings({ background: { ...bgConfig, autoReadability: false, dim: val } });
+    const sliderRow = renderSliderRow({
+      label: 'Dimming Overlay',
+      desc: 'Preserves text contrast over bright wallpapers',
+      valueText: autoReadability ? `Auto (${Math.round(dimValue * 100)}%)` : `${Math.round(dimValue * 100)}%`,
+      min: 0,
+      max: 0.8,
+      step: 0.05,
+      value: dimValue,
+      flat: true,
+      onInput: (val, badge) => {
+        badge.textContent = `${Math.round(val * 100)}%`;
+        store.updateSettings({ background: { ...bgConfig, autoReadability: false, dim: val } });
+      }
     });
-
-    const sliderRow = el('div', { style: { display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '8px' } },
-      el('div', { style: { display: 'flex', justifyContent: 'space-between' } },
-        el('span', { className: 'setting-desc', text: 'Dimming Overlay (preserves contrast)' }),
-        dimPercentSpan
-      ),
-      slider
-    );
 
     // Blur slider (0..20px)
     const blurValue = typeof bgConfig.blur === 'number' ? bgConfig.blur : 0;
-    const blurPxSpan = el('span', { text: `${blurValue}px`, style: { fontSize: '12px' } });
-    const blurSlider = /** @type {HTMLInputElement} */ (el('input', {
-      type: 'range',
-      min: '0',
-      max: '20',
-      step: '1',
-      value: String(blurValue),
-      style: { width: '100%' }
-    }));
-    blurSlider.addEventListener('input', () => {
-      const val = parseInt(blurSlider.value, 10);
-      blurPxSpan.textContent = `${val}px`;
-      store.updateSettings({ background: { ...bgConfig, blur: val } });
+    const blurRow = renderSliderRow({
+      label: 'Wallpaper Blur',
+      valueText: `${blurValue}px`,
+      min: 0,
+      max: 20,
+      step: 1,
+      value: blurValue,
+      flat: true,
+      onInput: (val, badge) => {
+        const px = Math.round(val);
+        badge.textContent = `${px}px`;
+        store.updateSettings({ background: { ...bgConfig, blur: px } });
+      }
     });
-    const blurRow = el('div', { style: { display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '8px' } },
-      el('div', { style: { display: 'flex', justifyContent: 'space-between' } },
-        el('span', { className: 'setting-desc', text: 'Wallpaper Blur' }),
-        blurPxSpan
-      ),
-      blurSlider
-    );
 
     bgDetailGroup.appendChild(sliderRow);
     bgDetailGroup.appendChild(blurRow);
@@ -788,95 +737,70 @@ export function renderAppearanceSection(settings, { renderDrawerContent = () => 
   );
 
   const currentScale = typeof fontConf.scale === 'number' ? fontConf.scale : 1.0;
-  const scalePercentSpan = el('span', { text: `${Math.round(currentScale * 100)}%`, style: { fontSize: '12px' } });
-  const scaleSlider = /** @type {HTMLInputElement} */ (el('input', {
-    type: 'range',
-    min: '0.9',
-    max: '1.3',
-    step: '0.05',
-    value: String(currentScale),
-    style: { width: '100%' }
-  }));
-  scaleSlider.addEventListener('input', () => {
-    const val = Math.round(parseFloat(scaleSlider.value) * 100) / 100;
-    scalePercentSpan.textContent = `${Math.round(val * 100)}%`;
-    store.updateSettings({ font: { ...fontConf, scale: val } });
+  const fontScaleGroup = renderSliderRow({
+    label: 'Text Size Scale',
+    valueText: `${Math.round(currentScale * 100)}%`,
+    min: 0.9,
+    max: 1.3,
+    step: 0.05,
+    value: currentScale,
+    onInput: (val, badge) => {
+      const rounded = Math.round(val * 100) / 100;
+      badge.textContent = `${Math.round(rounded * 100)}%`;
+      store.updateSettings({ font: { ...fontConf, scale: rounded } });
+    }
   });
-
-  const fontScaleGroup = el('div', { className: 'setting-item' },
-    el('div', { style: { display: 'flex', justifyContent: 'space-between', marginBottom: '4px' } },
-      el('span', { className: 'setting-label', text: 'Text Size Scale' }),
-      scalePercentSpan
-    ),
-    scaleSlider
-  );
 
   // 15.5 Glass v2 Material Settings (Blur & Opacity)
   const glassConf = settings.glass || { blur: 16, opacity: 0.62 };
-  const currentBlur = typeof glassConf.blur === 'number' ? glassConf.blur : 16;
+  const rawBlur = typeof glassConf.blur === 'number' ? glassConf.blur : 16;
+  const currentBlur = Math.min(20, Math.max(8, rawBlur));
   const currentGlassOpacity = typeof glassConf.opacity === 'number' ? glassConf.opacity : 0.62;
 
-  const blurValSpan = el('span', { text: `${currentBlur}px`, style: { fontSize: '12px' } });
-  const blurSlider = /** @type {HTMLInputElement} */ (el('input', {
-    type: 'range',
-    min: '8',
-    max: '24',
-    step: '1',
-    value: String(currentBlur),
-    style: { width: '100%' }
-  }));
-  blurSlider.addEventListener('input', () => {
-    const val = parseInt(blurSlider.value, 10);
-    blurValSpan.textContent = `${val}px`;
-    store.updateSettings({ glass: { ...(settings.glass || {}), blur: val } });
+  const opacityRow = renderSliderRow({
+    label: 'Glass Opacity',
+    valueText: `${Math.round(currentGlassOpacity * 100)}%`,
+    min: 0.45,
+    max: 0.90,
+    step: 0.01,
+    value: currentGlassOpacity,
+    flat: true,
+    onInput: (val, badge) => {
+      const rounded = Math.round(val * 100) / 100;
+      badge.textContent = `${Math.round(rounded * 100)}%`;
+      store.updateSettings({ glass: { ...(settings.glass || {}), opacity: rounded } });
+    }
   });
 
-  const opacityValSpan = el('span', { text: `${Math.round(currentGlassOpacity * 100)}%`, style: { fontSize: '12px' } });
-  const opacitySlider = /** @type {HTMLInputElement} */ (el('input', {
-    type: 'range',
-    min: '0.45',
-    max: '0.90',
-    step: '0.01',
-    value: String(currentGlassOpacity),
-    style: { width: '100%' }
-  }));
-  opacitySlider.addEventListener('input', () => {
-    const val = Math.round(parseFloat(opacitySlider.value) * 100) / 100;
-    opacityValSpan.textContent = `${Math.round(val * 100)}%`;
-    store.updateSettings({ glass: { ...(settings.glass || {}), opacity: val } });
+  const blurRowGlass = renderSliderRow({
+    label: 'Backdrop Blur',
+    valueText: `${currentBlur}px`,
+    min: 8,
+    max: 20,
+    step: 1,
+    value: currentBlur,
+    flat: true,
+    onInput: (val, badge) => {
+      const px = Math.round(val);
+      badge.textContent = `${px}px`;
+      store.updateSettings({ glass: { ...(settings.glass || {}), blur: px } });
+    }
   });
 
   const glassGroup = el('div', { className: 'setting-item' },
     el('div', { className: 'setting-item-header' },
-      el('span', { className: 'setting-label', text: 'Frosted Glass Surface' }),
-      el('span', { className: 'setting-desc', text: 'Calm Glass v2 translucency & backdrop blur' })
+      el('div', { className: 'setting-toggle-info' },
+        el('span', { className: 'setting-label', text: 'Frosted Glass Surface' }),
+        el('span', { className: 'setting-desc', text: 'Translucency and backdrop blur over wallpapers' })
+      )
     ),
-    el('div', { style: { display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '6px' } },
-      el('div', { style: { display: 'flex', justifyContent: 'space-between' } },
-        el('span', { className: 'setting-desc', text: 'Glass Opacity (45% – 90%)' }),
-        opacityValSpan
-      ),
-      opacitySlider
-    ),
-    el('div', { style: { display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '10px' } },
-      el('div', { style: { display: 'flex', justifyContent: 'space-between' } },
-        el('span', { className: 'setting-desc', text: 'Backdrop Blur (8px – 24px)' }),
-        blurValSpan
-      ),
-      blurSlider
-    )
+    opacityRow,
+    blurRowGlass
   );
 
   section.appendChild(fontFamilyGroup);
   section.appendChild(fontScaleGroup);
   section.appendChild(glassGroup);
-
-  section.appendChild(el('button', {
-    className: 'btn-secondary section-reset-btn',
-    type: 'button',
-    text: 'Reset Appearance to Defaults',
-    onclick: () => resetSettingsSection('appearance')
-  }));
 
   return section;
 }

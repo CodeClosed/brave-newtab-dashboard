@@ -53,6 +53,22 @@ test('Timer Widget: formatTimer correctly formats minutes and seconds', () => {
   assert.equal(formatTimer(-10), '00:00');
 });
 
+test('Timer Widget: Pomodoro presets, chime and cycle progression', async () => {
+  const { POMODORO_PRESETS, getTotalSecondsForMode, playNotificationChime } = await import('../extension/js/features/timer.js');
+  assert.ok(POMODORO_PRESETS.classic);
+  assert.equal(POMODORO_PRESETS.classic.focus, 25);
+  assert.equal(POMODORO_PRESETS.classic.break, 5);
+  assert.equal(POMODORO_PRESETS.deep.focus, 50);
+  assert.equal(POMODORO_PRESETS.sprint.focus, 15);
+
+  assert.equal(getTotalSecondsForMode(), 25 * 60);
+
+  // Safe call in Node environment without throwing
+  assert.doesNotThrow(() => {
+    playNotificationChime();
+  });
+});
+
 test('Timer Widget: renders correctly when enabled', () => {
   const state = createDefaultDashboardData();
   state.settings.widgets.timer = true;

@@ -522,19 +522,36 @@ export function openBookmarkDialog({ mode, categoryId, bookmark, onSave }) {
 }
 
 /**
- * Opens a pre-import preview modal showing item counts and requiring confirmation.
+ * Formats a byte count into a human-readable file size string.
+ * @param {number} bytes
+ * @returns {string}
+ */
+function formatFileSize(bytes) {
+  if (!Number.isFinite(bytes) || bytes < 0) return '';
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+}
+
+/**
+ * Opens a pre-import preview modal showing file metadata, item counts,
+ * and Replace vs. Merge mode selection before applying changes.
  *
  * @param {object} options
  * @param {{ categoryCount: number, bookmarkCount: number, skippedBookmarksCount?: number }} options.summary
- * @param {() => void} options.onConfirm
+ * @param {{ name?: string, size?: number, format?: string }} [options.fileMeta]
+ * @param {(mode: 'replace' | 'merge') => void} options.onConfirm
  */
-export function openImportPreviewDialog({ summary, onConfirm }) {
+export function openImportPreviewDialog({ summary, fileMeta, onConfirm }) {
   lastActiveElement = /** @type {HTMLElement} */ (document.activeElement);
   const dialog = getDialogElement();
   clearChildren(dialog);
 
+  /** @type {'replace' | 'merge'} */
+  let selectedMode = 'replace';
+
   const header = el('header', { className: 'modal-header' },
-    el('h2', { className: 'modal-title', text: 'Restore Dashboard Backup' }),
+    el('h2', { className: 'modal-title', text: 'Import Dashboard Backup' }),
     el('button', {
       className: 'modal-close-btn',
       type: 'button',
@@ -544,51 +561,42 @@ export function openImportPreviewDialog({ summary, onConfirm }) {
     })
   );
 
-  const body = el('div', { className: 'modal-body', style: { gap: '12px' } },
-    el('p', {
-      text: 'Backup file verified successfully! Here is what will be imported:',
-      style: { fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }
-    }),
-    el('div', {
-      style: {
-        background: 'var(--bg-surface-subtle)',
-        border: '1px solid var(--border-subtle)',
-        borderRadius: 'var(--radius-sm)',
-        padding: '10px 14px',
-        display: 'flex',
-        justifyContent: 'space-around',
-        textAlign: 'center'
-      }
-    },
-      el('div', {},
-        el('div', { text: String(summary.categoryCount), style: { fontSize: '20px', fontWeight: '600' } }),
-        el('div', { text: 'Collections', style: { fontSize: '11px', color: 'var(--text-muted)' } })
-      ),
-      el('div', {},
-        el('div', { text: String(summary.bookmarkCount), style: { fontSize: '20px', fontWeight: '600' } }),
-        el('div', { text: 'Bookmarks', style: { fontSize: '11px', color: 'var(--text-muted)' } })
-      ),
-      summary.skippedBookmarksCount ? el('div', {},
-        el('div', { text: String(summary.skippedBookmarksCount), style: { fontSize: '20px', fontWeight: '600', color: 'var(--color-warning, #f59e0b)' } }),
-        el('div', { text: 'Skipped', style: { fontSize: '11px', color: 'var(--text-muted)' } })
-      ) : null
+  const fileMetaRow = fileMeta?.name
+    ? el('div', { className: 'import-preview-file-meta' },
+        el('span', { className: 'import-preview-filename', text: fileMeta.name, title: fileMeta.name }),
+        fileMeta.format
+          ? el('span', { className: 'import-preview-format-badge', text: fileMeta.format.toUpperCase() })
+          : null,
+        typeof fileMeta.size === 'number'
+          ? el('span', { className: 'import-preview-file-size', text: formatFileSize(fileMeta.size) })
+          : null
+      )
+    : null;
+
+  const skippedCount = summary.skippedBookmarksCount || 0;
+
+  const statsGrid = el('div', { className: 'import-preview-stats' },
+    el('div', { className: 'import-preview-stat' },
+      el('div', { className: 'import-preview-stat-value', text: String(summary.categoryCount) }),
+      el('div', { className: 'import-preview-stat-label', text: 'Collections' })
     ),
-    summary.skippedBookmarksCount ? el('p', {
-      text: `${summary.skippedBookmarksCount} bookmark(s) will be skipped due to invalid or dangerous URLs.`,
-      style: { fontSize: 'var(--text-xs)', color: 'var(--color-warning, #f59e0b)' }
-    }) : null,
-    el('p', {
-      text: 'Note: Restoring will replace your current collections with the backup. You can click Undo if restored by accident.',
-      style: { fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }
-    })
+    el('div', { className: 'import-preview-stat' },
+      el('div', { className: 'import-preview-stat-value', text: String(summary.bookmarkCount) }),
+      el('div', { className: 'import-preview-stat-label', text: 'Bookmarks' })
+    ),
+    el('div', { className: skippedCount > 0 ? 'import-preview-stat is-warning' : 'import-preview-stat' },
+      el('div', { className: 'import-preview-stat-value', text: String(skippedCount) }),
+      el('div', { className: 'import-preview-stat-label', text: 'Skipped' })
+    )
   );
 
-  const cancelBtn = el('button', {
-    className: 'btn-secondary',
-    type: 'button',
-    text: 'Cancel',
-    onclick: () => dialog.close()
-  });
+  const warningBanner = skippedCount > 0
+    ? el('p', {
+        className: 'import-preview-warning',
+        role: 'status',
+        text: `${skippedCount} bookmark(s) will be skipped due to invalid or dangerous URLs.`
+      })
+    : null;
 
   const confirmBtn = el('button', {
     className: 'btn-submit',
@@ -596,8 +604,82 @@ export function openImportPreviewDialog({ summary, onConfirm }) {
     text: 'Restore Backup',
     onclick: () => {
       dialog.close();
-      onConfirm();
+      onConfirm(selectedMode);
     }
+  });
+
+  const replaceRadio = /** @type {HTMLInputElement} */ (el('input', {
+    className: 'import-preview-mode-radio',
+    type: 'radio',
+    name: 'import-mode',
+    value: 'replace',
+    checked: 'checked'
+  }));
+  const mergeRadio = /** @type {HTMLInputElement} */ (el('input', {
+    className: 'import-preview-mode-radio',
+    type: 'radio',
+    name: 'import-mode',
+    value: 'merge'
+  }));
+
+  const replaceCard = el('label', { className: 'import-preview-mode-card is-selected' },
+    replaceRadio,
+    el('div', { className: 'import-preview-mode-content' },
+      el('div', { className: 'import-preview-mode-title', text: 'Replace current dashboard' }),
+      el('div', {
+        className: 'import-preview-mode-desc',
+        text: 'Replaces all collections and settings. A "Before import" snapshot is saved first.'
+      })
+    )
+  );
+
+  const mergeCard = el('label', { className: 'import-preview-mode-card' },
+    mergeRadio,
+    el('div', { className: 'import-preview-mode-content' },
+      el('div', { className: 'import-preview-mode-title', text: 'Merge into existing collections' }),
+      el('div', {
+        className: 'import-preview-mode-desc',
+        text: 'Adds new collections and merges bookmarks into matching ones without erasing your current setup.'
+      })
+    )
+  );
+
+  /**
+   * Updates selected mode UI and confirm button label.
+   * @param {'replace' | 'merge'} mode
+   */
+  function selectMode(mode) {
+    selectedMode = mode;
+    replaceCard.classList.toggle('is-selected', mode === 'replace');
+    mergeCard.classList.toggle('is-selected', mode === 'merge');
+    confirmBtn.textContent = mode === 'replace' ? 'Restore Backup' : 'Merge Backup';
+  }
+
+  replaceRadio.addEventListener('change', () => {
+    if (replaceRadio.checked) selectMode('replace');
+  });
+  mergeRadio.addEventListener('change', () => {
+    if (mergeRadio.checked) selectMode('merge');
+  });
+
+  const modesGroup = el('div', {
+    className: 'import-preview-modes',
+    role: 'radiogroup',
+    'aria-label': 'Import mode'
+  }, replaceCard, mergeCard);
+
+  const body = el('div', { className: 'modal-body import-preview-body' },
+    fileMetaRow,
+    statsGrid,
+    warningBanner,
+    modesGroup
+  );
+
+  const cancelBtn = el('button', {
+    className: 'btn-secondary',
+    type: 'button',
+    text: 'Cancel',
+    onclick: () => dialog.close()
   });
 
   const footer = el('footer', { className: 'modal-footer' }, cancelBtn, confirmBtn);

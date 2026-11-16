@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.3.0] - 2026-11-03
 
 ### Added
+- **Search Bangs System:** Instant direct search redirects (`!yt`, `!gh`, `!w`, `!r`, `!so`, `!m`, `!a`, etc.) with leading/trailing syntax and real-time dropdown suggestion chips.
+- **Pomodoro Focus Timer:** Upgraded countdown timer with 4-round cycle tracking, presets (25/5, 50/10, 15/3), Web Audio chime notification, and browser tab countdown indicator.
+- **Production Packaging & Release Audit Pipeline:** Zero-dependency cross-platform package builder (`npm run package` / `npm run audit`) verifying MV3 manifest, assets, permissions, and generating release ZIP with SHA-256 integrity checksums.
 - **Two-Stage Glass Architecture:** Calm Stage 1 Hero panel with frosted Stage 2 Collections Hub below the fold (`backdrop-filter: blur()`).
 - **Spaces (Context Isolation):** Multi-workspace partitioning across Personal, Work, and Study with `[` and `]` cycling shortcuts.
 - **Omnidirectional Floating App Dock:** Configurable to 5 positions (`bottom`, `top`, `left`, `right`, `off`) with drag-and-drop pinning and intelligent idle auto-hide.

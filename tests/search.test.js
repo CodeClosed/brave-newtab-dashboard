@@ -71,6 +71,46 @@ test('2.1 Search Shortcuts: expands registered shortcut key with URL template', 
   assert.equal(res5, null);
 });
 
+test('2.1 Search Bangs: expands built-in and trailing bang commands (!yt, !gh, !w, !r, !so)', () => {
+  // Built-in leading bangs
+  const ytRes = expandSearchShortcut('!yt lo-fi beats');
+  assert.ok(ytRes);
+  assert.equal(ytRes.matched, true);
+  assert.equal(ytRes.name, 'YouTube');
+  assert.equal(ytRes.url, 'https://www.youtube.com/results?search_query=lo-fi%20beats');
+
+  const ghRes = expandSearchShortcut('!gh antigravity');
+  assert.ok(ghRes);
+  assert.equal(ghRes.name, 'GitHub');
+  assert.equal(ghRes.url, 'https://github.com/search?q=antigravity');
+
+  const wikiRes = expandSearchShortcut('!w quantum physics');
+  assert.ok(wikiRes);
+  assert.equal(wikiRes.name, 'Wikipedia');
+  assert.equal(wikiRes.url, 'https://en.wikipedia.org/wiki/Special:Search?search=quantum%20physics');
+
+  const redditRes = expandSearchShortcut('!r webdev');
+  assert.ok(redditRes);
+  assert.equal(redditRes.name, 'Reddit');
+  assert.equal(redditRes.url, 'https://www.reddit.com/search/?q=webdev');
+
+  const soRes = expandSearchShortcut('!so javascript closure');
+  assert.ok(soRes);
+  assert.equal(soRes.name, 'Stack Overflow');
+  assert.equal(soRes.url, 'https://stackoverflow.com/search?q=javascript%20closure');
+
+  // Trailing bangs (DuckDuckGo style)
+  const trailingYt = expandSearchShortcut('relaxing rain !yt');
+  assert.ok(trailingYt);
+  assert.equal(trailingYt.query, 'relaxing rain');
+  assert.equal(trailingYt.url, 'https://www.youtube.com/results?search_query=relaxing%20rain');
+
+  const trailingGh = expandSearchShortcut('chromium src !gh');
+  assert.ok(trailingGh);
+  assert.equal(trailingGh.query, 'chromium src');
+  assert.equal(trailingGh.url, 'https://github.com/search?q=chromium%20src');
+});
+
 test('2.1 Bookmark Ranking: ranks exact name > prefix > word-prefix > substring name > domain', () => {
   const categories = [
     {

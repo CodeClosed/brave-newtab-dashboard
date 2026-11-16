@@ -21,6 +21,22 @@ dialog {
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
   }
+
+  dialog::backdrop {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
+:root[data-glass="off"] dialog {
+  background: var(--bg-surface);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+:root[data-glass="off"] dialog::backdrop {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 dialog::backdrop {
@@ -200,6 +216,20 @@ dialog::backdrop {
   color: #ffffff;
 }
 
+.btn-danger:hover {
+  background: #b91c1c;
+  border-color: #b91c1c;
+  color: #ffffff;
+  opacity: 1;
+}
+
+.modal-close-btn:focus-visible,
+.btn-secondary:focus-visible,
+.btn-submit:focus-visible {
+  outline: 2px solid var(--accent-base);
+  outline-offset: 2px;
+}
+
 /* Context Menu Popovers (macOS Sonoma / Windows 11 Acrylic) */
 .menu-dropdown {
   position: absolute;
@@ -234,6 +264,12 @@ dialog::backdrop {
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
   }
+}
+
+:root[data-glass="off"] .menu-dropdown {
+  background: var(--bg-surface);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 .menu-item {
@@ -499,4 +535,213 @@ dialog::backdrop {
   height: 16px;
   accent-color: var(--accent-base);
   cursor: pointer;
+}
+
+/* ==========================================================================
+   Import Preview Dialog
+   ========================================================================== */
+
+.import-preview-body {
+  gap: var(--space-3);
+}
+
+.import-preview-file-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: 8px;
+  background: var(--bg-surface-subtle);
+  border: 1px solid var(--border-subtle);
+  min-width: 0;
+}
+
+.import-preview-filename {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  flex: 1;
+}
+
+.import-preview-format-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: var(--accent-tint);
+  color: var(--accent-base);
+  flex-shrink: 0;
+}
+
+.import-preview-file-size {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+.import-preview-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+  gap: var(--space-2);
+}
+
+.import-preview-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 10px var(--space-2);
+  border-radius: 8px;
+  background: var(--bg-surface-subtle);
+  border: 1px solid var(--border-subtle);
+  text-align: center;
+}
+
+.import-preview-stat.is-warning {
+  border-color: rgba(245, 158, 11, 0.35);
+  background: rgba(245, 158, 11, 0.08);
+}
+
+.import-preview-stat-value {
+  font-size: 20px;
+  font-weight: var(--weight-semibold);
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+
+.import-preview-stat.is-warning .import-preview-stat-value {
+  color: #b45309;
+}
+
+:root.dark .import-preview-stat.is-warning .import-preview-stat-value,
+:root[data-theme="dark"] .import-preview-stat.is-warning .import-preview-stat-value {
+  color: #fbbf24;
+}
+
+.import-preview-stat-label {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+
+.import-preview-warning {
+  font-size: 12px;
+  line-height: 1.4;
+  color: #b45309;
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: 8px;
+  padding: var(--space-2) var(--space-3);
+  margin: 0;
+}
+
+:root.dark .import-preview-warning,
+:root[data-theme="dark"] .import-preview-warning {
+  color: #fbbf24;
+}
+
+.import-preview-modes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.import-preview-mode-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px var(--space-3);
+  border-radius: 8px;
+  border: 1px solid var(--border-default);
+  background: var(--bg-surface-subtle);
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background-color var(--transition-fast);
+}
+
+.import-preview-mode-card:hover {
+  border-color: var(--border-focus);
+  background: var(--bg-surface-hover);
+}
+
+.import-preview-mode-card.is-selected {
+  border-color: var(--accent-base);
+  background: var(--accent-tint);
+  box-shadow: 0 0 0 1px var(--accent-base);
+}
+
+.import-preview-mode-card:has(.import-preview-mode-radio:focus-visible) {
+  outline: 2px solid var(--accent-base);
+  outline-offset: 2px;
+}
+
+.import-preview-mode-radio {
+  margin-top: 2px;
+  accent-color: var(--accent-base);
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.import-preview-mode-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.import-preview-mode-title {
+  font-size: 13px;
+  font-weight: var(--weight-medium);
+  color: var(--text-primary);
+}
+
+.import-preview-mode-desc {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.35;
+}
+
+@media (max-width: 480px) {
+  .import-preview-file-meta {
+    flex-wrap: wrap;
+  }
+}
+
+/* Reduced Motion Overrides */
+@media (prefers-reduced-motion: reduce) {
+  .modal-close-btn,
+  .btn-secondary,
+  .btn-submit,
+  .menu-item,
+  .template-card,
+  .import-preview-mode-card {
+    transition: none !important;
+  }
+
+  .template-card:hover {
+    transform: none !important;
+  }
+}
+
+:root[data-motion="reduce"] .modal-close-btn,
+:root[data-motion="reduce"] .btn-secondary,
+:root[data-motion="reduce"] .btn-submit,
+:root[data-motion="reduce"] .menu-item,
+:root[data-motion="reduce"] .template-card,
+:root[data-motion="reduce"] .import-preview-mode-card {
+  transition: none !important;
+}
+
+:root[data-motion="reduce"] .template-card:hover {
+  transform: none !important;
 }
